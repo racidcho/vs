@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(claude mcp:*)",
+      "Bash(npm install:*)",
+      "Bash(npm search:*)",
+      "WebFetch(domain:smithery.ai)",
+      "WebFetch(domain:github.com)",
+      "Bash(git init:*)",
+      "mcp__github__create_repository",
+      "Bash(gh auth:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
