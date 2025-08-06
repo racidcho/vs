@@ -18,7 +18,15 @@
       "Bash(git branch:*)",
       "Bash(git remote add:*)",
       "Bash(git push:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(npm create:*)",
+      "Bash(npx tailwindcss init:*)",
+      "mcp__supabase__apply_migration",
+      "mcp__magic__21st_magic_component_builder",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": []
   }
