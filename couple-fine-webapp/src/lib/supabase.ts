@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
 // 환경변수에서 Supabase 설정 가져오기 (Production fallback 포함)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://wfbrlxlcpvbnwdvopejq.supabase.co';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://uxoelaovlgkdtfssross.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmYnJseGxjcHZibndkdm9wZWpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0OTQ5NzQsImV4cCI6MjA1MTA3MDk3NH0.mBxKdg1Mh7dKx5-VXvT_v3r7vUNzlb2AvKL93NQzKHA';
 
 // 환경변수 상태 확인
