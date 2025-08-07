@@ -1,9 +1,114 @@
-import React from 'react';
-import { Heart, Plus, Edit, Trash2, Sparkles, Star } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, Plus, Edit, Trash2, Sparkles, Star, Save, X } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { toast } from 'react-hot-toast';
+
+interface RuleFormData {
+  type: 'word' | 'behavior';
+  title: string;
+  penalty_amount: number;
+}
 
 export const Rules: React.FC = () => {
-  const { state } = useApp();
+  const { state, createRule, updateRule, deleteRule } = useApp();
+  const [showForm, setShowForm] = useState(false);
+  const [editingRule, setEditingRule] = useState<string | null>(null);
+  const [formData, setFormData] = useState<RuleFormData>({
+    type: 'word',
+    title: '',
+    penalty_amount: 1
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title.trim()) {
+      toast.error('규칙 제목을 입력해주세요');
+      return;
+    }
+    
+    if (formData.penalty_amount < 1 || formData.penalty_amount > 100) {
+      toast.error('벌금은 1만원에서 100만원 사이로 설정해주세요');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      if (editingRule) {
+        // Update existing rule
+        const { error } = await updateRule(editingRule, formData);
+        if (error) {
+          toast.error(`규칙 수정 실패: ${error}`);
+        } else {
+          toast.success('규칙이 수정되었어요! 💝');
+          setEditingRule(null);
+        }
+      } else {
+        // Create new rule
+        const { error } = await createRule(formData);
+        if (error) {
+          toast.error(`규칙 생성 실패: ${error}`);
+        } else {
+          toast.success('새 규칙이 추가되었어요! 💝');
+          setShowForm(false);
+        }
+      }
+      
+      // Reset form
+      setFormData({
+        type: 'word',
+        title: '',
+        penalty_amount: 1
+      });
+    } catch (error) {
+      toast.error('오류가 발생했어요');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle rule deletion
+  const handleDelete = async (ruleId: string, ruleTitle: string) => {
+    if (!window.confirm(`"${ruleTitle}" 규칙을 정말 삭제하시겠어요?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await deleteRule(ruleId);
+      if (error) {
+        toast.error(`규칙 삭제 실패: ${error}`);
+      } else {
+        toast.success('규칙이 삭제되었어요');
+      }
+    } catch (error) {
+      toast.error('삭제 중 오류가 발생했어요');
+    }
+  };
+
+  // Handle edit mode
+  const handleEdit = (rule: any) => {
+    setEditingRule(rule.id);
+    setFormData({
+      type: rule.type,
+      title: rule.title,
+      penalty_amount: rule.penalty_amount
+    });
+    setShowForm(true);
+  };
+
+  // Cancel edit/create
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingRule(null);
+    setFormData({
+      type: 'word',
+      title: '',
+      penalty_amount: 1
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -21,12 +126,119 @@ export const Rules: React.FC = () => {
               사랑하는 사람과 함께 지킬 소중한 규칙들이에요 💝
             </p>
           </div>
-          <button className="bg-gradient-to-r from-pink-400 to-purple-400 text-white px-4 py-2 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">규칙 추가</span>
+          <button 
+            onClick={() => setShowForm(!showForm)}
+            className="bg-gradient-to-r from-pink-400 to-purple-400 text-white px-4 py-2 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+          >
+            {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            <span className="hidden sm:inline">{showForm ? '취소' : '규칙 추가'}</span>
           </button>
         </div>
       </div>
+
+      {/* Rule Form */}
+      {showForm && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">
+            {editingRule ? '규칙 수정하기' : '새 규칙 만들기'} ✨
+          </h3>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Rule Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">규칙 종류</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, type: 'word' }))}
+                  className={`p-3 rounded-xl border-2 transition-all text-left ${
+                    formData.type === 'word'
+                      ? 'border-blue-300 bg-blue-50 text-blue-900'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="font-medium">💬 말 관련</div>
+                  <div className="text-xs text-gray-500">욕설, 거짓말 등</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, type: 'behavior' }))}
+                  className={`p-3 rounded-xl border-2 transition-all text-left ${
+                    formData.type === 'behavior'
+                      ? 'border-green-300 bg-green-50 text-green-900'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="font-medium">🏃 행동 관련</div>
+                  <div className="text-xs text-gray-500">늦기, 약속 어기기 등</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Rule Title */}
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                규칙 이름
+              </label>
+              <input
+                type="text"
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="예: 욕설 금지, 데이트 약속 지키기"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* Penalty Amount */}
+            <div>
+              <label htmlFor="penalty" className="block text-sm font-medium text-gray-700 mb-2">
+                벌금 (만원)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  id="penalty"
+                  min="1"
+                  max="100"
+                  value={formData.penalty_amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, penalty_amount: parseInt(e.target.value) || 1 }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                  disabled={isSubmitting}
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                  <span className="text-gray-500 text-sm">만원</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={isSubmitting || !formData.title.trim()}
+                className="flex-1 bg-gradient-to-r from-pink-400 to-purple-400 text-white py-3 px-4 rounded-xl font-medium shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {isSubmitting ? '저장 중...' : editingRule ? '수정하기' : '만들기'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={isSubmitting}
+                className="px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                취소
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Rules List */}
       {state.rules && state.rules.length > 0 ? (
@@ -73,10 +285,16 @@ export const Rules: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 ml-2">
-                    <button className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => handleEdit(rule)}
+                      className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                    >
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => handleDelete(rule.id, rule.title)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -95,7 +313,10 @@ export const Rules: React.FC = () => {
             서로를 위한 첫 번째 약속을 만들어보세요 🌸<br />
             작은 규칙부터 시작하면 좋아요!
           </p>
-          <button className="bg-gradient-to-r from-pink-400 to-purple-400 text-white px-6 py-3 rounded-xl font-medium shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2">
+          <button 
+            onClick={() => setShowForm(true)}
+            className="bg-gradient-to-r from-pink-400 to-purple-400 text-white px-6 py-3 rounded-xl font-medium shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" />
             첫 규칙 만들기
           </button>

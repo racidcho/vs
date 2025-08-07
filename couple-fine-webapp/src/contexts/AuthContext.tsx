@@ -28,21 +28,18 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // 개발 환경에서 임시 사용자 데이터
-  // const mockUser: User = {
-  //   id: 'mock-user-id',
-  //   email: 'demo@couplefine.com',
-  //   display_name: '데모 사용자',
-  //   couple_id: 'mock-couple-id',
-  //   created_at: new Date().toISOString()
-  // };
-  
-  const [user, setUser] = useState<User | null>(null); // 로그인 화면 보기 위해 null로 설정
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // 로딩 false로 변경
+  const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = async () => {
-    if (session?.user) {
+    if (!session?.user) {
+      setUser(null);
+      return;
+    }
+
+    try {
+      // First try to get existing user
       const { data: userData, error } = await supabase
         .from('users')
         .select('*')
@@ -51,31 +48,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (userData && !error) {
         setUser(userData);
+      } else if (error?.code === 'PGRST116') {
+        // User doesn't exist in our users table, create them
+        const newUser: Omit<User, 'id'> = {
+          email: session.user.email || '',
+          display_name: session.user.user_metadata?.display_name || 
+                       session.user.email?.split('@')[0] || 'User',
+          created_at: new Date().toISOString()
+        };
+
+        const { data: createdUser, error: createError } = await supabase
+          .from('users')
+          .insert({ ...newUser, id: session.user.id })
+          .select()
+          .single();
+
+        if (createdUser && !createError) {
+          setUser(createdUser);
+        } else {
+          console.error('Error creating user:', createError);
+        }
+      } else {
+        console.error('Error fetching user:', error);
       }
+    } catch (error) {
+      console.error('Error in refreshUser:', error);
     }
   };
 
   const signIn = async (email: string) => {
-    // 개발 환경: 아무 이메일이나 입력하면 바로 로그인
+    setIsLoading(true);
+    
     try {
-      // 임시로 바로 로그인 처리
-      const tempUser: User = {
-        id: 'mock-user-id',
-        email: email,
-        display_name: email.split('@')[0],
-        couple_id: 'mock-couple-id',
-        created_at: new Date().toISOString()
-      };
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: window.location.origin
+        }
+      });
       
-      // 잠시 딜레이를 주어 로딩 효과 보여주기
-      await new Promise(resolve => setTimeout(resolve, 500));
+      if (error) {
+        return { error: error.message };
+      }
       
-      // 사용자 설정
-      setUser(tempUser);
-      
-      return {};
+      return { success: true };
     } catch (error) {
+      console.error('SignIn error:', error);
       return { error: 'An unexpected error occurred' };
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -106,21 +128,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session: initialSession } } = await supabase.auth.getSession();
-      setSession(initialSession);
-      
-      if (initialSession?.user) {
-        await refreshUser();
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        setSession(initialSession);
+        
+        if (initialSession?.user) {
+          await refreshUser();
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
 
     getInitialSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_, session) => {
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         
         if (session?.user) {

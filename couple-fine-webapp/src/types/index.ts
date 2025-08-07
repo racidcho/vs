@@ -100,20 +100,145 @@ export interface RewardForm {
   target_amount: number;
 }
 
-// API Response Types
+// (Note: ApiResponse is defined below with enhanced structure)
+
+// Realtime Types
+export type RealtimeEventType = 'INSERT' | 'UPDATE' | 'DELETE';
+
+export interface RealtimeEvent<T = any> {
+  eventType: RealtimeEventType;
+  table: string;
+  new?: T;
+  old?: T;
+  errors?: any;
+}
+
+export interface RealtimeNotification {
+  type: 'violation_added' | 'rule_created' | 'reward_achieved' | 'couple_joined';
+  title: string;
+  message: string;
+  data?: any;
+  timestamp?: string;
+}
+
+export interface PresenceState {
+  user_id: string;
+  online_at: string;
+  status: 'online' | 'away' | 'offline';
+  metadata?: Record<string, any>;
+}
+
+// Database Response Types
+export interface SupabaseResponse<T> {
+  data: T | null;
+  error: any;
+}
+
+export interface SupabaseQueryResponse<T> {
+  data: T[] | null;
+  error: any;
+  count?: number | null;
+}
+
+// Enhanced API Response Types
 export interface ApiResponse<T> {
   data?: T;
   error?: {
     message: string;
     code?: string;
+    details?: any;
+  };
+  meta?: {
+    timestamp: string;
+    request_id?: string;
   };
 }
-
-// Utility Types
-export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
 export interface PaginatedResponse<T> {
   data: T[];
   count: number;
   has_more: boolean;
+  next_offset?: number;
+}
+
+// Dashboard Stats Type
+export interface DashboardStats {
+  totalBalance: number;
+  activeRules: number;
+  thisMonthViolations: number;
+  availableRewards: number;
+  recentActivity: Violation[];
+}
+
+// Subscription Management Types
+export interface SubscriptionCallbacks {
+  onRuleChange?: (rule: Rule, eventType: RealtimeEventType) => void;
+  onViolationChange?: (violation: Violation, eventType: RealtimeEventType) => void;
+  onRewardChange?: (reward: Reward, eventType: RealtimeEventType) => void;
+  onUserChange?: (user: User, eventType: RealtimeEventType) => void;
+  onNotification?: (notification: RealtimeNotification) => void;
+}
+
+export interface RealtimeConnectionState {
+  isConnected: boolean;
+  isReconnecting: boolean;
+  lastConnected?: Date;
+  activeChannels: string[];
+}
+
+// Enhanced Form Types with Validation
+export interface FormValidationResult {
+  isValid: boolean;
+  errors: Record<string, string>;
+}
+
+export interface ValidatedFormData<T> {
+  data: T;
+  validation: FormValidationResult;
+}
+
+// File Upload Types
+export interface FileUploadOptions {
+  maxSize?: number; // bytes
+  allowedTypes?: string[];
+  path?: string;
+}
+
+export interface FileUploadResult {
+  url: string;
+  path: string;
+  size: number;
+  type: string;
+}
+
+// Utility Types
+export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+
+export type AsyncOperationState<T> = {
+  state: LoadingState;
+  data?: T;
+  error?: string;
+};
+
+// Query Options
+export interface QueryOptions {
+  limit?: number;
+  offset?: number;
+  orderBy?: string;
+  orderDirection?: 'asc' | 'desc';
+  filters?: Record<string, any>;
+}
+
+// Storage Types
+export type StorageBucket = 'avatars' | 'attachments';
+
+export interface StorageUploadOptions {
+  bucket: StorageBucket;
+  path: string;
+  file: File;
+  options?: {
+    cacheControl?: string;
+    upsert?: boolean;
+    contentType?: string;
+  };
 }

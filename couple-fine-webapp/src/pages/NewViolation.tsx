@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Save, Sparkles, Heart, Zap, Edit3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const NewViolation: React.FC = () => {
   const navigate = useNavigate();
-  const { state } = useApp();
+  const { state, createViolation } = useApp();
+  const { user } = useAuth();
   
   const [selectedRuleId, setSelectedRuleId] = useState('');
   const [violationType, setViolationType] = useState<'add' | 'subtract'>('add');
@@ -18,6 +20,11 @@ export const NewViolation: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error('사용자 정보를 찾을 수 없어요! 🔐');
+      return;
+    }
     
     if (!selectedRuleId) {
       toast.error('규칙을 선택해주세요! 📝');
@@ -32,14 +39,30 @@ export const NewViolation: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // TODO: Implement violation creation
+      const violationData = {
+        rule_id: selectedRuleId,
+        violator_id: user.id,
+        amount: amount,
+        type: violationType,
+        note: note.trim() || undefined
+      };
+
+      const { error } = await createViolation(violationData);
+      
+      if (error) {
+        toast.error(`기록 저장 실패: ${error}`);
+        return;
+      }
+
       if (violationType === 'add') {
         toast.success(`😅 벌금 ${amount}만원이 추가되었어요!`);
       } else {
         toast.success(`😊 ${amount}만원이 차감되었어요!`);
       }
-      navigate('/');
+      
+      navigate('/', { replace: true });
     } catch (error) {
+      console.error('Violation creation error:', error);
       toast.error('기록 저장에 실패했어요 😢');
     } finally {
       setIsLoading(false);

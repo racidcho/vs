@@ -2,9 +2,11 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { AppState, Couple, Rule, Violation, Reward } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { useRealtime } from '../hooks/useRealtime';
 
 // Action Types
 type AppAction =
+  | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_COUPLE'; payload: Couple | null }
   | { type: 'SET_RULES'; payload: Rule[] }
   | { type: 'ADD_RULE'; payload: Rule }
@@ -19,108 +21,13 @@ type AppAction =
   | { type: 'SET_ONLINE_STATUS'; payload: boolean }
   | { type: 'RESET_STATE' };
 
-// 개발용 임시 데이터
-const mockCouple: Couple = {
-  id: 'mock-couple-id',
-  code: 'LOVE24',
-  theme: 'light',
-  created_at: new Date().toISOString()
-};
-
-const mockRules: Rule[] = [
-  {
-    id: '1',
-    couple_id: 'mock-couple-id',
-    type: 'word',
-    title: '욕설 금지',
-    penalty_amount: 1,
-    created_at: new Date().toISOString(),
-    is_active: true
-  },
-  {
-    id: '2',
-    couple_id: 'mock-couple-id',
-    type: 'behavior',
-    title: '늦게 들어오기',
-    penalty_amount: 3,
-    created_at: new Date().toISOString(),
-    is_active: true
-  },
-  {
-    id: '3',
-    couple_id: 'mock-couple-id',
-    type: 'word',
-    title: '거짓말',
-    penalty_amount: 5,
-    created_at: new Date().toISOString(),
-    is_active: true
-  }
-];
-
-const mockViolations: Violation[] = [
-  {
-    id: '1',
-    rule_id: '1',
-    violator_id: 'mock-user-id',
-    amount: 1,
-    type: 'add',
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    note: '실수로 욕을 했어요'
-  },
-  {
-    id: '2',
-    rule_id: '2',
-    violator_id: 'mock-user-id',
-    amount: 3,
-    type: 'add',
-    created_at: new Date(Date.now() - 172800000).toISOString(),
-    note: '회식 때문에 늦었어요'
-  },
-  {
-    id: '3',
-    rule_id: '1',
-    violator_id: 'mock-user-id',
-    amount: 1,
-    type: 'subtract',
-    created_at: new Date(Date.now() - 259200000).toISOString(),
-    note: '사과했어요'
-  }
-];
-
-const mockRewards: Reward[] = [
-  {
-    id: '1',
-    couple_id: 'mock-couple-id',
-    title: '맛있는 저녁 외식',
-    target_amount: 10,
-    is_claimed: false,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: '2',
-    couple_id: 'mock-couple-id',
-    title: '영화 관람',
-    target_amount: 5,
-    is_claimed: false,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: '3',
-    couple_id: 'mock-couple-id',
-    title: '주말 여행',
-    target_amount: 30,
-    is_claimed: false,
-    created_at: new Date().toISOString()
-  }
-];
-
-// Initial State with mock data
+// Initial State - empty by default
 const initialState: AppState = {
   user: null,
-  couple: mockCouple,
-  rules: mockRules,
-  violations: mockViolations,
-  rewards: mockRewards,
+  couple: null,
+  rules: [],
+  violations: [],
+  rewards: [],
   theme: 'light',
   isOnline: true
 };
@@ -129,10 +36,18 @@ const initialState: AppState = {
 const appReducer = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
     case 'SET_COUPLE':
-      return { ...state, couple: action.payload };
+      return { 
+        ...state, 
+        couple: action.payload,
+        theme: (action.payload?.theme as 'light' | 'dark') || state.theme 
+      };
     case 'SET_RULES':
       return { ...state, rules: action.payload };
     case 'ADD_RULE':
+      // Check if rule already exists to avoid duplicates
+      if (state.rules.some(rule => rule.id === action.payload.id)) {
+        return state;
+      }
       return { ...state, rules: [...state.rules, action.payload] };
     case 'UPDATE_RULE':
       return {
@@ -149,10 +64,18 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'SET_VIOLATIONS':
       return { ...state, violations: action.payload };
     case 'ADD_VIOLATION':
+      // Check if violation already exists to avoid duplicates
+      if (state.violations.some(violation => violation.id === action.payload.id)) {
+        return state;
+      }
       return { ...state, violations: [action.payload, ...state.violations] };
     case 'SET_REWARDS':
       return { ...state, rewards: action.payload };
     case 'ADD_REWARD':
+      // Check if reward already exists to avoid duplicates
+      if (state.rewards.some(reward => reward.id === action.payload.id)) {
+        return state;
+      }
       return { ...state, rewards: [...state.rewards, action.payload] };
     case 'UPDATE_REWARD':
       return {
@@ -166,7 +89,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'SET_ONLINE_STATUS':
       return { ...state, isOnline: action.payload };
     case 'RESET_STATE':
-      return initialState;
+      return { ...initialState, user: state.user };
     default:
       return state;
   }
@@ -175,11 +98,30 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
 interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
-  // Helper functions
+  // Data loading functions
   loadCoupleData: () => Promise<void>;
-  createCouple: () => Promise<{ code: string } | { error: string }>;
-  joinCouple: (code: string) => Promise<{ error?: string }>;
+  refreshData: () => Promise<void>;
+  // Couple management
+  createCouple: (coupleName?: string) => Promise<{ code: string; isNewCouple?: boolean } | { error: string }>;
+  updateCoupleName: (name: string) => Promise<{ error?: string }>;
+  joinCouple: (code: string) => Promise<{ error?: string; success?: boolean }>;
+  leaveCouple: () => Promise<{ error?: string; success?: boolean }>;
+  updateCoupleTheme: (theme: 'light' | 'dark') => Promise<void>;
+  getPartnerInfo: () => Promise<{ partner: any; error?: string } | null>;
+  // Rule management
+  createRule: (rule: Omit<Rule, 'id' | 'couple_id' | 'created_at'>) => Promise<{ error?: string }>;
+  updateRule: (id: string, updates: Partial<Rule>) => Promise<{ error?: string }>;
+  deleteRule: (id: string) => Promise<{ error?: string }>;
+  // Violation management
+  createViolation: (violation: Omit<Violation, 'id' | 'created_at'>) => Promise<{ error?: string }>;
+  // Reward management
+  createReward: (reward: Omit<Reward, 'id' | 'couple_id' | 'created_at'>) => Promise<{ error?: string }>;
+  claimReward: (id: string) => Promise<{ error?: string }>;
+  // Utility functions
   getUserTotalFines: (userId: string) => number;
+  getRewardProgress: (targetAmount: number) => number;
+  isRealtimeConnected: boolean;
+  validateData: () => Promise<{ isValid: boolean; errors: string[] }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -199,90 +141,165 @@ interface AppProviderProps {
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { user, isLoading } = useAuth();
+  
+  // Set up realtime connection
+  const { isConnected: isRealtimeConnected } = useRealtime({ 
+    coupleId: user?.couple_id || '',
+    userId: user?.id || ''
+  });
 
   // Load couple data when user changes
   const loadCoupleData = async () => {
-    if (!user?.couple_id) return;
+    if (!user?.couple_id) {
+      dispatch({ type: 'RESET_STATE' });
+      return;
+    }
 
     try {
-      // Load couple info
-      const { data: coupleData } = await supabase
+      console.log('Loading couple data for:', user.couple_id);
+
+      // Load couple info with partner details
+      const { data: coupleData, error: coupleError } = await supabase
         .from('couples')
-        .select('*')
+        .select(`
+          *,
+          partner_1:profiles!couples_partner_1_id_fkey(*),
+          partner_2:profiles!couples_partner_2_id_fkey(*)
+        `)
         .eq('id', user.couple_id)
         .single();
 
+      if (coupleError) {
+        console.error('Error loading couple:', coupleError);
+        return;
+      }
+
       if (coupleData) {
-        dispatch({ type: 'SET_COUPLE', payload: coupleData });
+        // Transform the data to match existing Couple interface
+        const transformedCouple = {
+          id: coupleData.id,
+          code: coupleData.couple_code,
+          theme: 'light', // Default theme, you might want to add this to DB
+          created_at: coupleData.created_at,
+          // Additional fields for internal use
+          couple_name: coupleData.couple_name,
+          total_balance: coupleData.total_balance,
+          partner_1: coupleData.partner_1,
+          partner_2: coupleData.partner_2
+        };
+        dispatch({ type: 'SET_COUPLE', payload: transformedCouple as any });
       }
 
       // Load rules
-      const { data: rulesData } = await supabase
+      const { data: rulesData, error: rulesError } = await supabase
         .from('rules')
         .select('*')
         .eq('couple_id', user.couple_id)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (rulesData) {
-        dispatch({ type: 'SET_RULES', payload: rulesData });
+      if (rulesError) {
+        console.error('Error loading rules:', rulesError);
+      } else {
+        dispatch({ type: 'SET_RULES', payload: rulesData || [] });
       }
 
       // Load violations with relations
-      const { data: violationsData } = await supabase
+      const { data: violationsData, error: violationsError } = await supabase
         .from('violations')
         .select(`
           *,
           rule:rules(*),
-          violator:users!violations_violator_id_fkey(*),
-          partner:users!violations_partner_id_fkey(*)
+          violator:profiles!violations_violator_user_id_fkey(*),
+          recorded_by:profiles!violations_recorded_by_user_id_fkey(*)
         `)
-        .eq('rule.couple_id', user.couple_id)
+        .eq('couple_id', user.couple_id)
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (violationsData) {
-        dispatch({ type: 'SET_VIOLATIONS', payload: violationsData as any });
+      if (violationsError) {
+        console.error('Error loading violations:', violationsError);
+      } else {
+        dispatch({ type: 'SET_VIOLATIONS', payload: violationsData as any || [] });
       }
 
       // Load rewards
-      const { data: rewardsData } = await supabase
+      const { data: rewardsData, error: rewardsError } = await supabase
         .from('rewards')
         .select('*')
         .eq('couple_id', user.couple_id)
         .order('created_at', { ascending: false });
 
-      if (rewardsData) {
-        dispatch({ type: 'SET_REWARDS', payload: rewardsData });
+      if (rewardsError) {
+        console.error('Error loading rewards:', rewardsError);
+      } else {
+        dispatch({ type: 'SET_REWARDS', payload: rewardsData || [] });
       }
     } catch (error) {
       console.error('Error loading couple data:', error);
     }
   };
 
+  // Refresh all data
+  const refreshData = async () => {
+    await loadCoupleData();
+  };
+
   // Create new couple
-  const createCouple = async () => {
+  const createCouple = async (coupleName = '우리') => {
     if (!user) return { error: 'User not found' };
 
+    // Check if user already has a couple
+    if (user.couple_id) {
+      return { error: '이미 커플이 연결되어 있어요. 먼저 기존 커플 연결을 해제해주세요 💔' };
+    }
+
     try {
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      // Generate unique couple code using DB function
+      const { data: codeData, error: codeError } = await supabase
+        .rpc('generate_couple_code');
       
-      const { data, error } = await supabase
+      if (codeError || !codeData) {
+        return { error: 'Failed to generate couple code' };
+      }
+
+      // Create couple record
+      const { data: coupleData, error: coupleError } = await supabase
         .from('couples')
-        .insert({ code, theme: 'light' })
+        .insert({
+          couple_code: codeData,
+          partner_1_id: user.id,
+          couple_name: coupleName,
+          total_balance: 0,
+          is_active: true
+        })
         .select()
         .single();
 
-      if (error) return { error: error.message };
+      if (coupleError) return { error: coupleError.message };
 
-      // Update user with couple_id
-      await supabase
-        .from('users')
-        .update({ couple_id: data.id })
+      // Update user profile with couple_id
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ couple_id: coupleData.id })
         .eq('id', user.id);
 
-      return { code: data.code };
+      if (profileError) return { error: profileError.message };
+
+      // Create default rules and rewards using DB functions
+      await supabase.rpc('create_default_rules', {
+        p_couple_id: coupleData.id,
+        p_user_id: user.id
+      });
+      
+      await supabase.rpc('create_default_rewards', {
+        p_couple_id: coupleData.id,
+        p_user_id: user.id
+      });
+
+      return { code: coupleData.couple_code, isNewCouple: true };
     } catch (error) {
+      console.error('Create couple error:', error);
       return { error: 'Failed to create couple' };
     }
   };
@@ -291,30 +308,306 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const joinCouple = async (code: string) => {
     if (!user) return { error: 'User not found' };
 
+    // Check if user already has a couple
+    if (user.couple_id) {
+      return { error: 'You are already part of a couple. Please leave your current couple first.' };
+    }
+
     try {
-      const { data: coupleData, error } = await supabase
+      // Find couple by code
+      const { data: coupleData, error: coupleError } = await supabase
         .from('couples')
         .select('*')
-        .eq('code', code.toUpperCase())
+        .eq('couple_code', code.toUpperCase())
+        .eq('is_active', true)
         .single();
 
-      if (error || !coupleData) {
-        return { error: 'Invalid couple code' };
+      if (coupleError || !coupleData) {
+        return { error: '유효하지 않은 커플 코드이거나 커플을 찾을 수 없어요 😢' };
       }
 
-      // Update user with couple_id
-      const { error: updateError } = await supabase
-        .from('users')
+      // Check if couple already has both partners
+      if (coupleData.partner_1_id && coupleData.partner_2_id) {
+        return { error: '이 커플은 이미 두 명이 연결되어 있어요 👫' };
+      }
+
+      // Check if user is not already the first partner
+      if (coupleData.partner_1_id === user.id) {
+        return { error: '자신이 만든 커플에는 참여할 수 없어요 😅' };
+      }
+
+      // Update couple with second partner
+      const { error: updateCoupleError } = await supabase
+        .from('couples')
+        .update({ partner_2_id: user.id })
+        .eq('id', coupleData.id);
+
+      if (updateCoupleError) {
+        return { error: updateCoupleError.message };
+      }
+
+      // Update user profile with couple_id
+      const { error: profileError } = await supabase
+        .from('profiles')
         .update({ couple_id: coupleData.id })
         .eq('id', user.id);
 
-      if (updateError) {
-        return { error: updateError.message };
+      if (profileError) {
+        return { error: profileError.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Join couple error:', error);
+      return { error: 'Failed to join couple' };
+    }
+  };
+
+  // Leave couple (disconnect)
+  const leaveCouple = async () => {
+    if (!user?.couple_id) return { error: 'No couple to leave' };
+
+    try {
+      // Get couple data to determine which partner is leaving
+      const { data: coupleData, error: coupleError } = await supabase
+        .from('couples')
+        .select('*')
+        .eq('id', user.couple_id)
+        .single();
+
+      if (coupleError || !coupleData) {
+        return { error: 'Couple not found' };
+      }
+
+      // If this user is partner_1 and there's a partner_2, make partner_2 the new partner_1
+      if (coupleData.partner_1_id === user.id && coupleData.partner_2_id) {
+        await supabase
+          .from('couples')
+          .update({
+            partner_1_id: coupleData.partner_2_id,
+            partner_2_id: null
+          })
+          .eq('id', user.couple_id);
+      }
+      // If this user is partner_2, just remove them
+      else if (coupleData.partner_2_id === user.id) {
+        await supabase
+          .from('couples')
+          .update({ partner_2_id: null })
+          .eq('id', user.couple_id);
+      }
+      // If this user is the only partner, deactivate the couple
+      else {
+        await supabase
+          .from('couples')
+          .update({ is_active: false })
+          .eq('id', user.couple_id);
+      }
+
+      // Remove couple_id from user profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ couple_id: null })
+        .eq('id', user.id);
+
+      if (profileError) {
+        return { error: profileError.message };
+      }
+
+      // Reset local state
+      dispatch({ type: 'RESET_STATE' });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Leave couple error:', error);
+      return { error: 'Failed to leave couple' };
+    }
+  };
+
+  // Get partner information
+  const getPartnerInfo = async (): Promise<{ partner: any; error?: string } | null> => {
+    if (!user?.couple_id) return null;
+
+    try {
+      const { data: coupleData, error: coupleError } = await supabase
+        .from('couples')
+        .select(`
+          *,
+          partner_1:profiles!couples_partner_1_id_fkey(*),
+          partner_2:profiles!couples_partner_2_id_fkey(*)
+        `)
+        .eq('id', user.couple_id)
+        .single();
+
+      if (coupleError || !coupleData) {
+        return { partner: null, error: 'Couple not found' };
+      }
+
+      // Return the partner (the one who is not the current user)
+      const partner = coupleData.partner_1_id === user.id 
+        ? coupleData.partner_2 
+        : coupleData.partner_1;
+
+      return { partner };
+    } catch (error) {
+      console.error('Get partner info error:', error);
+      return { partner: null, error: 'Failed to get partner info' };
+    }
+  };
+
+  // Update couple theme
+  const updateCoupleTheme = async (theme: 'light' | 'dark') => {
+    if (!user?.couple_id) return;
+
+    try {
+      const { error } = await supabase
+        .from('couples')
+        .update({ theme })
+        .eq('id', user.couple_id);
+
+      if (error) {
+        console.error('Error updating theme:', error);
+      }
+    } catch (error) {
+      console.error('Error updating theme:', error);
+    }
+  };
+
+  // Update couple name
+  const updateCoupleName = async (name: string) => {
+    if (!user?.couple_id) return { error: 'No couple found' };
+
+    try {
+      const { error } = await supabase
+        .from('couples')
+        .update({ couple_name: name.trim() })
+        .eq('id', user.couple_id);
+
+      if (error) return { error: error.message };
+
+      // Update local state
+      if (state.couple) {
+        dispatch({ 
+          type: 'SET_COUPLE', 
+          payload: { ...state.couple, couple_name: name.trim() } as any 
+        });
       }
 
       return {};
     } catch (error) {
-      return { error: 'Failed to join couple' };
+      return { error: 'Failed to update couple name' };
+    }
+  };
+
+  // Create rule
+  const createRule = async (rule: Omit<Rule, 'id' | 'couple_id' | 'created_at'>) => {
+    if (!user?.couple_id) return { error: 'No couple found' };
+
+    try {
+      const { error } = await supabase
+        .from('rules')
+        .insert({
+          ...rule,
+          couple_id: user.couple_id,
+          created_by: user.id,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) return { error: error.message };
+
+      return {};
+    } catch (error) {
+      return { error: 'Failed to create rule' };
+    }
+  };
+
+  // Update rule
+  const updateRule = async (id: string, updates: Partial<Rule>) => {
+    try {
+      const { error } = await supabase
+        .from('rules')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) return { error: error.message };
+
+      return {};
+    } catch (error) {
+      return { error: 'Failed to update rule' };
+    }
+  };
+
+  // Delete rule
+  const deleteRule = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('rules')
+        .update({ is_active: false })
+        .eq('id', id);
+
+      if (error) return { error: error.message };
+
+      return {};
+    } catch (error) {
+      return { error: 'Failed to delete rule' };
+    }
+  };
+
+  // Create violation
+  const createViolation = async (violation: Omit<Violation, 'id' | 'created_at'>) => {
+    try {
+      const { error } = await supabase
+        .from('violations')
+        .insert(violation)
+        .select()
+        .single();
+
+      if (error) return { error: error.message };
+
+      return {};
+    } catch (error) {
+      return { error: 'Failed to create violation' };
+    }
+  };
+
+  // Create reward
+  const createReward = async (reward: Omit<Reward, 'id' | 'couple_id' | 'created_at'>) => {
+    if (!user?.couple_id) return { error: 'No couple found' };
+
+    try {
+      const { error } = await supabase
+        .from('rewards')
+        .insert({
+          ...reward,
+          couple_id: user.couple_id,
+          is_claimed: false
+        })
+        .select()
+        .single();
+
+      if (error) return { error: error.message };
+
+      return {};
+    } catch (error) {
+      return { error: 'Failed to create reward' };
+    }
+  };
+
+  // Claim reward
+  const claimReward = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('rewards')
+        .update({ is_claimed: true })
+        .eq('id', id);
+
+      if (error) return { error: error.message };
+
+      return {};
+    } catch (error) {
+      return { error: 'Failed to claim reward' };
     }
   };
 
@@ -329,6 +622,76 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }, 0);
   };
 
+  // Get reward progress (total fines / target amount)
+  const getRewardProgress = (targetAmount: number): number => {
+    if (!user) return 0;
+    const totalFines = getUserTotalFines(user.id);
+    return Math.min((totalFines / targetAmount) * 100, 100);
+  };
+
+  // Validate data integrity
+  const validateData = async (): Promise<{ isValid: boolean; errors: string[] }> => {
+    const errors: string[] = [];
+
+    if (!user?.couple_id) {
+      errors.push('사용자 커플 정보가 없습니다.');
+      return { isValid: false, errors };
+    }
+
+    try {
+      // Validate couple data
+      if (state.couple) {
+        const { data: dbCouple, error: coupleError } = await supabase
+          .from('couples')
+          .select('*')
+          .eq('id', user.couple_id)
+          .single();
+
+        if (coupleError || !dbCouple) {
+          errors.push('커플 데이터를 서버에서 찾을 수 없습니다.');
+        } else {
+          // Check if local data matches server data
+          if (state.couple.code !== dbCouple.couple_code) {
+            errors.push('커플 코드가 서버와 일치하지 않습니다.');
+          }
+          
+          if ((state.couple as any)?.total_balance !== dbCouple.total_balance) {
+            errors.push('벌금 총액이 서버와 일치하지 않습니다.');
+          }
+        }
+      }
+
+      // Validate violations total against couple balance
+      const calculatedTotal = state.violations
+        .filter(v => v.rule?.couple_id === user.couple_id)
+        .reduce((total, violation) => total + violation.amount, 0);
+
+      const coupleBalance = (state.couple as any)?.total_balance || 0;
+      if (Math.abs(calculatedTotal - coupleBalance) > 0.01) {
+        errors.push(`계산된 벌금 총액(${calculatedTotal})이 커플 잔액(${coupleBalance})과 일치하지 않습니다.`);
+      }
+
+      // Validate active rules
+      const inactiveRules = state.rules.filter(rule => !rule.is_active);
+      if (inactiveRules.length > 0) {
+        errors.push(`${inactiveRules.length}개의 비활성 규칙이 활성 목록에 포함되어 있습니다.`);
+      }
+
+      // Check for duplicate violations
+      const violationIds = state.violations.map(v => v.id);
+      const uniqueIds = new Set(violationIds);
+      if (violationIds.length !== uniqueIds.size) {
+        errors.push('중복된 위반 기록이 감지되었습니다.');
+      }
+
+      return { isValid: errors.length === 0, errors };
+    } catch (error) {
+      console.error('Data validation error:', error);
+      errors.push('데이터 검증 중 오류가 발생했습니다.');
+      return { isValid: false, errors };
+    }
+  };
+
   // Load data when user changes
   useEffect(() => {
     if (user && !isLoading) {
@@ -340,11 +703,114 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [user, isLoading]);
 
+  // Real-time subscriptions
+  useEffect(() => {
+    if (!user?.couple_id) return;
+
+    console.log('Setting up real-time subscriptions for couple:', user.couple_id);
+
+    // Subscribe to couples changes
+    const coupleChannel = supabase
+      .channel(`couple-${user.couple_id}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'couples',
+          filter: `id=eq.${user.couple_id}`
+        },
+        (payload) => {
+          console.log('Couple changed:', payload);
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const transformedCouple = {
+              id: payload.new.id,
+              code: payload.new.couple_code,
+              theme: 'light',
+              created_at: payload.new.created_at,
+              couple_name: payload.new.couple_name,
+              total_balance: payload.new.total_balance,
+            };
+            dispatch({ type: 'SET_COUPLE', payload: transformedCouple as any });
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to rules changes
+    const rulesChannel = supabase
+      .channel(`rules-${user.couple_id}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'rules',
+          filter: `couple_id=eq.${user.couple_id}`
+        },
+        (payload) => {
+          console.log('Rules changed:', payload);
+          // Reload rules data
+          refreshData();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to violations changes
+    const violationsChannel = supabase
+      .channel(`violations-${user.couple_id}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'violations',
+          filter: `couple_id=eq.${user.couple_id}`
+        },
+        (payload) => {
+          console.log('Violations changed:', payload);
+          // Reload violations data
+          refreshData();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to rewards changes
+    const rewardsChannel = supabase
+      .channel(`rewards-${user.couple_id}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'rewards',
+          filter: `couple_id=eq.${user.couple_id}`
+        },
+        (payload) => {
+          console.log('Rewards changed:', payload);
+          // Reload rewards data
+          refreshData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up real-time subscriptions');
+      supabase.removeChannel(coupleChannel);
+      supabase.removeChannel(rulesChannel);
+      supabase.removeChannel(violationsChannel);
+      supabase.removeChannel(rewardsChannel);
+    };
+  }, [user?.couple_id, refreshData]);
+
   // Online/offline status
   useEffect(() => {
     const updateOnlineStatus = () => {
       dispatch({ type: 'SET_ONLINE_STATUS', payload: navigator.onLine });
     };
+
+    // Set initial status
+    updateOnlineStatus();
 
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
@@ -355,13 +821,40 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     };
   }, []);
 
+  // Update theme when couple theme changes
+  useEffect(() => {
+    if (state.couple?.theme && state.couple.theme !== state.theme) {
+      dispatch({ type: 'SET_THEME', payload: state.couple.theme as 'light' | 'dark' });
+    }
+  }, [state.couple?.theme, state.theme]);
+
   const value: AppContextType = {
     state: { ...state, user },
     dispatch,
+    // Data loading functions
     loadCoupleData,
+    refreshData,
+    // Couple management
     createCouple,
     joinCouple,
-    getUserTotalFines
+    leaveCouple,
+    updateCoupleTheme,
+    updateCoupleName,
+    getPartnerInfo,
+    // Rule management
+    createRule,
+    updateRule,
+    deleteRule,
+    // Violation management
+    createViolation,
+    // Reward management
+    createReward,
+    claimReward,
+    // Utility functions
+    getUserTotalFines,
+    getRewardProgress,
+    validateData,
+    isRealtimeConnected: isRealtimeConnected || false
   };
 
   return (

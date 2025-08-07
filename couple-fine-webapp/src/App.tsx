@@ -10,6 +10,9 @@ import { AppProvider } from './contexts/AppContext';
 import { ProtectedRoute, RequireCouple } from './components/auth/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { LoginForm } from './components/auth/LoginForm';
+import { PinLockScreen } from './components/auth/PinLockScreen';
+import { RealtimeStatus } from './components/RealtimeStatus';
+import { useAppLock } from './hooks/useAppLock';
 
 // Pages (placeholders for now)
 import { Dashboard } from './pages/Dashboard';
@@ -22,6 +25,14 @@ import { Settings } from './pages/Settings';
 
 // Router content component that can use hooks
 const RouterContent: React.FC = () => {
+  const { user } = useAuth();
+  const { isLocked, hasPin } = useAppLock();
+  
+  // Show PIN lock screen if user is logged in, has PIN set, and app is locked
+  if (user && hasPin && isLocked) {
+    return <PinLockScreen onUnlock={() => {}} />;
+  }
+  
   return (
     <div className="App">
       <Toaster 
@@ -69,6 +80,7 @@ const RouterContent: React.FC = () => {
         {/* Catch all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <RealtimeStatus />
     </div>
   );
 };
