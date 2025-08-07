@@ -38,6 +38,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
+    // CRITICAL: Only refresh user if email is confirmed
+    if (!session.user.email_confirmed_at) {
+      console.warn('⚠️ Refusing to create user - email not confirmed');
+      setUser(null);
+      setSession(null);
+      return;
+    }
+
     try {
       // First try to get existing user
       const { data: userData, error } = await supabase
@@ -50,6 +58,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(userData);
       } else if (error?.code === 'PGRST116') {
         // User doesn't exist in our users table, create them
+        // BUT ONLY IF EMAIL IS CONFIRMED
+        if (!session.user.email_confirmed_at) {
+          console.error('❌ Cannot create user without email confirmation');
+          setUser(null);
+          return;
+        }
+
         const newUser: Omit<User, 'id'> = {
           email: session.user.email || '',
           display_name: session.user.user_metadata?.display_name || 
@@ -73,6 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Error in refreshUser:', error);
+      setUser(null);
     }
   };
 
