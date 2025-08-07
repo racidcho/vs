@@ -1,29 +1,44 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
-// 🔧 프로덕션 환경 변수 fallback 시스템 - CRUD 문제 완전 해결
-const PROD_SUPABASE_URL = 'https://ywocrwjzjheupewfxssu.supabase.co';
-const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b2Nyd2p6amhldXBld2Z4c3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NDkyNzIsImV4cCI6MjA3MDEyNTI3Mn0.-zJYOl8UfL-FdVGXNm-ZlgxWQu-uxvOa_Hge1WUDuOo';
-
-// 스마트 환경 변수 감지 및 fallback
+// 환경 변수에서 Supabase 설정 가져오기
 const getSupabaseConfig = () => {
   const envUrl = import.meta.env.VITE_SUPABASE_URL;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
-  // 환경 변수가 있고 유효한 경우 사용
-  if (envUrl && envKey && envUrl.includes('.supabase.co') && envKey.length > 100) {
-    return { url: envUrl, key: envKey, source: 'environment' };
+  // 환경 변수 검증
+  if (!envUrl || !envKey) {
+    console.error('⚠️ Supabase 환경 변수가 설정되지 않았습니다.');
+    throw new Error('Supabase configuration is missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
   }
   
-  // fallback to hardcoded values
-  return { url: PROD_SUPABASE_URL, key: PROD_SUPABASE_ANON_KEY, source: 'fallback' };
+  if (!envUrl.includes('.supabase.co')) {
+    console.error('⚠️ 잘못된 Supabase URL:', envUrl);
+    throw new Error('Invalid Supabase URL');
+  }
+  
+  if (envKey.length < 100) {
+    console.error('⚠️ 잘못된 Supabase Anon Key');
+    throw new Error('Invalid Supabase Anon Key');
+  }
+  
+  console.log('✅ Supabase 환경 변수 로드 성공');
+  return { url: envUrl, key: envKey, source: 'environment' };
 };
 
 const config = getSupabaseConfig();
 
-
 const finalUrl = config.url;
 const finalKey = config.key;
+
+// 디버깅용 로그 (프로덕션에서는 제거 권장)
+if (import.meta.env.DEV) {
+  console.log('🔧 Supabase Config:', {
+    url: finalUrl,
+    keyPreview: finalKey.substring(finalKey.length - 10),
+    source: config.source
+  });
+}
 
 // TypeScript 지원과 함께 Supabase 클라이언트 생성
 export const supabase = createClient<Database>(finalUrl, finalKey, {

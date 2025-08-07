@@ -149,12 +149,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Load couple data when user changes
   const loadCoupleData = async () => {
+    console.log('🔄 APPCONTEXT: loadCoupleData 시작');
+    console.log('👤 APPCONTEXT: 현재 사용자 정보:', {
+      id: user?.id,
+      email: user?.email,
+      display_name: user?.display_name,
+      couple_id: user?.couple_id,
+      created_at: user?.created_at
+    });
+
     if (!user?.couple_id) {
+      console.log('❌ APPCONTEXT: 사용자에게 커플 ID가 없음 - 상태 리셋');
       dispatch({ type: 'RESET_STATE' });
       return;
     }
 
+    console.log('🏁 APPCONTEXT: 커플 데이터 로드 시작, 커플 ID:', user.couple_id);
+
     try {
+      console.log('📊 APPCONTEXT: 커플 정보 쿼리 시작...');
 
       // Load couple info with partner details
       const { data: coupleData, error: coupleError } = await supabase
@@ -167,11 +180,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .eq('id', user.couple_id)
         .single();
 
+      console.log('💑 APPCONTEXT: 커플 데이터 쿼리 결과:', {
+        data: coupleData,
+        error: coupleError
+      });
+
       if (coupleError) {
+        console.log('❌ APPCONTEXT: 커플 데이터 로드 실패:', coupleError);
         return;
       }
 
       if (coupleData) {
+        console.log('📝 APPCONTEXT: 커플 데이터 변환 중...');
+        console.log('🔍 APPCONTEXT: 원본 커플 데이터:', coupleData);
+        
         // Transform the data to match existing Couple interface
         const transformedCouple = {
           id: coupleData.id,
@@ -184,8 +206,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           partner_1: coupleData.partner_1,
           partner_2: coupleData.partner_2
         };
+        
+        console.log('✅ APPCONTEXT: 변환된 커플 데이터:', transformedCouple);
+        console.log('📦 APPCONTEXT: 커플 상태 업데이트 중...');
         dispatch({ type: 'SET_COUPLE', payload: transformedCouple as any });
+        console.log('✅ APPCONTEXT: 커플 상태 업데이트 완료');
       }
+
+      console.log('📋 APPCONTEXT: 규칙 데이터 로드 시작...');
 
       // Load rules
       const { data: rulesData, error: rulesError } = await supabase
@@ -195,10 +223,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
+      console.log('📋 APPCONTEXT: 규칙 데이터 쿼리 결과:', {
+        count: rulesData?.length || 0,
+        data: rulesData,
+        error: rulesError
+      });
+
       if (rulesError) {
+        console.log('❌ APPCONTEXT: 규칙 데이터 로드 실패:', rulesError);
       } else {
+        console.log('✅ APPCONTEXT: 규칙 상태 업데이트 중...');
         dispatch({ type: 'SET_RULES', payload: rulesData || [] });
+        console.log('✅ APPCONTEXT: 규칙 상태 업데이트 완료');
       }
+
+      console.log('⚠️ APPCONTEXT: 위반 기록 데이터 로드 시작...');
 
       // Load violations with relations
       const { data: violationsData, error: violationsError } = await supabase
@@ -213,10 +252,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .order('created_at', { ascending: false })
         .limit(50);
 
+      console.log('⚠️ APPCONTEXT: 위반 기록 쿼리 결과:', {
+        count: violationsData?.length || 0,
+        data: violationsData,
+        error: violationsError
+      });
+
       if (violationsError) {
+        console.log('❌ APPCONTEXT: 위반 기록 로드 실패:', violationsError);
       } else {
+        console.log('✅ APPCONTEXT: 위반 기록 상태 업데이트 중...');
         dispatch({ type: 'SET_VIOLATIONS', payload: violationsData as any || [] });
+        console.log('✅ APPCONTEXT: 위반 기록 상태 업데이트 완료');
       }
+
+      console.log('🎁 APPCONTEXT: 보상 데이터 로드 시작...');
 
       // Load rewards
       const { data: rewardsData, error: rewardsError } = await supabase
@@ -225,17 +275,31 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .eq('couple_id', user.couple_id)
         .order('created_at', { ascending: false });
 
+      console.log('🎁 APPCONTEXT: 보상 데이터 쿼리 결과:', {
+        count: rewardsData?.length || 0,
+        data: rewardsData,
+        error: rewardsError
+      });
+
       if (rewardsError) {
+        console.log('❌ APPCONTEXT: 보상 데이터 로드 실패:', rewardsError);
       } else {
+        console.log('✅ APPCONTEXT: 보상 상태 업데이트 중...');
         dispatch({ type: 'SET_REWARDS', payload: rewardsData || [] });
+        console.log('✅ APPCONTEXT: 보상 상태 업데이트 완료');
       }
+
+      console.log('🎉 APPCONTEXT: loadCoupleData 완료');
     } catch (error) {
+      console.log('💥 APPCONTEXT: loadCoupleData 예외 발생:', error);
     }
   };
 
   // Refresh all data
   const refreshData = async () => {
+    console.log('🔄 APPCONTEXT: refreshData 호출 - 모든 데이터 새로고침');
     await loadCoupleData();
+    console.log('✅ APPCONTEXT: refreshData 완료');
   };
 
   // Create new couple
@@ -710,12 +774,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Load data when user changes
   useEffect(() => {
+    console.log('🔧 APPCONTEXT: useEffect 트리거 - 사용자 변경 감지');
+    console.log('👤 APPCONTEXT: 사용자 상태:', {
+      user: user ? {
+        id: user.id,
+        email: user.email,
+        display_name: user.display_name,
+        couple_id: user.couple_id
+      } : null,
+      isLoading: isLoading
+    });
+
     if (user && !isLoading) {
+      console.log('✅ APPCONTEXT: 사용자 로드 완료, 커플 데이터 확인 중...');
       if (user.couple_id) {
+        console.log('🚀 APPCONTEXT: 커플 ID 존재 - loadCoupleData 호출');
         loadCoupleData();
       } else {
+        console.log('🧹 APPCONTEXT: 커플 ID 없음 - 상태 리셋');
         dispatch({ type: 'RESET_STATE' });
       }
+    } else {
+      console.log('⏳ APPCONTEXT: 사용자 로딩 중이거나 사용자 없음 - 대기');
     }
   }, [user, isLoading]);
 
