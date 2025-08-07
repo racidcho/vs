@@ -1,24 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
-// 환경변수 검증 및 설정
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Production에서 환경변수가 작동하지 않아 하드코딩된 값 사용
+const supabaseUrl = 'https://wfbrlxlcpvbnwdvopejq.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmYnJseGxjcHZibndkdm9wZWpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0OTQ5NzQsImV4cCI6MjA1MTA3MDk3NH0.mBxKdg1Mh7dKx5-VXvT_v3r7vUNzlb2AvKL93NQzKHA';
 
-// Production 환경에서는 환경변수가 필수
-if (import.meta.env.PROD && (!supabaseUrl || !supabaseAnonKey)) {
-  throw new Error('❌ Supabase environment variables are required in production');
+// 환경변수 상태 확인 (디버깅용)
+if (import.meta.env.MODE === 'development') {
+  console.log('🔐 Using Supabase configuration');
 }
 
-// 개발 환경에서 환경변수가 없을 때 경고
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ Supabase environment variables are missing. Using placeholder values for development.');
-  console.warn('📝 Please create a .env file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
-}
-
-// 안전한 기본값 설정
-const finalUrl = supabaseUrl || 'https://placeholder.supabase.co';
-const finalKey = supabaseAnonKey || 'placeholder-key';
+// 안전한 기본값 설정 (실제 Supabase 프로젝트 값 사용)
+const finalUrl = supabaseUrl;
+const finalKey = supabaseAnonKey;
 
 // TypeScript 지원과 함께 Supabase 클라이언트 생성
 export const supabase = createClient<Database>(finalUrl, finalKey, {
