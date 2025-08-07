@@ -27,42 +27,60 @@ export const Rules: React.FC = () => {
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('🔥 RULES: 규칙 추가 버튼 클릭됨!');
+    console.log('📝 RULES: 폼 데이터:', formData);
+    console.log('👤 RULES: 현재 사용자:', state.user);
+    console.log('💑 RULES: 커플 정보:', state.couple);
+    
     e.preventDefault();
     
     if (!formData.title.trim()) {
+      console.log('❌ RULES: 제목 없음');
       toast.error('규칙 제목을 입력해주세요');
       return;
     }
     
     if (formData.fine_amount < 1 || formData.fine_amount > 100) {
+      console.log('❌ RULES: 금액 범위 초과');
       toast.error('벌금은 1만원에서 100만원 사이로 설정해주세요');
       return;
     }
 
+    console.log('⏳ RULES: 제출 시작, 로딩 상태 설정');
     setIsSubmitting(true);
     
     try {
       if (editingRule) {
+        console.log('✏️ RULES: 규칙 수정 모드');
         // Update existing rule
         const { error } = await updateRule(editingRule, formData);
+        console.log('🔄 RULES: updateRule 결과:', { error });
         if (error) {
+          console.log('❌ RULES: 수정 실패:', error);
           toast.error(`규칙 수정 실패: ${error}`);
         } else {
+          console.log('✅ RULES: 수정 성공');
           toast.success('규칙이 수정되었어요! 💝');
           setEditingRule(null);
         }
       } else {
+        console.log('🆕 RULES: 새 규칙 생성 모드');
+        console.log('🏗️ RULES: createRule 호출 시작');
         // Create new rule
         const { error } = await createRule(formData);
+        console.log('🔄 RULES: createRule 결과:', { error });
         if (error) {
+          console.log('❌ RULES: 생성 실패:', error);
           toast.error(`규칙 생성 실패: ${error}`);
         } else {
+          console.log('✅ RULES: 생성 성공');
           toast.success('새 규칙이 추가되었어요! 💝');
           setShowForm(false);
         }
       }
       
       // Reset form
+      console.log('🔄 RULES: 폼 리셋');
       setFormData({
         category: 'word',
         title: '',
@@ -71,8 +89,10 @@ export const Rules: React.FC = () => {
         is_active: true
       });
     } catch (error) {
+      console.log('💥 RULES: 예외 발생:', error);
       toast.error('오류가 발생했어요');
     } finally {
+      console.log('✅ RULES: 제출 완료, 로딩 해제');
       setIsSubmitting(false);
     }
   };

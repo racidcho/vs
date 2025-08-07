@@ -6,11 +6,18 @@ const supabaseUrl = 'https://ywocrwjzjheupewfxssu.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b2Nyd2p6amhldXBld2Z4c3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NDkyNzIsImV4cCI6MjA3MDEyNTI3Mn0.zLalJ0ECNVKmXRtSe8gmbwOWDrqAxvOP0oIn9jOhT9U';
 
 // 환경변수 디버깅
-console.log('🔍 Environment Debug:', {
+console.log('🔍 SUPABASE: Environment Debug:', {
   VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
   VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Found' : 'Missing',
   MODE: import.meta.env.MODE,
-  PROD: import.meta.env.PROD
+  PROD: import.meta.env.PROD,
+  finalUrl: supabaseUrl,
+  finalKeyLength: supabaseAnonKey.length
+});
+
+console.log('🔐 SUPABASE: 하드코딩된 값 사용:', {
+  url: supabaseUrl,
+  keyPreview: supabaseAnonKey.substring(0, 20) + '...'
 });
 
 // 환경변수 상태 확인
@@ -52,6 +59,23 @@ export const supabase = createClient<Database>(finalUrl, finalKey, {
     }
   }
 });
+
+console.log('✅ SUPABASE: 클라이언트 생성 완료');
+console.log('🔗 SUPABASE: 클라이언트 객체:', supabase);
+
+// 간단한 연결 테스트
+if (typeof window !== 'undefined') {
+  console.log('🌐 SUPABASE: 브라우저 환경에서 연결 테스트 시작');
+  supabase.from('rules').select('count', { count: 'exact', head: true }).then(
+    ({ error, count }) => {
+      if (error) {
+        console.log('❌ SUPABASE: 연결 테스트 실패:', error);
+      } else {
+        console.log('✅ SUPABASE: 연결 테스트 성공, rules 테이블 count:', count);
+      }
+    }
+  );
+}
 
 // Database table helpers with type safety
 export const Tables = {

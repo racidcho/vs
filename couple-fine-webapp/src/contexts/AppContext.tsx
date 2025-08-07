@@ -500,10 +500,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Create rule
   const createRule = async (rule: Omit<Rule, 'id' | 'couple_id' | 'created_at'>) => {
-    if (!user?.couple_id) return { error: 'No couple found' };
+    console.log('🏗️ APPCONTEXT: createRule 호출됨');
+    console.log('📝 APPCONTEXT: 입력된 rule 데이터:', rule);
+    console.log('👤 APPCONTEXT: 현재 사용자:', user);
+    console.log('💑 APPCONTEXT: 커플 ID:', user?.couple_id);
+    
+    if (!user?.couple_id) {
+      console.log('❌ APPCONTEXT: 커플 정보 없음');
+      return { error: 'No couple found' };
+    }
 
     try {
-      const { error } = await supabase
+      console.log('🔐 APPCONTEXT: Supabase 연결 상태:', !!supabase);
+      console.log('📊 APPCONTEXT: 삽입할 데이터:', {
+        ...rule,
+        couple_id: user.couple_id,
+        created_by: user.id,
+        is_active: true
+      });
+      
+      const { error, data } = await supabase
         .from('rules')
         .insert({
           ...rule,
@@ -514,10 +530,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .select()
         .single();
 
-      if (error) return { error: error.message };
+      console.log('🔄 APPCONTEXT: Supabase 응답:', { data, error });
 
+      if (error) {
+        console.log('❌ APPCONTEXT: Supabase 에러:', error);
+        return { error: error.message };
+      }
+
+      console.log('✅ APPCONTEXT: 규칙 생성 성공:', data);
       return {};
     } catch (error) {
+      console.log('💥 APPCONTEXT: 예외 발생:', error);
       return { error: 'Failed to create rule' };
     }
   };
