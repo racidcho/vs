@@ -100,7 +100,7 @@ export const AppLayout: React.FC = () => {
                 {state.couple && (
                   <div className="mt-3">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
-                      💑 커플 코드: {state.couple.code}
+                      💑 커플 코드: {(state.couple as any).couple_code}
                     </span>
                   </div>
                 )}

@@ -8,10 +8,10 @@ interface RewardFormData {
   title: string;
   target_amount: number;
   description?: string;
-  category?: string;
-  icon_emoji?: string;
-  priority?: number;
-  is_claimed: boolean;
+  category: string;
+  icon_emoji: string;
+  priority: number;
+  is_achieved: boolean;
 }
 
 export const Rewards: React.FC = () => {
@@ -25,7 +25,7 @@ export const Rewards: React.FC = () => {
     category: 'general',
     icon_emoji: '🎁',
     priority: 1,
-    is_claimed: false
+    is_achieved: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -63,7 +63,7 @@ export const Rewards: React.FC = () => {
           category: 'general',
           icon_emoji: '🎁',
           priority: 1,
-          is_claimed: false
+          is_achieved: false
         });
       }
     } catch (error) {
@@ -97,7 +97,7 @@ export const Rewards: React.FC = () => {
       category: 'general',
       icon_emoji: '🎁',
       priority: 1,
-      is_claimed: false
+      is_achieved: false
     });
     setShowForm(true);
   };
@@ -226,7 +226,7 @@ export const Rewards: React.FC = () => {
           {state.rewards.map((reward, index) => {
             const progress = Math.min(totalPenalties / reward.target_amount, 1);
             const progressPercent = Math.round(progress * 100);
-            const canClaim = totalPenalties >= reward.target_amount && !reward.is_claimed;
+            const canClaim = totalPenalties >= reward.target_amount && !reward.is_achieved;
             
             const emojis = ['🎁', '🎉', '🌟', '💝', '🏆'];
             const gradients = [
@@ -242,7 +242,7 @@ export const Rewards: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-start gap-3">
                     <div className={`w-12 h-12 bg-gradient-to-br ${gradients[index % 5]} rounded-xl flex items-center justify-center shadow-sm`}>
-                      {reward.is_claimed ? (
+                      {reward.is_achieved ? (
                         <span className="text-2xl">✅</span>
                       ) : (
                         <span className="text-2xl">{emojis[index % 5]}</span>
@@ -262,7 +262,7 @@ export const Rewards: React.FC = () => {
                   </div>
                   
                   <div className="flex flex-col items-end gap-2">
-                    {reward.is_claimed ? (
+                    {reward.is_achieved ? (
                       <span className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
                         ✨ 달성 완료!
                       </span>
@@ -290,7 +290,7 @@ export const Rewards: React.FC = () => {
                   <div className="w-full bg-gradient-to-r from-gray-100 to-gray-200 rounded-full h-3 p-0.5">
                     <div 
                       className={`h-full rounded-full transition-all duration-500 bg-gradient-to-r ${
-                        reward.is_claimed
+                        reward.is_achieved
                           ? 'from-green-400 to-teal-400'
                           : canClaim
                           ? 'from-yellow-400 to-orange-400'

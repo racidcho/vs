@@ -372,7 +372,7 @@ export const Settings: React.FC = () => {
                 <span>💑</span> 커플 코드
               </span>
               <span className="font-mono font-bold text-indigo-600 bg-white px-3 py-1 rounded-lg">
-                {state.couple.code}
+                {(state.couple as any).couple_code}
               </span>
             </div>
 

@@ -38,8 +38,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'SET_COUPLE':
       return { 
         ...state, 
-        couple: action.payload,
-        theme: (action.payload?.theme as 'light' | 'dark') || state.theme 
+        couple: action.payload
       };
     case 'SET_RULES':
       return { ...state, rules: action.payload };
@@ -614,9 +613,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Calculate user total fines
   const getUserTotalFines = (userId: string): number => {
     return state.violations
-      .filter(v => v.violator_id === userId)
+      .filter(v => v.violator_user_id === userId)
       .reduce((total, violation) => {
-        return violation.type === 'add' 
+        return violation.amount > 0 
           ? total + violation.amount 
           : total - violation.amount;
       }, 0);
@@ -651,7 +650,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           errors.push('커플 데이터를 서버에서 찾을 수 없습니다.');
         } else {
           // Check if local data matches server data
-          if (state.couple.code !== dbCouple.couple_code) {
+          if ((state.couple as any).couple_code !== dbCouple.couple_code) {
             errors.push('커플 코드가 서버와 일치하지 않습니다.');
           }
           
@@ -725,8 +724,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           if (payload.eventType === 'UPDATE' && payload.new) {
             const transformedCouple = {
               id: payload.new.id,
-              code: payload.new.couple_code,
-              theme: 'light',
+              couple_code: payload.new.couple_code,
               created_at: payload.new.created_at,
               couple_name: payload.new.couple_name,
               total_balance: payload.new.total_balance,
@@ -823,10 +821,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Update theme when couple theme changes
   useEffect(() => {
-    if (state.couple?.theme && state.couple.theme !== state.theme) {
-      dispatch({ type: 'SET_THEME', payload: state.couple.theme as 'light' | 'dark' });
+    const coupleTheme = (state.couple as any)?.theme;
+    if (coupleTheme && coupleTheme !== state.theme) {
+      dispatch({ type: 'SET_THEME', payload: coupleTheme as 'light' | 'dark' });
     }
-  }, [state.couple?.theme, state.theme]);
+  }, [(state.couple as any)?.theme, state.theme]);
 
   const value: AppContextType = {
     state: { ...state, user },

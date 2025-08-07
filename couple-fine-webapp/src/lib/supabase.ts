@@ -1,13 +1,23 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
-// Production에서 환경변수가 작동하지 않아 하드코딩된 값 사용
-const supabaseUrl = 'https://wfbrlxlcpvbnwdvopejq.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmYnJseGxjcHZibndkdm9wZWpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0OTQ5NzQsImV4cCI6MjA1MTA3MDk3NH0.mBxKdg1Mh7dKx5-VXvT_v3r7vUNzlb2AvKL93NQzKHA';
+// 환경변수에서 Supabase 설정 가져오기
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// 환경변수 상태 확인 (디버깅용)
-if (import.meta.env.MODE === 'development') {
-  console.log('🔐 Using Supabase configuration');
+// 환경변수 검증
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Supabase 환경변수가 설정되지 않았습니다!');
+  console.error('VITE_SUPABASE_URL과 VITE_SUPABASE_ANON_KEY를 설정해주세요.');
+  
+  // 개발 환경에서만 경고 메시지 표시
+  if (import.meta.env.MODE === 'development') {
+    console.warn('📝 .env 파일을 생성하고 다음 환경변수를 추가하세요:');
+    console.warn('VITE_SUPABASE_URL=your_supabase_url');
+    console.warn('VITE_SUPABASE_ANON_KEY=your_anon_key');
+  }
+  
+  throw new Error('Supabase configuration is missing');
 }
 
 // 안전한 기본값 설정 (실제 Supabase 프로젝트 값 사용)

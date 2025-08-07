@@ -41,10 +41,12 @@ export const NewViolation: React.FC = () => {
     try {
       const violationData = {
         rule_id: selectedRuleId,
-        violator_id: user.id,
-        amount: amount,
-        type: violationType,
-        note: note.trim() || undefined
+        couple_id: user.couple_id!,
+        violator_user_id: user.id,
+        recorded_by_user_id: user.id,
+        amount: violationType === 'add' ? amount : -amount,
+        memo: note.trim() || undefined,
+        violation_date: new Date().toISOString().split('T')[0]
       };
 
       const { error } = await createViolation(violationData);
@@ -166,7 +168,7 @@ export const NewViolation: React.FC = () => {
                 // Auto-fill amount with rule penalty
                 const rule = state.rules?.find(r => r.id === e.target.value);
                 if (rule) {
-                  setAmount(rule.penalty_amount);
+                  setAmount(rule.fine_amount);
                 }
               }}
               className="input-field bg-gradient-to-r from-pink-50 to-purple-50 border-pink-200 focus:border-pink-400"
@@ -175,7 +177,7 @@ export const NewViolation: React.FC = () => {
               <option value="">규칙을 선택해주세요 💝</option>
               {state.rules?.filter(r => r.is_active !== false).map((rule) => (
                 <option key={rule.id} value={rule.id}>
-                  {rule.title} ({rule.penalty_amount}만원)
+                  {rule.title} ({rule.fine_amount}만원)
                 </option>
               ))}
             </select>
@@ -192,10 +194,10 @@ export const NewViolation: React.FC = () => {
                   <h4 className="font-bold text-gray-900">{selectedRule.title}</h4>
                   <div className="flex flex-wrap gap-2 mt-2">
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
-                      💰 기본 벌금: {selectedRule.penalty_amount}만원
+                      💰 기본 벌금: {selectedRule.fine_amount}만원
                     </span>
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                      {selectedRule.type === 'word' ? '💬 말' : '🏃 행동'}
+                      {selectedRule.category === 'word' ? '💬 말' : '🏃 행동'}
                     </span>
                   </div>
                 </div>
@@ -296,7 +298,7 @@ export const NewViolation: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setSelectedRuleId(rule.id);
-                    setAmount(rule.penalty_amount);
+                    setAmount(rule.fine_amount);
                   }}
                   className={`flex items-center justify-between p-3 rounded-xl transition-all hover:shadow-md hover:scale-105 active:scale-95 ${
                     selectedRuleId === rule.id 
@@ -308,7 +310,7 @@ export const NewViolation: React.FC = () => {
                     <span className="text-lg">{emojis[index % 5]}</span>
                     <span className="text-sm font-medium text-gray-900">{rule.title}</span>
                   </div>
-                  <span className="text-sm font-bold text-pink-600">{rule.penalty_amount}만원</span>
+                  <span className="text-sm font-bold text-pink-600">{rule.fine_amount}만원</span>
                 </button>
               );
             })}

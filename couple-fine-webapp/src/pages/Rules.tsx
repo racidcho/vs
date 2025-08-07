@@ -4,9 +4,12 @@ import { useApp } from '../contexts/AppContext';
 import { toast } from 'react-hot-toast';
 
 interface RuleFormData {
-  type: 'word' | 'behavior';
+  category: 'word' | 'behavior';
   title: string;
-  penalty_amount: number;
+  fine_amount: number;
+  description?: string;
+  icon_emoji: string;
+  is_active: boolean;
 }
 
 export const Rules: React.FC = () => {
@@ -14,9 +17,11 @@ export const Rules: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<string | null>(null);
   const [formData, setFormData] = useState<RuleFormData>({
-    type: 'word',
+    category: 'word',
     title: '',
-    penalty_amount: 1
+    fine_amount: 1,
+    icon_emoji: '💝',
+    is_active: true
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,7 +34,7 @@ export const Rules: React.FC = () => {
       return;
     }
     
-    if (formData.penalty_amount < 1 || formData.penalty_amount > 100) {
+    if (formData.fine_amount < 1 || formData.fine_amount > 100) {
       toast.error('벌금은 1만원에서 100만원 사이로 설정해주세요');
       return;
     }
@@ -59,9 +64,11 @@ export const Rules: React.FC = () => {
       
       // Reset form
       setFormData({
-        type: 'word',
+        category: 'word',
         title: '',
-        penalty_amount: 1
+        fine_amount: 1,
+        icon_emoji: '💝',
+        is_active: true
       });
     } catch (error) {
       toast.error('오류가 발생했어요');
@@ -92,9 +99,11 @@ export const Rules: React.FC = () => {
   const handleEdit = (rule: any) => {
     setEditingRule(rule.id);
     setFormData({
-      type: rule.type,
+      category: rule.category as 'word' | 'behavior',
       title: rule.title,
-      penalty_amount: rule.penalty_amount
+      fine_amount: rule.fine_amount,
+      icon_emoji: rule.icon_emoji || '💝',
+      is_active: rule.is_active
     });
     setShowForm(true);
   };
@@ -104,9 +113,11 @@ export const Rules: React.FC = () => {
     setShowForm(false);
     setEditingRule(null);
     setFormData({
-      type: 'word',
+      category: 'word',
       title: '',
-      penalty_amount: 1
+      fine_amount: 1,
+      icon_emoji: '💝',
+      is_active: true
     });
   };
 
@@ -150,9 +161,9 @@ export const Rules: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, type: 'word' }))}
+                  onClick={() => setFormData(prev => ({ ...prev, category: 'word' }))}
                   className={`p-3 rounded-xl border-2 transition-all text-left ${
-                    formData.type === 'word'
+                    formData.category === 'word'
                       ? 'border-blue-300 bg-blue-50 text-blue-900'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
@@ -162,9 +173,9 @@ export const Rules: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, type: 'behavior' }))}
+                  onClick={() => setFormData(prev => ({ ...prev, category: 'behavior' }))}
                   className={`p-3 rounded-xl border-2 transition-all text-left ${
-                    formData.type === 'behavior'
+                    formData.category === 'behavior'
                       ? 'border-green-300 bg-green-50 text-green-900'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
@@ -202,8 +213,8 @@ export const Rules: React.FC = () => {
                   id="penalty"
                   min="1"
                   max="100"
-                  value={formData.penalty_amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, penalty_amount: parseInt(e.target.value) || 1 }))}
+                  value={formData.fine_amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, fine_amount: parseInt(e.target.value) || 1 }))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   disabled={isSubmitting}
                 />
@@ -265,14 +276,14 @@ export const Rules: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-medium">
                           <span>💰</span>
-                          <span>벌금 {rule.penalty_amount}만원</span>
+                          <span>벌금 {rule.fine_amount}만원</span>
                         </span>
                         <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          rule.type === 'word' 
+                          rule.category === 'word' 
                             ? 'bg-blue-50 text-blue-700' 
                             : 'bg-green-50 text-green-700'
                         }`}>
-                          {rule.type === 'word' ? '💬 말' : '🏃 행동'}
+                          {rule.category === 'word' ? '💬 말' : '🏃 행동'}
                         </span>
                         <span className={`px-3 py-1 text-xs font-medium rounded-full ${
                           rule.is_active !== false 

@@ -16,7 +16,7 @@ export const Calendar: React.FC = () => {
     const violationDate = new Date(violation.created_at);
     return violationDate.getMonth() === currentMonth && 
            violationDate.getFullYear() === currentYear &&
-           (filter === 'all' || violation.type === filter);
+           (filter === 'all' || (filter === 'add' && violation.amount > 0) || (filter === 'subtract' && violation.amount < 0));
   }) || [];
 
   // Group violations by date
@@ -32,8 +32,8 @@ export const Calendar: React.FC = () => {
   // Calculate monthly stats
   const monthlyStats = {
     total: monthlyViolations.length,
-    penalties: monthlyViolations.filter(v => v.type === 'add').reduce((sum, v) => sum + v.amount, 0),
-    reductions: monthlyViolations.filter(v => v.type === 'subtract').reduce((sum, v) => sum + v.amount, 0)
+    penalties: monthlyViolations.filter(v => v.amount > 0).reduce((sum, v) => sum + v.amount, 0),
+    reductions: monthlyViolations.filter(v => v.amount < 0).reduce((sum, v) => sum + Math.abs(v.amount), 0)
   };
 
   const previousMonth = () => {
@@ -184,8 +184,8 @@ export const Calendar: React.FC = () => {
 
             const dateString = day.toDateString();
             const dayViolations = violationsByDate[dateString] || [];
-            const penalties = dayViolations.filter(v => v.type === 'add').length;
-            const reductions = dayViolations.filter(v => v.type === 'subtract').length;
+            const penalties = dayViolations.filter(v => v.amount > 0).length;
+            const reductions = dayViolations.filter(v => v.amount < 0).length;
 
             return (
               <div
@@ -247,9 +247,9 @@ export const Calendar: React.FC = () => {
                   <div key={violation.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        violation.type === 'add' ? 'bg-red-100' : 'bg-green-100'
+                        violation.amount > 0 ? 'bg-red-100' : 'bg-green-100'
                       }`}>
-                        {violation.type === 'add' ? (
+                        {violation.amount > 0 ? (
                           <TrendingUp className="w-4 h-4 text-red-600" />
                         ) : (
                           <TrendingDown className="w-4 h-4 text-green-600" />
@@ -261,14 +261,14 @@ export const Calendar: React.FC = () => {
                         </p>
                         <p className="text-sm text-gray-600">
                           {new Date(violation.created_at).toLocaleDateString('ko-KR')} • 
-                          {violation.note && ` ${violation.note}`}
+                          {violation.memo && ` ${violation.memo}`}
                         </p>
                       </div>
                     </div>
                     <span className={`font-semibold ${
-                      violation.type === 'add' ? 'text-red-600' : 'text-green-600'
+                      violation.amount > 0 ? 'text-red-600' : 'text-green-600'
                     }`}>
-                      {violation.type === 'add' ? '+' : '-'}{violation.amount}만원
+                      {violation.amount > 0 ? '+' : '-'}{violation.amount}만원
                     </span>
                   </div>
                 );

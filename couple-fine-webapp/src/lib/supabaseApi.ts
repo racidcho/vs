@@ -586,7 +586,7 @@ export const getViolations = async (
   }
 };
 
-export const updateViolation = async (violationId: string, updates: Partial<Pick<Violation, 'amount' | 'note'>>): Promise<Violation> => {
+export const updateViolation = async (violationId: string, updates: Partial<Pick<Violation, 'amount' | 'memo'>>): Promise<Violation> => {
   const { data, error } = await supabase
     .from('violations')
     .update(updates)
@@ -677,7 +677,7 @@ export const updateReward = async (rewardId: string, updates: Partial<Reward>): 
 export const achieveReward = async (rewardId: string): Promise<Reward> => {
   const { data, error } = await supabase
     .from('rewards')
-    .update({ is_claimed: true })
+    .update({ is_achieved: true })
     .eq('id', rewardId)
     .select()
     .single();
