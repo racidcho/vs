@@ -3,7 +3,7 @@ import type { Database } from '../types/database';
 
 // 🔧 프로덕션 환경 변수 fallback 시스템 - CRUD 문제 완전 해결
 const PROD_SUPABASE_URL = 'https://ywocrwjzjheupewfxssu.supabase.co';
-const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b2Nyd2p6amhldXBld2Z4c3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NDkyNzIsImV4cCI6MjA3MDEyNTI3Mn0.zLalJ0ECNVKmXRtSe8gmbwOWDrqAxvOP0oIn9jOhT9U';
+const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b2Nyd2p6amhldXBld2Z4c3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NDkyNzIsImV4cCI6MjA3MDEyNTI3Mn0.-zJYOl8UfL-FdVGXNm-ZlgxWQu-uxvOa_Hge1WUDuOo';
 
 // 스마트 환경 변수 감지 및 fallback
 const getSupabaseConfig = () => {
