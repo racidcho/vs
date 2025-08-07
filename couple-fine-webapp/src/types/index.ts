@@ -1,38 +1,50 @@
-// Database Types
+// Database Types - 실제 Supabase 스키마와 일치
 export interface User {
   id: string;
   email: string;
   display_name: string;
-  couple_id?: string;
+  couple_id?: string | null;
+  avatar_url?: string | null;
+  pin_hash?: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface Couple {
   id: string;
-  code: string;
-  theme: string;
+  couple_code: string; // 실제 DB 컬럼명
+  couple_name: string; // 실제 DB 컬럼명
+  partner_1_id: string | null;
+  partner_2_id: string | null;
+  total_balance: number;
+  is_active: boolean;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface Rule {
   id: string;
   couple_id: string;
-  type: 'word' | 'behavior';
+  created_by_user_id?: string | null;
   title: string;
-  penalty_amount: number; // 만원 단위
+  description?: string | null;
+  fine_amount: number; // 실제 DB 컬럼명
+  is_active: boolean;
+  category: string;
+  icon_emoji: string;
   created_at: string;
-  created_by?: string;
-  is_active?: boolean;
+  updated_at?: string;
 }
 
 export interface Violation {
   id: string;
-  rule_id: string;
-  violator_id: string;
-  partner_id?: string;
-  amount: number; // 만원 단위
-  type: 'add' | 'subtract';
-  note?: string;
+  couple_id: string;
+  rule_id: string | null;
+  violator_user_id: string; // 실제 DB 컬럼명
+  recorded_by_user_id: string; // 실제 DB 컬럼명
+  amount: number;
+  memo?: string | null; // 실제 DB 컬럼명
+  violation_date: string; // 실제 DB 컬럼명 (DATE 타입)
   created_at: string;
   // Relations
   rule?: Rule;
@@ -43,10 +55,18 @@ export interface Violation {
 export interface Reward {
   id: string;
   couple_id: string;
+  created_by_user_id?: string | null;
   title: string;
-  target_amount: number; // 만원 단위
-  is_claimed: boolean;
+  description?: string | null;
+  target_amount: number;
+  is_achieved: boolean; // 실제 DB 컬럼명
+  achieved_at?: string | null;
+  achieved_by_user_id?: string | null;
+  category: string;
+  icon_emoji: string;
+  priority: number;
   created_at: string;
+  updated_at?: string;
 }
 
 // Auth Types
@@ -83,16 +103,19 @@ export interface CoupleJoinForm {
 }
 
 export interface RuleForm {
-  type: 'word' | 'behavior';
   title: string;
-  penalty_amount: number;
+  description?: string;
+  fine_amount: number;
+  category?: string;
+  icon_emoji?: string;
 }
 
 export interface ViolationForm {
   rule_id: string;
+  violator_user_id: string;
   amount: number;
-  type: 'add' | 'subtract';
-  note?: string;
+  memo?: string;
+  violation_date?: string;
 }
 
 export interface RewardForm {
