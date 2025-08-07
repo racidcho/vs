@@ -12,30 +12,15 @@ const getSupabaseConfig = () => {
   
   // 환경 변수가 있고 유효한 경우 사용
   if (envUrl && envKey && envUrl.includes('.supabase.co') && envKey.length > 100) {
-    console.log('✅ SUPABASE: 환경 변수 사용');
     return { url: envUrl, key: envKey, source: 'environment' };
   }
   
   // fallback to hardcoded values
-  console.log('🔄 SUPABASE: Fallback 설정 사용 (환경 변수 없음)');
   return { url: PROD_SUPABASE_URL, key: PROD_SUPABASE_ANON_KEY, source: 'fallback' };
 };
 
 const config = getSupabaseConfig();
 
-// 환경변수 상세 디버깅
-console.log('🔍 SUPABASE: Environment Debug:', {
-  VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || 'Missing',
-  VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Found' : 'Missing',
-  MODE: import.meta.env.MODE,
-  PROD: import.meta.env.PROD,
-  NODE_ENV: import.meta.env.NODE_ENV,
-  configSource: config.source,
-  finalUrl: config.url,
-  finalKeyLength: config.key.length,
-  urlValid: config.url.includes('.supabase.co'),
-  keyValid: config.key.length > 100
-});
 
 const finalUrl = config.url;
 const finalKey = config.key;
@@ -67,80 +52,7 @@ export const supabase = createClient<Database>(finalUrl, finalKey, {
   }
 });
 
-console.log('✅ SUPABASE: 클라이언트 생성 완료');
-console.log('🔗 SUPABASE: 클라이언트 객체:', supabase);
 
-// 고급 연결 테스트 및 자동 복구 시스템
-if (typeof window !== 'undefined') {
-  console.log('🌐 SUPABASE: 브라우저 환경에서 고급 연결 테스트 시작');
-  
-  const testConnection = async (retryCount = 0) => {
-    const maxRetries = 3;
-    const retryDelay = 1000 * (retryCount + 1); // 1s, 2s, 3s
-    
-    try {
-      console.log(`🔄 SUPABASE: 연결 시도 ${retryCount + 1}/${maxRetries + 1}`);
-      
-      const startTime = performance.now();
-      const { error, count } = await supabase
-        .from('rules')
-        .select('count', { count: 'exact', head: true });
-      
-      const duration = Math.round(performance.now() - startTime);
-      
-      if (error) {
-        console.error('❌ SUPABASE: 연결 실패 상세 정보:', {
-          error,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          duration: `${duration}ms`,
-          attempt: retryCount + 1,
-          configSource: config.source
-        });
-        
-        // 재시도 로직
-        if (retryCount < maxRetries) {
-          console.log(`⏳ SUPABASE: ${retryDelay}ms 후 재시도...`);
-          setTimeout(() => testConnection(retryCount + 1), retryDelay);
-        } else {
-          console.error('💥 SUPABASE: 최대 재시도 횟수 초과, 연결 실패');
-          // 사용자에게 알림
-          if (window.location.pathname !== '/login') {
-            console.log('🔄 SUPABASE: 로그인 페이지로 리디렉션 권장');
-          }
-        }
-      } else {
-        console.log('✅ SUPABASE: 연결 테스트 성공!', {
-          rulesCount: count,
-          duration: `${duration}ms`,
-          attempt: retryCount + 1,
-          configSource: config.source,
-          url: config.url.substring(0, 30) + '...',
-          timestamp: new Date().toISOString()
-        });
-      }
-    } catch (networkError) {
-      console.error('🚨 SUPABASE: 네트워크 오류:', {
-        error: networkError,
-        type: networkError?.name,
-        message: networkError?.message,
-        stack: networkError?.stack?.substring(0, 200),
-        attempt: retryCount + 1,
-        configSource: config.source
-      });
-      
-      if (retryCount < maxRetries) {
-        console.log(`⏳ SUPABASE: 네트워크 오류 후 ${retryDelay}ms 후 재시도...`);
-        setTimeout(() => testConnection(retryCount + 1), retryDelay);
-      }
-    }
-  };
-  
-  // 즉시 실행
-  testConnection();
-}
 
 // Database table helpers with type safety
 export const Tables = {

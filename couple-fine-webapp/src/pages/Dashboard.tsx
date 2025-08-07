@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getDashboardStats } from '../lib/supabaseApi';
-import { DbTest } from '../components/DbTest';
 import { 
   Heart, 
   AlertTriangle, 
@@ -28,7 +27,6 @@ export const Dashboard: React.FC = () => {
     recentActivity: [] as any[]
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [showDbTest, setShowDbTest] = useState(false);
 
   // Load real dashboard data
   useEffect(() => {
@@ -126,15 +124,7 @@ export const Dashboard: React.FC = () => {
           <h1 className="text-xl font-bold text-gray-900">
             {getGreeting()}, {user?.display_name || '사랑'}님! 
           </h1>
-          <div className="flex gap-2 items-center">
-            <button
-              onClick={() => setShowDbTest(true)}
-              className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200"
-            >
-              🔍 DB테스트
-            </button>
-            <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
-          </div>
+          <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
         </div>
         <p className="text-sm text-gray-600">
           {state.couple ? (
@@ -288,10 +278,6 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 데이터베이스 테스트 모달 */}
-      {showDbTest && (
-        <DbTest onClose={() => setShowDbTest(false)} />
-      )}
     </div>
   );
 };

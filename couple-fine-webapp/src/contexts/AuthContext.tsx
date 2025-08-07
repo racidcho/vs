@@ -40,7 +40,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // CRITICAL: Only refresh user if email is confirmed
     if (!session.user.email_confirmed_at) {
-      console.warn('⚠️ Refusing to create user - email not confirmed');
       setUser(null);
       setSession(null);
       return;
@@ -60,8 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // User doesn't exist in our users table, create them
         // BUT ONLY IF EMAIL IS CONFIRMED
         if (!session.user.email_confirmed_at) {
-          console.error('❌ Cannot create user without email confirmation');
-          setUser(null);
+              setUser(null);
           return;
         }
 
@@ -81,13 +79,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (createdUser && !createError) {
           setUser(createdUser);
         } else {
-          console.error('Error creating user:', createError);
-        }
+            }
       } else {
-        console.error('Error fetching user:', error);
-      }
+        }
     } catch (error) {
-      console.error('Error in refreshUser:', error);
       setUser(null);
     }
   };
@@ -96,7 +91,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     
     try {
-      console.log('🔐 SignIn attempt for:', email);
       
       const { data, error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
@@ -107,21 +101,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (error) {
-        console.error('❌ SignIn error:', error);
         return { error: error.message };
       }
       
       // Check if OTP was actually sent
       if (!data || !data.user) {
-        console.log('✅ Magic link sent to:', email);
         return { success: true, message: 'Magic link sent! Check your email.' };
       }
       
       // This should not happen - user should not be returned immediately
-      console.warn('⚠️ Unexpected immediate user return - this should not happen with OTP');
       return { success: true };
     } catch (error) {
-      console.error('SignIn error:', error);
       return { error: 'An unexpected error occurred' };
     } finally {
       setIsLoading(false);
@@ -159,7 +149,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('❌ Error getting session:', error);
           setSession(null);
           setUser(null);
           setIsLoading(false);
@@ -168,16 +157,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Only accept valid sessions with confirmed emails
         if (initialSession && initialSession.access_token && initialSession.user?.email_confirmed_at) {
-          console.log('✅ Valid initial session for:', initialSession.user.email);
           setSession(initialSession);
           await refreshUser();
         } else {
-          console.log('❌ No valid initial session');
           setSession(null);
           setUser(null);
         }
       } catch (error) {
-        console.error('Error getting initial session:', error);
         setSession(null);
         setUser(null);
       } finally {
@@ -190,19 +176,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
         
         // Only accept valid sessions with proper authentication
         if (session && session.access_token && session.user?.email_confirmed_at) {
-          console.log('✅ Valid authenticated session for:', session.user.email);
           setSession(session);
           await refreshUser();
         } else if (session && !session.user?.email_confirmed_at) {
-          console.warn('⚠️ Session exists but email not confirmed');
           setSession(null);
           setUser(null);
         } else {
-          console.log('❌ No valid session');
           setSession(null);
           setUser(null);
         }

@@ -155,7 +155,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
 
     try {
-      console.log('Loading couple data for:', user.couple_id);
 
       // Load couple info with partner details
       const { data: coupleData, error: coupleError } = await supabase
@@ -169,7 +168,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .single();
 
       if (coupleError) {
-        console.error('Error loading couple:', coupleError);
         return;
       }
 
@@ -198,7 +196,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .order('created_at', { ascending: false });
 
       if (rulesError) {
-        console.error('Error loading rules:', rulesError);
       } else {
         dispatch({ type: 'SET_RULES', payload: rulesData || [] });
       }
@@ -217,7 +214,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .limit(50);
 
       if (violationsError) {
-        console.error('Error loading violations:', violationsError);
       } else {
         dispatch({ type: 'SET_VIOLATIONS', payload: violationsData as any || [] });
       }
@@ -230,12 +226,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .order('created_at', { ascending: false });
 
       if (rewardsError) {
-        console.error('Error loading rewards:', rewardsError);
       } else {
         dispatch({ type: 'SET_REWARDS', payload: rewardsData || [] });
       }
     } catch (error) {
-      console.error('Error loading couple data:', error);
     }
   };
 
