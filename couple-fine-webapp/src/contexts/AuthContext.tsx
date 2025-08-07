@@ -28,9 +28,17 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // TEMPORARY: Auto-login test user for CRUD verification
+  const [user, setUser] = useState<User | null>({
+    id: 'test-user-1',
+    email: 'test@example.com', 
+    display_name: '테스트 사용자',
+    couple_id: 'test-couple-1',
+    avatar_url: null,
+    created_at: new Date().toISOString()
+  });
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Set to false to skip loading
 
   const refreshUser = async () => {
     if (!session?.user) {
