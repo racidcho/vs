@@ -1,5 +1,5 @@
 import React from 'react';
-import { Gift, Plus, Award, Target, TrendingUp } from 'lucide-react';
+import { Gift, Plus, Award, Target, TrendingUp, Sparkles, Star, Heart, Trophy, Zap } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 
 export const Rewards: React.FC = () => {
@@ -13,85 +13,98 @@ export const Rewards: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reward Goals</h1>
-          <p className="text-gray-600 mt-1">
-            Set goals and earn rewards when you reach penalty milestones
-          </p>
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                우리의 보상
+              </h1>
+              <Trophy className="w-5 h-5 text-yellow-400 animate-pulse" />
+            </div>
+            <p className="text-gray-600 text-sm">
+              목표를 달성하면 함께 즐길 수 있는 특별한 보상이 기다려요! 🎁
+            </p>
+          </div>
+          <button className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-4 py-2 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">보상 추가</span>
+          </button>
         </div>
-        <button className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add Reward
-        </button>
       </div>
 
       {/* Current Balance */}
-      <div className="card p-6 bg-gradient-to-r from-primary-50 to-coral-50">
+      <div className="bg-gradient-to-br from-purple-100 via-pink-50 to-yellow-50 rounded-2xl p-6 shadow-sm border border-purple-200">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary-200 rounded-lg flex items-center justify-center">
-            <TrendingUp className="w-6 h-6 text-primary-700" />
+          <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-pink-400 rounded-2xl flex items-center justify-center shadow-md">
+            <span className="text-2xl">💰</span>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Current Balance</h3>
-            <p className="text-2xl font-bold text-primary-700">{totalPenalties}만원</p>
-            <p className="text-sm text-gray-600 mt-1">Available for rewards</p>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-gray-900">현재 모인 벌금</h3>
+              <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
+            </div>
+            <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              {totalPenalties}만원
+            </p>
+            <p className="text-sm text-gray-600 mt-1">보상을 받을 수 있어요! 🎉</p>
           </div>
         </div>
       </div>
 
       {/* Rewards List */}
       {state.rewards && state.rewards.length > 0 ? (
-        <div className="space-y-4">
-          {state.rewards.map((reward) => {
+        <div className="space-y-3">
+          {state.rewards.map((reward, index) => {
             const progress = Math.min(totalPenalties / reward.target_amount, 1);
             const progressPercent = Math.round(progress * 100);
             const canClaim = totalPenalties >= reward.target_amount && !reward.is_claimed;
+            
+            const emojis = ['🎁', '🎉', '🌟', '💝', '🏆'];
+            const gradients = [
+              'from-purple-400 to-pink-400',
+              'from-pink-400 to-red-400',
+              'from-yellow-400 to-orange-400',
+              'from-green-400 to-teal-400',
+              'from-indigo-400 to-purple-400'
+            ];
 
             return (
-              <div key={reward.id} className="card p-6">
+              <div key={reward.id} className="bg-white rounded-2xl p-5 shadow-sm border border-pink-100 hover:shadow-md transition-all">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                      reward.is_claimed 
-                        ? 'bg-green-100' 
-                        : canClaim 
-                        ? 'bg-yellow-100' 
-                        : 'bg-gray-100'
-                    }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-12 h-12 bg-gradient-to-br ${gradients[index % 5]} rounded-xl flex items-center justify-center shadow-sm`}>
                       {reward.is_claimed ? (
-                        <Award className="w-6 h-6 text-green-600" />
+                        <span className="text-2xl">✅</span>
                       ) : (
-                        <Gift className={`w-6 h-6 ${
-                          canClaim ? 'text-yellow-600' : 'text-gray-500'
-                        }`} />
+                        <span className="text-2xl">{emojis[index % 5]}</span>
                       )}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{reward.title}</h3>
-                      <p className="text-sm text-gray-600">
-                        Target: {reward.target_amount}만원
-                      </p>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-900">{reward.title}</h3>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                          🎯 목표: {reward.target_amount}만원
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-pink-100 text-pink-700 rounded-full text-xs font-medium">
+                          📈 달성률: {progressPercent}%
+                        </span>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">Progress</p>
-                      <p className="font-semibold text-gray-900">{progressPercent}%</p>
-                    </div>
-                    
+                  <div className="flex flex-col items-end gap-2">
                     {reward.is_claimed ? (
-                      <span className="px-3 py-2 text-sm font-medium bg-green-100 text-green-800 rounded-lg">
-                        Claimed
+                      <span className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+                        ✨ 달성 완료!
                       </span>
                     ) : canClaim ? (
-                      <button className="btn-primary text-sm">
-                        Claim Reward
+                      <button className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95">
+                        🎉 받기
                       </button>
                     ) : (
-                      <span className="px-3 py-2 text-sm font-medium bg-gray-100 text-gray-600 rounded-lg">
-                        {reward.target_amount - totalPenalties}만원 to go
+                      <span className="text-xs text-gray-600 font-medium">
+                        앞으로 {reward.target_amount - totalPenalties}만원
                       </span>
                     )}
                   </div>
@@ -99,18 +112,18 @@ export const Rewards: React.FC = () => {
 
                 {/* Progress Bar */}
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>{totalPenalties}만원</span>
-                    <span>{reward.target_amount}만원</span>
+                  <div className="flex justify-between text-xs text-gray-600">
+                    <span>현재: {totalPenalties}만원</span>
+                    <span>목표: {reward.target_amount}만원</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gradient-to-r from-gray-100 to-gray-200 rounded-full h-3 p-0.5">
                     <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
+                      className={`h-full rounded-full transition-all duration-500 bg-gradient-to-r ${
                         reward.is_claimed
-                          ? 'bg-gradient-to-r from-green-400 to-green-500'
+                          ? 'from-green-400 to-teal-400'
                           : canClaim
-                          ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
-                          : 'bg-gradient-to-r from-primary-400 to-coral-400'
+                          ? 'from-yellow-400 to-orange-400'
+                          : 'from-pink-400 to-purple-400'
                       }`}
                       style={{ width: `${progressPercent}%` }}
                     />
@@ -121,43 +134,65 @@ export const Rewards: React.FC = () => {
           })}
         </div>
       ) : (
-        <div className="card p-12 text-center">
-          <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No rewards yet</h3>
-          <p className="text-gray-600 mb-6">
-            Create reward goals to motivate yourselves and celebrate milestones together
+        <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-pink-100">
+          <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Gift className="w-10 h-10 text-purple-400" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">아직 보상이 없어요!</h3>
+          <p className="text-gray-600 mb-6 text-sm">
+            함께 이루고 싶은 목표를 정해보세요 🌈<br />
+            벌금이 쌓이면 특별한 데이트를 즐길 수 있어요!
           </p>
-          <button className="btn-primary flex items-center gap-2 mx-auto">
+          <button className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-6 py-3 rounded-xl font-medium shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            Create First Reward
+            첫 보상 만들기
           </button>
         </div>
       )}
 
       {/* Reward Ideas */}
-      <div className="card p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">💡 Reward Ideas</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            { title: 'Date Night', amount: 5, icon: '🍽️' },
-            { title: 'Movie & Snacks', amount: 3, icon: '🎬' },
-            { title: 'Couple Massage', amount: 15, icon: '💆' },
-            { title: 'Weekend Getaway', amount: 50, icon: '🏖️' },
-            { title: 'Fancy Dinner', amount: 10, icon: '🥂' },
-            { title: 'Concert Tickets', amount: 20, icon: '🎵' }
-          ].map((idea, index) => (
-            <div 
-              key={index}
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-            >
-              <span className="text-2xl">{idea.icon}</span>
-              <div>
-                <p className="font-medium text-gray-900">{idea.title}</p>
-                <p className="text-sm text-gray-600">{idea.amount}만원 goal</p>
-              </div>
-            </div>
-          ))}
+      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-gray-900 flex items-center gap-2">
+            💡 보상 아이디어
+          </h3>
+          <Star className="w-4 h-4 text-yellow-400 animate-pulse" />
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { title: '맛있는 데이트', amount: 5, icon: '🍽️' },
+            { title: '영화 관람', amount: 3, icon: '🎬' },
+            { title: '커플 마사지', amount: 15, icon: '💆' },
+            { title: '주말 여행', amount: 50, icon: '🏖️' },
+            { title: '고급 디너', amount: 10, icon: '🥂' },
+            { title: '콘서트 관람', amount: 20, icon: '🎵' }
+          ].map((idea, index) => {
+            const ideaGradients = [
+              'from-pink-50 to-rose-50',
+              'from-purple-50 to-pink-50',
+              'from-indigo-50 to-purple-50',
+              'from-teal-50 to-cyan-50',
+              'from-orange-50 to-coral-50',
+              'from-yellow-50 to-amber-50'
+            ];
+            
+            return (
+              <button
+                key={index}
+                className={`flex items-center gap-2 p-3 bg-gradient-to-br ${ideaGradients[index]} rounded-xl border border-gray-100 hover:shadow-md transition-all hover:scale-105 active:scale-95`}
+              >
+                <span className="text-2xl">{idea.icon}</span>
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 text-sm">{idea.title}</p>
+                  <p className="text-xs text-gray-600">{idea.amount}만원 목표</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-orange-700 mt-4 text-center">
+          💕 서로를 위한 특별한 시간을 계획해보세요!
+        </p>
       </div>
     </div>
   );

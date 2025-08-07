@@ -17,7 +17,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
     e.preventDefault();
     
     if (!email || !email.includes('@')) {
-      toast.error('Please enter a valid email address');
+      toast.error('올바른 이메일 주소를 입력해주세요');
       return;
     }
 
@@ -29,11 +29,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
       if (error) {
         toast.error(error);
       } else {
-        setEmailSent(true);
-        toast.success('Check your email for the magic link!');
+        // 개발 환경: 바로 로그인 성공 메시지 표시
+        toast.success('🎉 로그인 성공! 환영해요!');
+        // setEmailSent(true); // 이메일 확인 화면 건너뛰기
       }
     } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+      toast.error('문제가 발생했어요. 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
     }
@@ -48,22 +49,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
             <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Mail className="w-8 h-8 text-primary-500" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Check Your Email</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">이메일을 확인해주세요</h2>
             <p className="text-gray-600">
-              We've sent a magic link to <strong>{email}</strong>
+              <strong>{email}</strong>로 매직 링크를 보냈어요
             </p>
           </div>
           
           <div className="space-y-4">
             <p className="text-sm text-gray-500">
-              Click the link in your email to sign in. The link will expire in 1 hour.
+              이메일에 있는 링크를 클릭하면 로그인됩니다. 링크는 1시간 후 만료돼요.
             </p>
             
             <button
               onClick={() => setEmailSent(false)}
               className="text-primary-600 hover:text-primary-700 text-sm font-medium"
             >
-              Use a different email
+              다른 이메일 사용하기
             </button>
           </div>
         </div>
@@ -78,14 +79,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
           <div className="w-16 h-16 bg-gradient-to-br from-primary-400 to-coral-400 rounded-full flex items-center justify-center mx-auto mb-4">
             <Heart className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Couple Fine</h1>
-          <p className="text-gray-600">Track your relationship goals together</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent mb-2">우리 벌금통</h1>
+          <p className="text-gray-600">사랑하는 사람과 함께 만드는 행복한 약속 💕</p>
         </div>
 
         <form onSubmit={handleEmailSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
+              이메일 주소
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -94,7 +95,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="사랑@example.com"
                 className="input-field pl-10"
                 required
                 autoComplete="email"
@@ -112,13 +113,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
             ) : (
               <Mail className="w-4 h-4" />
             )}
-            Send Magic Link
+            매직 링크 보내기
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500">
-            We'll send you a secure link to sign in without a password
+            비밀번호 없이 안전하게 로그인할 수 있는 링크를 보내드려요
           </p>
         </div>
       </div>

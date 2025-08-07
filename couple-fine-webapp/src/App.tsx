@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 
 // Contexts
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AppProvider } from './contexts/AppContext';
 
 // Components
@@ -20,58 +20,65 @@ import { Rewards } from './pages/Rewards';
 import { Calendar } from './pages/Calendar';
 import { Settings } from './pages/Settings';
 
+// Router content component that can use hooks
+const RouterContent: React.FC = () => {
+  return (
+    <div className="App">
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#fff',
+            color: '#374151',
+            borderRadius: '8px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#059669',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#DC2626',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        
+        {/* Protected routes that don't require couple setup */}
+        <Route path="/couple-setup" element={<ProtectedRoute><CoupleSetupPage /></ProtectedRoute>} />
+        
+        {/* Protected routes that require couple setup */}
+        <Route path="/" element={<RequireCouple><AppLayout /></RequireCouple>}>
+          <Route index element={<Dashboard />} />
+          <Route path="rules" element={<Rules />} />
+          <Route path="violations/new" element={<NewViolation />} />
+          <Route path="rewards" element={<Rewards />} />
+          <Route path="calendar" element={<Calendar />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+        
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
+  );
+};
+
 function App() {
   return (
     <Router>
       <AuthProvider>
         <AppProvider>
-          <div className="App">
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#fff',
-                  color: '#374151',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                },
-                success: {
-                  iconTheme: {
-                    primary: '#059669',
-                    secondary: '#fff',
-                  },
-                },
-                error: {
-                  iconTheme: {
-                    primary: '#DC2626',
-                    secondary: '#fff',
-                  },
-                },
-              }}
-            />
-            
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-              
-              {/* Protected routes that don't require couple setup */}
-              <Route path="/couple-setup" element={<ProtectedRoute><CoupleSetupPage /></ProtectedRoute>} />
-              
-              {/* Protected routes that require couple setup */}
-              <Route path="/" element={<RequireCouple><AppLayout /></RequireCouple>}>
-                <Route index element={<Dashboard />} />
-                <Route path="rules" element={<Rules />} />
-                <Route path="violations/new" element={<NewViolation />} />
-                <Route path="rewards" element={<Rewards />} />
-                <Route path="calendar" element={<Calendar />} />
-                <Route path="settings" element={<Settings />} />
-              </Route>
-              
-              {/* Catch all route */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
+          <RouterContent />
         </AppProvider>
       </AuthProvider>
     </Router>
@@ -80,6 +87,13 @@ function App() {
 
 // Public route component - redirects to dashboard if already authenticated
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  
+  // 로그인되어 있으면 대시보드로 리다이렉트
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+  
   return <>{children}</>;
 };
 

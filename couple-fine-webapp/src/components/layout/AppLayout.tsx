@@ -13,19 +13,21 @@ import {
   Menu,
   X,
   Wifi,
-  WifiOff
+  WifiOff,
+  Sparkles
 } from 'lucide-react';
 import { useState } from 'react';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import toast from 'react-hot-toast';
+import { MobileNav } from './MobileNav';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Rules', href: '/rules', icon: Heart },
-  { name: 'Add Violation', href: '/violations/new', icon: Plus },
-  { name: 'Rewards', href: '/rewards', icon: Gift },
-  { name: 'Calendar', href: '/calendar', icon: Calendar },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: '홈', href: '/', icon: Home, emoji: '🏠' },
+  { name: '우리 규칙', href: '/rules', icon: Heart, emoji: '💝' },
+  { name: '벌금 기록', href: '/violations/new', icon: Plus, emoji: '✍️' },
+  { name: '보상', href: '/rewards', icon: Gift, emoji: '🎁' },
+  { name: '달력', href: '/calendar', icon: Calendar, emoji: '📅' },
+  { name: '설정', href: '/settings', icon: Settings, emoji: '⚙️' },
 ];
 
 export const AppLayout: React.FC = () => {
@@ -40,10 +42,10 @@ export const AppLayout: React.FC = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      toast.success('Signed out successfully');
+      toast.success('👋 안녕히 가세요!');
       navigate('/login');
     } catch (error) {
-      toast.error('Failed to sign out');
+      toast.error('로그아웃 실패');
     }
   };
 
@@ -55,92 +57,20 @@ export const AppLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile menu button */}
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
+      {/* Mobile Header - 심플한 헤더 */}
       <div className="sticky top-0 z-40 lg:hidden">
-        <div className="flex items-center justify-between bg-white px-4 py-2 shadow-sm border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-coral-400 rounded-full flex items-center justify-center">
-              <Heart className="w-4 h-4 text-white" />
+        <div className="bg-white/90 backdrop-blur-md px-4 py-3 border-b border-pink-100">
+          <div className="flex items-center justify-center">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-pink-400 animate-pulse" />
+              <span className="text-lg font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                우리 벌금통
+              </span>
+              <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
             </div>
-            <span className="font-semibold text-gray-900">Couple Fine</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {/* Online status indicator */}
-            <div className="flex items-center gap-1">
-              {isOnline ? (
-                <Wifi className="w-4 h-4 text-green-500" />
-              ) : (
-                <WifiOff className="w-4 h-4 text-red-500" />
-              )}
-            </div>
-            
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-            >
-              {isMobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
-            </button>
           </div>
         </div>
-
-        {/* Mobile menu */}
-        {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
-            <div className="px-4 py-2">
-              {/* User info */}
-              <div className="mb-4 pb-4 border-b border-gray-200">
-                <p className="font-medium text-gray-900">{user?.display_name}</p>
-                <p className="text-sm text-gray-600">{user?.email}</p>
-                {state.couple && (
-                  <div className="mt-2">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                      Code: {state.couple.code}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Navigation */}
-              <nav className="space-y-1 mb-4">
-                {navigation.map((item) => {
-                  const Icon = item.icon;
-                  const current = isCurrentPath(item.href);
-                  
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        current
-                          ? 'bg-primary-100 text-primary-700'
-                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              {/* Sign out */}
-              <button
-                onClick={handleSignOut}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 w-full"
-              >
-                <LogOut className="w-5 h-5" />
-                Sign Out
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="flex lg:flex-row">
@@ -153,7 +83,7 @@ export const AppLayout: React.FC = () => {
                 <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-coral-400 rounded-full flex items-center justify-center">
                   <Heart className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-xl font-bold text-gray-900">Couple Fine</span>
+                <span className="text-xl font-bold text-gray-900">💕 우리 벌금통</span>
               </div>
 
               {/* User info */}
@@ -172,8 +102,8 @@ export const AppLayout: React.FC = () => {
                 
                 {state.couple && (
                   <div className="mt-3">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                      Couple Code: {state.couple.code}
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                      💑 커플 코드: {state.couple.code}
                     </span>
                   </div>
                 )}
@@ -209,17 +139,17 @@ export const AppLayout: React.FC = () => {
               <div className="px-6 py-4 border-t border-gray-200">
                 {/* Online status */}
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm text-gray-600">Status</span>
+                  <span className="text-sm text-gray-600">연결 상태</span>
                   <div className="flex items-center gap-2">
                     {isOnline ? (
                       <>
                         <Wifi className="w-4 h-4 text-green-500" />
-                        <span className="text-sm text-green-600">Online</span>
+                        <span className="text-sm text-green-600">온라인</span>
                       </>
                     ) : (
                       <>
                         <WifiOff className="w-4 h-4 text-red-500" />
-                        <span className="text-sm text-red-600">Offline</span>
+                        <span className="text-sm text-red-600">오프라인</span>
                       </>
                     )}
                   </div>
@@ -231,7 +161,7 @@ export const AppLayout: React.FC = () => {
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 w-full"
                 >
                   <LogOut className="w-5 h-5" />
-                  Sign Out
+                  로그아웃
                 </button>
               </div>
             </div>
@@ -240,13 +170,16 @@ export const AppLayout: React.FC = () => {
 
         {/* Main content */}
         <div className="flex flex-1 flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto">
-            <div className="p-4 lg:p-8">
+          <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+            <div className="p-4 lg:p-8 max-w-7xl mx-auto">
               <Outlet />
             </div>
           </main>
         </div>
       </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <MobileNav />
     </div>
   );
 };

@@ -10,10 +10,10 @@ import {
   TrendingUp, 
   Calendar,
   Clock,
-  Users,
-  Target,
-  Award,
-  Activity
+  Sparkles,
+  Star,
+  Trophy,
+  Zap
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
@@ -22,319 +22,229 @@ export const Dashboard: React.FC = () => {
 
   // Calculate statistics
   const activeRules = state.rules?.filter(r => r.is_active !== false).length || 0;
-  const addViolations = state.violations?.filter(v => v.type === 'add').length || 0;
+  const totalViolations = state.violations?.filter(v => v.type === 'add').length || 0;
   const totalPenalties = state.violations
     ?.filter(v => v.type === 'add')
     .reduce((sum, v) => sum + v.amount, 0) || 0;
   
   const claimedRewards = state.rewards?.filter(r => r.is_claimed).length || 0;
   const totalRewards = state.rewards?.length || 0;
+  const rewardProgress = totalRewards > 0 ? Math.round((claimedRewards / totalRewards) * 100) : 0;
 
-  // Recent activity (last 5 violations)
+  // Recent activity (last 3 violations for mobile)
   const recentViolations = state.violations
     ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5) || [];
+    .slice(0, 3) || [];
 
-  const partnerName = 'Partner'; // Will be updated when we have partner info
+  // 귀여운 인사말
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 6) return '🌙 새벽이네요';
+    if (hour < 12) return '🌞 좋은 아침이에요';
+    if (hour < 18) return '☀️ 좋은 오후예요';
+    return '🌆 좋은 저녁이에요';
+  };
 
   const statsCards = [
     {
-      title: 'Active Rules',
+      title: '우리 규칙',
       value: activeRules,
+      unit: '개',
       icon: Heart,
-      color: 'text-primary-600',
-      bgColor: 'bg-primary-50',
-      description: 'relationship rules'
+      emoji: '💝',
+      gradient: 'from-pink-400 to-rose-400',
+      description: '함께 정한 약속'
     },
     {
-      title: 'Add Violations',
-      value: addViolations,
+      title: '벌금 횟수',
+      value: totalViolations,
+      unit: '번',
       icon: AlertTriangle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
-      description: 'penalty violations'
+      emoji: '😅',
+      gradient: 'from-orange-400 to-red-400',
+      description: '이번 달 기록'
     },
     {
-      title: 'Total Penalties',
-      value: `${totalPenalties}만원`,
+      title: '모인 벌금',
+      value: totalPenalties,
+      unit: '만원',
       icon: TrendingUp,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      description: 'current balance'
+      emoji: '💰',
+      gradient: 'from-purple-400 to-indigo-400',
+      description: '현재까지 모은 금액'
     },
     {
-      title: 'Rewards Progress',
-      value: `${claimedRewards}/${totalRewards}`,
+      title: '달성 보상',
+      value: rewardProgress,
+      unit: '%',
       icon: Gift,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      description: 'rewards claimed'
-    }
-  ];
-
-  const quickActions = [
-    {
-      title: 'Add Violation',
-      description: 'Report a rule violation',
-      href: '/violations/new',
-      icon: Plus,
-      color: 'bg-red-500 hover:bg-red-600'
-    },
-    {
-      title: 'View Rules',
-      description: 'Manage relationship rules',
-      href: '/rules',
-      icon: Heart,
-      color: 'bg-primary-500 hover:bg-primary-600'
-    },
-    {
-      title: 'Rewards',
-      description: 'Track reward goals',
-      href: '/rewards',
-      icon: Gift,
-      color: 'bg-green-500 hover:bg-green-600'
-    },
-    {
-      title: 'Calendar',
-      description: 'View activity timeline',
-      href: '/calendar',
-      icon: Calendar,
-      color: 'bg-blue-500 hover:bg-blue-600'
+      emoji: '🎁',
+      gradient: 'from-green-400 to-teal-400',
+      description: '보상 달성률'
     }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user?.display_name}!
+      {/* 환영 메시지 - 모바일 최적화 */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-xl font-bold text-gray-900">
+            {getGreeting()}, {user?.display_name || '사랑'}님! 
           </h1>
-          <p className="text-gray-600 mt-1">
-            You and {partnerName} are tracking {activeRules} rules together
-          </p>
+          <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
         </div>
-        
-        {state.couple && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-primary-50 rounded-lg">
-            <Users className="w-4 h-4 text-primary-600" />
-            <span className="text-sm font-medium text-primary-700">
-              Code: {state.couple.code}
-            </span>
-          </div>
-        )}
+        <p className="text-sm text-gray-600">
+          {state.couple ? (
+            <>우리 커플 코드: <span className="font-medium text-pink-600">💑 {state.couple.code}</span></>
+          ) : (
+            '커플 연결을 기다리고 있어요'
+          )}
+        </p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsCards.map((card, index) => {
-          const Icon = card.icon;
+      {/* 통계 카드 - 2x2 그리드 모바일 최적화 */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        {statsCards.map((stat, index) => {
+          const Icon = stat.icon;
           return (
-            <div key={index} className="card p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-2">{card.value}</p>
-                  <p className="text-xs text-gray-500 mt-1">{card.description}</p>
+            <div 
+              key={index}
+              className="relative bg-white rounded-2xl p-4 shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+            >
+              {/* 배경 그라데이션 */}
+              <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full -mr-8 -mt-8`}></div>
+              
+              <div className="relative">
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`w-10 h-10 bg-gradient-to-br ${stat.gradient} rounded-xl flex items-center justify-center shadow-sm`}>
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-xl">{stat.emoji}</span>
                 </div>
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${card.bgColor}`}>
-                  <Icon className={`w-6 h-6 ${card.color}`} />
-                </div>
+                
+                <p className="text-xs text-gray-500 mb-1">{stat.title}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stat.value}
+                  <span className="text-sm font-normal text-gray-600 ml-1">{stat.unit}</span>
+                </p>
+                <p className="text-xs text-gray-400 mt-1">{stat.description}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Quick Actions */}
-      <div className="card p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Target className="w-5 h-5 text-primary-600" />
-          Quick Actions
-        </h2>
+      {/* 빠른 액션 버튼들 - 모바일 최적화 */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-pink-100">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold text-gray-900">빠른 기록</h2>
+          <Zap className="w-4 h-4 text-yellow-500" />
+        </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <Link
-                key={index}
-                to={action.href}
-                className="group p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white transition-colors ${action.color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900 group-hover:text-primary-600">
-                      {action.title}
-                    </h3>
-                    <p className="text-sm text-gray-600">{action.description}</p>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+        <div className="grid grid-cols-3 gap-3">
+          <Link
+            to="/violations/new"
+            className="flex flex-col items-center gap-2 p-3 bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-100 hover:shadow-md transition-all hover:scale-105 active:scale-95"
+          >
+            <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-pink-400 rounded-full flex items-center justify-center">
+              <Plus className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">벌금 추가</span>
+          </Link>
+
+          <Link
+            to="/rules"
+            className="flex flex-col items-center gap-2 p-3 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-100 hover:shadow-md transition-all hover:scale-105 active:scale-95"
+          >
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-indigo-400 rounded-full flex items-center justify-center">
+              <Heart className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">규칙 보기</span>
+          </Link>
+
+          <Link
+            to="/rewards"
+            className="flex flex-col items-center gap-2 p-3 bg-gradient-to-br from-green-50 to-teal-50 rounded-xl border border-green-100 hover:shadow-md transition-all hover:scale-105 active:scale-95"
+          >
+            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-teal-400 rounded-full flex items-center justify-center">
+              <Gift className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">보상 확인</span>
+          </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-primary-600" />
-            Recent Violations
-          </h2>
-          
-          {recentViolations.length > 0 ? (
-            <div className="space-y-3">
-              {recentViolations.map((violation) => {
-                const rule = state.rules?.find(r => r.id === violation.rule_id);
-                const isRecent = new Date(violation.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000);
-                
-                return (
-                  <div key={violation.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-gray-900">{rule?.title || 'Unknown Rule'}</p>
-                        {isRecent && (
-                          <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                            New
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 mt-1">
-                        <span className="text-sm text-gray-600">
-                          {violation.amount}만원
-                        </span>
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {new Date(violation.created_at).toLocaleDateString('ko-KR')}
-                        </span>
-                      </div>
-                    </div>
-                    <div className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      violation.type === 'add' 
-                        ? 'bg-red-100 text-red-800' 
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {violation.type === 'add' ? 'Penalty' : 'Reduction'}
-                    </div>
-                  </div>
-                );
-              })}
-              
-              <div className="pt-3">
-                <Link 
-                  to="/calendar" 
-                  className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
-                >
-                  View all activity
-                  <Calendar className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 text-sm">No violations yet</p>
-              <p className="text-gray-400 text-xs mt-1">Great job following the rules!</p>
-            </div>
-          )}
-        </div>
-
-        {/* Reward Progress */}
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Award className="w-5 h-5 text-primary-600" />
-            Reward Goals
-          </h2>
-          
-          {state.rewards && state.rewards.length > 0 ? (
-            <div className="space-y-4">
-              {state.rewards.slice(0, 3).map((reward) => {
-                // For now, we'll calculate progress based on penalty accumulation
-                const currentPenalties = totalPenalties;
-                const progress = Math.min(currentPenalties / reward.target_amount, 1);
-                const progressPercent = Math.round(progress * 100);
-                
-                return (
-                  <div key={reward.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-gray-900">{reward.title}</p>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        reward.is_claimed 
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {reward.is_claimed ? 'Claimed' : 'Available'}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>{currentPenalties}만원 / {reward.target_amount}만원</span>
-                      <span>{progressPercent}%</span>
-                    </div>
-                    
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-primary-400 to-coral-400 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-              
-              <div className="pt-3">
-                <Link 
-                  to="/rewards" 
-                  className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
-                >
-                  View all rewards
-                  <Gift className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Gift className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 text-sm">No reward goals set</p>
-              <Link 
-                to="/rewards" 
-                className="text-primary-600 hover:text-primary-700 text-sm font-medium mt-2 inline-block"
-              >
-                Create your first reward
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Summary Banner */}
-      {totalPenalties > 0 && (
-        <div className="card p-6 bg-gradient-to-r from-red-50 to-orange-50 border-red-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-red-900">Current Balance</h3>
-              <p className="text-red-700 mt-1">
-                You have <strong>{totalPenalties}만원</strong> in accumulated penalties from {addViolations} violations
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
-              <Link 
-                to="/violations/new"
-                className="btn-secondary text-red-700 border-red-300 hover:bg-red-50"
-              >
-                Add Reduction
-              </Link>
-            </div>
+      {/* 최근 활동 - 모바일 최적화 */}
+      {recentViolations.length > 0 && (
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-pink-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-gray-900">최근 기록</h2>
+            <Clock className="w-4 h-4 text-gray-400" />
           </div>
+          
+          <div className="space-y-3">
+            {recentViolations.map((violation) => {
+              const rule = state.rules?.find(r => r.id === violation.rule_id);
+              const isAdd = violation.type === 'add';
+              
+              return (
+                <div 
+                  key={violation.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      isAdd ? 'bg-red-100' : 'bg-green-100'
+                    }`}>
+                      {isAdd ? '😅' : '😊'}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {rule?.title || '알 수 없는 규칙'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(violation.created_at).toLocaleDateString('ko-KR', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`text-sm font-bold ${
+                    isAdd ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    {isAdd ? '+' : '-'}{violation.amount}만원
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <Link
+            to="/calendar"
+            className="mt-4 flex items-center justify-center gap-2 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <Calendar className="w-4 h-4" />
+            전체 기록 보기
+          </Link>
         </div>
       )}
+
+      {/* 오늘의 한마디 - 모바일용 추가 */}
+      <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-start gap-3">
+          <Trophy className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-purple-900 mb-1">오늘의 한마디</p>
+            <p className="text-xs text-purple-700">
+              "작은 약속도 소중히, 우리의 사랑은 더욱 단단해져요! 💪"
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -19,13 +19,108 @@ type AppAction =
   | { type: 'SET_ONLINE_STATUS'; payload: boolean }
   | { type: 'RESET_STATE' };
 
-// Initial State
+// 개발용 임시 데이터
+const mockCouple: Couple = {
+  id: 'mock-couple-id',
+  code: 'LOVE24',
+  theme: 'light',
+  created_at: new Date().toISOString()
+};
+
+const mockRules: Rule[] = [
+  {
+    id: '1',
+    couple_id: 'mock-couple-id',
+    type: 'word',
+    title: '욕설 금지',
+    penalty_amount: 1,
+    created_at: new Date().toISOString(),
+    is_active: true
+  },
+  {
+    id: '2',
+    couple_id: 'mock-couple-id',
+    type: 'behavior',
+    title: '늦게 들어오기',
+    penalty_amount: 3,
+    created_at: new Date().toISOString(),
+    is_active: true
+  },
+  {
+    id: '3',
+    couple_id: 'mock-couple-id',
+    type: 'word',
+    title: '거짓말',
+    penalty_amount: 5,
+    created_at: new Date().toISOString(),
+    is_active: true
+  }
+];
+
+const mockViolations: Violation[] = [
+  {
+    id: '1',
+    rule_id: '1',
+    violator_id: 'mock-user-id',
+    amount: 1,
+    type: 'add',
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+    note: '실수로 욕을 했어요'
+  },
+  {
+    id: '2',
+    rule_id: '2',
+    violator_id: 'mock-user-id',
+    amount: 3,
+    type: 'add',
+    created_at: new Date(Date.now() - 172800000).toISOString(),
+    note: '회식 때문에 늦었어요'
+  },
+  {
+    id: '3',
+    rule_id: '1',
+    violator_id: 'mock-user-id',
+    amount: 1,
+    type: 'subtract',
+    created_at: new Date(Date.now() - 259200000).toISOString(),
+    note: '사과했어요'
+  }
+];
+
+const mockRewards: Reward[] = [
+  {
+    id: '1',
+    couple_id: 'mock-couple-id',
+    title: '맛있는 저녁 외식',
+    target_amount: 10,
+    is_claimed: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: '2',
+    couple_id: 'mock-couple-id',
+    title: '영화 관람',
+    target_amount: 5,
+    is_claimed: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: '3',
+    couple_id: 'mock-couple-id',
+    title: '주말 여행',
+    target_amount: 30,
+    is_claimed: false,
+    created_at: new Date().toISOString()
+  }
+];
+
+// Initial State with mock data
 const initialState: AppState = {
   user: null,
-  couple: null,
-  rules: [],
-  violations: [],
-  rewards: [],
+  couple: mockCouple,
+  rules: mockRules,
+  violations: mockViolations,
+  rewards: mockRewards,
   theme: 'light',
   isOnline: true
 };

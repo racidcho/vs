@@ -26,7 +26,16 @@
       "mcp__supabase__apply_migration",
       "mcp__magic__21st_magic_component_builder",
       "Bash(npm run build:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npm uninstall:*)",
+      "mcp__playwright-stealth__playwright_navigate",
+      "Bash(npx playwright install:*)",
+      "Bash(playwright install)",
+      "Bash(playwright install:*)",
+      "mcp__playwright-stealth__playwright_get",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npm ls:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": []
   }
