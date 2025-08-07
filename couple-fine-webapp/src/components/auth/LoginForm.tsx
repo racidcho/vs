@@ -29,9 +29,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
       if (error) {
         toast.error(error);
       } else {
-        // 개발 환경: 바로 로그인 성공 메시지 표시
-        toast.success('🎉 로그인 성공! 환영해요!');
-        // setEmailSent(true); // 이메일 확인 화면 건너뛰기
+        // 이메일 전송 성공 - 확인 화면 표시
+        setEmailSent(true);
+        toast.success('📧 매직 링크를 보냈어요! 이메일을 확인해주세요');
       }
     } catch (error) {
       toast.error('문제가 발생했어요. 다시 시도해주세요.');
