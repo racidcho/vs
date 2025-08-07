@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
-// 🔧 임시 하드코딩 테스트 - PRODUCTION CRUD 문제 해결용
+// 🔧 올바른 Supabase URL 확인됨 - PRODUCTION CRUD 문제 해결용
 const supabaseUrl = 'https://ywocrwjzjheupewfxssu.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b2Nyd2p6amhldXBld2Z4c3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NDkyNzIsImV4cCI6MjA3MDEyNTI3Mn0.zLalJ0ECNVKmXRtSe8gmbwOWDrqAxvOP0oIn9jOhT9U';
 

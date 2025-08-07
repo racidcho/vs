@@ -69,7 +69,9 @@
       "WebFetch(domain:vercel.com)",
       "mcp__playwright-stealth__playwright_console_logs",
       "Bash(timeout:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "mcp__supabase__execute_sql",
+      "Bash(start http://localhost:5173)"
     ],
     "deny": []
   }
