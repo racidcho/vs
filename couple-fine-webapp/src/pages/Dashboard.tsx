@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
+import { getDashboardStats } from '../lib/supabaseApi';
+import { DbTest } from '../components/DbTest';
 import { 
   Heart, 
   AlertTriangle, 
@@ -18,22 +20,44 @@ import {
 export const Dashboard: React.FC = () => {
   const { state } = useApp();
   const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState({
+    totalBalance: 0,
+    activeRules: 0,
+    thisMonthViolations: 0,
+    availableRewards: 0,
+    recentActivity: [] as any[]
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [showDbTest, setShowDbTest] = useState(false);
 
-  // Calculate statistics
-  const activeRules = state.rules?.filter(r => r.is_active !== false).length || 0;
-  const totalViolations = state.violations?.filter(v => v.type === 'add').length || 0;
-  const totalPenalties = state.violations
-    ?.filter(v => v.type === 'add')
-    .reduce((sum, v) => sum + v.amount, 0) || 0;
-  
-  const claimedRewards = state.rewards?.filter(r => r.is_claimed).length || 0;
-  const totalRewards = state.rewards?.length || 0;
-  const rewardProgress = totalRewards > 0 ? Math.round((claimedRewards / totalRewards) * 100) : 0;
+  // Load real dashboard data
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!user?.couple_id) {
+        setIsLoading(false);
+        return;
+      }
 
-  // Recent activity (last 3 violations for mobile)
-  const recentViolations = state.violations
-    ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 3) || [];
+      try {
+        const stats = await getDashboardStats(user.couple_id);
+        setDashboardData(stats);
+      } catch (error) {
+        console.error('대시보드 데이터 로딩 실패:', error);
+        // 기본값 유지
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, [user?.couple_id]);
+
+  // Get data from real API or fallback to context state
+  const activeRules = dashboardData.activeRules || state.rules?.filter(r => r.is_active !== false).length || 0;
+  const totalBalance = dashboardData.totalBalance || 0;
+  const thisMonthViolations = dashboardData.thisMonthViolations || 0;
+  const availableRewards = dashboardData.availableRewards || state.rewards?.filter(r => !r.is_achieved).length || 0;
+  const recentActivity = dashboardData.recentActivity || state.violations?.slice(0, 3) || [];
 
   // 귀여운 인사말
   const getGreeting = () => {
@@ -55,8 +79,8 @@ export const Dashboard: React.FC = () => {
       description: '함께 정한 약속'
     },
     {
-      title: '벌금 횟수',
-      value: totalViolations,
+      title: '이번달 벌금',
+      value: thisMonthViolations,
       unit: '번',
       icon: AlertTriangle,
       emoji: '😅',
@@ -65,7 +89,7 @@ export const Dashboard: React.FC = () => {
     },
     {
       title: '모인 벌금',
-      value: totalPenalties,
+      value: Math.floor(totalBalance / 10000),
       unit: '만원',
       icon: TrendingUp,
       emoji: '💰',
@@ -73,15 +97,26 @@ export const Dashboard: React.FC = () => {
       description: '현재까지 모은 금액'
     },
     {
-      title: '달성 보상',
-      value: rewardProgress,
-      unit: '%',
+      title: '사용 가능한 보상',
+      value: availableRewards,
+      unit: '개',
       icon: Gift,
       emoji: '🎁',
       gradient: 'from-green-400 to-teal-400',
-      description: '보상 달성률'
+      description: '달성 가능한 보상'
     }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">⏳</div>
+          <p className="text-gray-600">데이터 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -91,11 +126,19 @@ export const Dashboard: React.FC = () => {
           <h1 className="text-xl font-bold text-gray-900">
             {getGreeting()}, {user?.display_name || '사랑'}님! 
           </h1>
-          <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={() => setShowDbTest(true)}
+              className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200"
+            >
+              🔍 DB테스트
+            </button>
+            <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
+          </div>
         </div>
         <p className="text-sm text-gray-600">
           {state.couple ? (
-            <>우리 커플 코드: <span className="font-medium text-pink-600">💑 {state.couple.code}</span></>
+            <>우리 커플 코드: <span className="font-medium text-pink-600">💑 {state.couple.couple_code}</span></>
           ) : (
             '커플 연결을 기다리고 있어요'
           )}
@@ -175,7 +218,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* 최근 활동 - 모바일 최적화 */}
-      {recentViolations.length > 0 && (
+      {recentActivity.length > 0 && (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-pink-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-gray-900">최근 기록</h2>
@@ -183,9 +226,9 @@ export const Dashboard: React.FC = () => {
           </div>
           
           <div className="space-y-3">
-            {recentViolations.map((violation) => {
+            {recentActivity.map((violation: any) => {
               const rule = state.rules?.find(r => r.id === violation.rule_id);
-              const isAdd = violation.type === 'add';
+              const isAdd = violation.amount > 0;
               
               return (
                 <div 
@@ -215,7 +258,7 @@ export const Dashboard: React.FC = () => {
                   <span className={`text-sm font-bold ${
                     isAdd ? 'text-red-600' : 'text-green-600'
                   }`}>
-                    {isAdd ? '+' : '-'}{violation.amount}만원
+                    {isAdd ? '+' : '-'}{Math.floor(violation.amount / 10000) || violation.amount}원
                   </span>
                 </div>
               );
@@ -244,6 +287,11 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 데이터베이스 테스트 모달 */}
+      {showDbTest && (
+        <DbTest onClose={() => setShowDbTest(false)} />
+      )}
     </div>
   );
 };
