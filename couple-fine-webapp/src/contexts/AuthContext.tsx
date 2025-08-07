@@ -80,7 +80,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      console.log('🔐 SignIn attempt for:', email);
+      
+      const { data, error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
           shouldCreateUser: true,
@@ -89,9 +91,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (error) {
+        console.error('❌ SignIn error:', error);
         return { error: error.message };
       }
       
+      // Check if OTP was actually sent
+      if (!data || !data.user) {
+        console.log('✅ Magic link sent to:', email);
+        return { success: true, message: 'Magic link sent! Check your email.' };
+      }
+      
+      // This should not happen - user should not be returned immediately
+      console.warn('⚠️ Unexpected immediate user return - this should not happen with OTP');
       return { success: true };
     } catch (error) {
       console.error('SignIn error:', error);
@@ -129,16 +140,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        setSession(initialSession);
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
-        if (initialSession?.user) {
+        if (error) {
+          console.error('❌ Error getting session:', error);
+          setSession(null);
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Only accept valid sessions with confirmed emails
+        if (initialSession && initialSession.access_token && initialSession.user?.email_confirmed_at) {
+          console.log('✅ Valid initial session for:', initialSession.user.email);
+          setSession(initialSession);
           await refreshUser();
         } else {
+          console.log('❌ No valid initial session');
+          setSession(null);
           setUser(null);
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
+        setSession(null);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -150,11 +175,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
         
-        if (session?.user) {
+        // Only accept valid sessions with proper authentication
+        if (session && session.access_token && session.user?.email_confirmed_at) {
+          console.log('✅ Valid authenticated session for:', session.user.email);
+          setSession(session);
           await refreshUser();
+        } else if (session && !session.user?.email_confirmed_at) {
+          console.warn('⚠️ Session exists but email not confirmed');
+          setSession(null);
+          setUser(null);
         } else {
+          console.log('❌ No valid session');
+          setSession(null);
           setUser(null);
         }
         
