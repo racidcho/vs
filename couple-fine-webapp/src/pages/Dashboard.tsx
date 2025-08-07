@@ -11,7 +11,6 @@ import {
   Calendar,
   Clock,
   Sparkles,
-  Star,
   Trophy,
   Zap
 } from 'lucide-react';

@@ -35,7 +35,9 @@
       "mcp__playwright-stealth__playwright_get",
       "Bash(npx tailwindcss:*)",
       "Bash(npm ls:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(vercel:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }

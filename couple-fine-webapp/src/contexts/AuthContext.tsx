@@ -29,13 +29,13 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // 개발 환경에서 임시 사용자 데이터
-  const mockUser: User = {
-    id: 'mock-user-id',
-    email: 'demo@couplefine.com',
-    display_name: '데모 사용자',
-    couple_id: 'mock-couple-id',
-    created_at: new Date().toISOString()
-  };
+  // const mockUser: User = {
+  //   id: 'mock-user-id',
+  //   email: 'demo@couplefine.com',
+  //   display_name: '데모 사용자',
+  //   couple_id: 'mock-couple-id',
+  //   created_at: new Date().toISOString()
+  // };
   
   const [user, setUser] = useState<User | null>(null); // 로그인 화면 보기 위해 null로 설정
   const [session, setSession] = useState<AuthSession | null>(null);

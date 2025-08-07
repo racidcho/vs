@@ -1,5 +1,5 @@
 import React from 'react';
-import { Gift, Plus, Award, Target, TrendingUp, Sparkles, Star, Heart, Trophy, Zap } from 'lucide-react';
+import { Gift, Plus, Sparkles, Star, Trophy } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 
 export const Rewards: React.FC = () => {

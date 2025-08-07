@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Plus, Edit, Trash2, AlertCircle, Sparkles, Star } from 'lucide-react';
+import { Heart, Plus, Edit, Trash2, Sparkles, Star } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 
 export const Rules: React.FC = () => {

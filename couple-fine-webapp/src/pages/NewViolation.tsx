@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
-import { AlertTriangle, Plus, Minus, ArrowLeft, Save, Sparkles, Heart, Zap, Edit3 } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, Heart, Zap, Edit3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const NewViolation: React.FC = () => {

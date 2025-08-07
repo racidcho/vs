@@ -10,13 +10,10 @@ import {
   Calendar, 
   Settings, 
   LogOut,
-  Menu,
-  X,
   Wifi,
   WifiOff,
   Sparkles
 } from 'lucide-react';
-import { useState } from 'react';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import toast from 'react-hot-toast';
 import { MobileNav } from './MobileNav';
@@ -37,7 +34,7 @@ export const AppLayout: React.FC = () => {
   const navigate = useNavigate();
   const isOnline = useOnlineStatus();
   
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {

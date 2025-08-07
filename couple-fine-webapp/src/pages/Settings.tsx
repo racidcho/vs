@@ -6,18 +6,14 @@ import {
   Palette, 
   Shield, 
   Smartphone,
-  Users,
   LogOut,
   Edit,
   Save,
   X,
   Lock,
   Info,
-  Sparkles,
   Heart,
-  Settings as SettingsIcon,
-  Bell,
-  Star
+  Settings as SettingsIcon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppLock } from '../hooks/useAppLock';
