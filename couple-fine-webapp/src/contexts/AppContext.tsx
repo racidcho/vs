@@ -21,13 +21,124 @@ type AppAction =
   | { type: 'SET_ONLINE_STATUS'; payload: boolean }
   | { type: 'RESET_STATE' };
 
-// Initial State - empty by default
+// Initial State - TEMPORARY TEST DATA for CRUD verification
 const initialState: AppState = {
   user: null,
-  couple: null,
-  rules: [],
-  violations: [],
-  rewards: [],
+  couple: {
+    id: 'test-couple-1',
+    couple_code: 'TEST01',
+    couple_name: '테스트 커플',
+    partner_1_id: 'test-user-1',
+    partner_2_id: 'test-user-2',
+    total_balance: 50000,
+    is_active: true,
+    created_at: new Date().toISOString()
+  } as any,
+  rules: [
+    {
+      id: 'rule-1',
+      couple_id: 'test-couple-1',
+      title: '욕설 금지',
+      description: '상대방에게 욕설하기',
+      fine_amount: 5000,
+      category: 'word',
+      icon_emoji: '🤬',
+      is_active: true,
+      created_by_user_id: 'test-user-1',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 'rule-2', 
+      couple_id: 'test-couple-1',
+      title: '약속 늦기',
+      description: '데이트 약속 10분 이상 늦기',
+      fine_amount: 10000,
+      category: 'behavior',
+      icon_emoji: '⏰',
+      is_active: true,
+      created_by_user_id: 'test-user-2',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 'rule-3',
+      couple_id: 'test-couple-1', 
+      title: '사랑한다 말 안하기',
+      description: '하루 종일 사랑한다 말 안하기',
+      fine_amount: 3000,
+      category: 'word',
+      icon_emoji: '💕',
+      is_active: true,
+      created_by_user_id: 'test-user-1',
+      created_at: new Date().toISOString()
+    }
+  ],
+  violations: [
+    {
+      id: 'violation-1',
+      couple_id: 'test-couple-1',
+      rule_id: 'rule-1',
+      violator_user_id: 'test-user-1',
+      recorded_by_user_id: 'test-user-2', 
+      amount: 5000,
+      memo: '화날 때 욕설했어요 ㅠㅠ',
+      violation_date: new Date().toISOString().split('T')[0],
+      created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    },
+    {
+      id: 'violation-2',
+      couple_id: 'test-couple-1',
+      rule_id: 'rule-2',
+      violator_user_id: 'test-user-2',
+      recorded_by_user_id: 'test-user-1',
+      amount: 10000,
+      memo: '지하철 지연으로 15분 늦음',
+      violation_date: new Date().toISOString().split('T')[0],
+      created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+    },
+    {
+      id: 'violation-3',
+      couple_id: 'test-couple-1',
+      rule_id: 'rule-3',
+      violator_user_id: 'test-user-1',
+      recorded_by_user_id: 'test-user-2',
+      amount: -3000, // 차감 (잘못 기록해서 되돌림)
+      memo: '잘못 기록해서 차감',
+      violation_date: new Date().toISOString().split('T')[0],
+      created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
+    }
+  ],
+  rewards: [
+    {
+      id: 'reward-1',
+      couple_id: 'test-couple-1',
+      title: '맛집 데이트',
+      description: '새로운 맛집에서 저녁 데이트',
+      target_amount: 30000,
+      category: 'date',
+      icon_emoji: '🍽️',
+      priority: 1,
+      is_achieved: false,
+      achieved_at: null,
+      achieved_by_user_id: null,
+      created_by_user_id: 'test-user-2',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 'reward-2',
+      couple_id: 'test-couple-1', 
+      title: '영화관 데이트',
+      description: '최신 영화 보러가기',
+      target_amount: 50000,
+      category: 'entertainment',
+      icon_emoji: '🎬',
+      priority: 2,
+      is_achieved: false,
+      achieved_at: null,
+      achieved_by_user_id: null,
+      created_by_user_id: 'test-user-1',
+      created_at: new Date().toISOString()
+    }
+  ],
   theme: 'light',
   isOnline: true
 };
