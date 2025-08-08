@@ -57,12 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(userData);
       } else if (error?.code === 'PGRST116') {
         // User doesn't exist in our users table, create them
-        // BUT ONLY IF EMAIL IS CONFIRMED
-        if (!currentSession.user.email_confirmed_at) {
-              setUser(null);
-          return;
-        }
-
+        // For OTP login, email is automatically confirmed
         const newUser: Omit<User, 'id'> = {
           email: currentSession.user.email || '',
           display_name: currentSession.user.user_metadata?.display_name || 
@@ -121,17 +116,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (error) {
+        console.error('OTP verification error:', error);
         return { error: error.message };
       }
       
       if (data.session) {
+        console.log('OTP verified, session created:', data.session.user.email);
         setSession(data.session);
+        
+        // Force refresh user data
         await refreshUser();
+        
+        // Double check user was set
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession) {
+          console.log('Session confirmed, user should be logged in');
+        }
+        
         return { success: true };
       }
       
       return { error: 'Failed to verify OTP' };
     } catch (error) {
+      console.error('Unexpected error during OTP verification:', error);
       return { error: 'An unexpected error occurred' };
     } finally {
       setIsLoading(false);

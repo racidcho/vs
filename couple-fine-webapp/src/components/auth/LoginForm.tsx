@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Heart, Mail, Loader2, Key } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -9,6 +10,7 @@ interface LoginFormProps {
 
 export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
   const { signIn, verifyOtp } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +60,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
         toast.error(error);
       } else {
         toast.success('🎉 로그인 성공!');
-        // 로그인 성공 후 자동으로 리디렉션됨
+        // 로그인 성공 후 명시적으로 리디렉션
+        setTimeout(() => {
+          navigate('/');
+        }, 500);
       }
     } catch (error) {
       toast.error('인증 코드가 올바르지 않아요. 다시 확인해주세요.');
