@@ -7,7 +7,8 @@ interface AuthContextType {
   user: User | null;
   session: AuthSession | null;
   isLoading: boolean;
-  signIn: (email: string) => Promise<{ error?: string }>;
+  signIn: (email: string) => Promise<{ error?: string; success?: boolean; message?: string }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error?: string; success?: boolean }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateProfile: (updates: Partial<Pick<User, 'display_name'>>) => Promise<void>;
@@ -49,7 +50,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { data: userData, error } = await supabase
         .from('users')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('id', currentSession.user.id)
         .single();
       
       if (userData && !error) {
@@ -57,21 +58,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else if (error?.code === 'PGRST116') {
         // User doesn't exist in our users table, create them
         // BUT ONLY IF EMAIL IS CONFIRMED
-        if (!session.user.email_confirmed_at) {
+        if (!currentSession.user.email_confirmed_at) {
               setUser(null);
           return;
         }
 
         const newUser: Omit<User, 'id'> = {
-          email: session.user.email || '',
-          display_name: session.user.user_metadata?.display_name || 
-                       session.user.email?.split('@')[0] || 'User',
+          email: currentSession.user.email || '',
+          display_name: currentSession.user.user_metadata?.display_name || 
+                       currentSession.user.email?.split('@')[0] || 'User',
           created_at: new Date().toISOString()
         };
 
         const { data: createdUser, error: createError } = await supabase
           .from('users')
-          .insert({ ...newUser, id: session.user.id })
+          .insert({ ...newUser, id: currentSession.user.id })
           .select()
           .single();
 
@@ -90,16 +91,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     
     try {
-      
-      const redirectUrl = import.meta.env.PROD 
-        ? 'https://joanddo.com'
-        : window.location.origin;
-      
       const { data, error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          shouldCreateUser: true,
-          emailRedirectTo: redirectUrl
+          shouldCreateUser: true
         }
       });
       
@@ -107,13 +102,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error: error.message };
       }
       
-      // Check if OTP was actually sent
-      if (!data || !data.user) {
-        return { success: true, message: 'Magic link sent! Check your email.' };
+      return { success: true, message: 'OTP sent! Check your email.' };
+    } catch (error) {
+      return { error: 'An unexpected error occurred' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyOtp = async (email: string, token: string) => {
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: token.trim(),
+        type: 'email'
+      });
+      
+      if (error) {
+        return { error: error.message };
       }
       
-      // This should not happen - user should not be returned immediately
-      return { success: true };
+      if (data.session) {
+        setSession(data.session);
+        await refreshUser();
+        return { success: true };
+      }
+      
+      return { error: 'Failed to verify OTP' };
     } catch (error) {
       return { error: 'An unexpected error occurred' };
     } finally {
@@ -182,6 +199,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session,
     isLoading,
     signIn,
+    verifyOtp,
     signOut,
     refreshUser,
     updateProfile
