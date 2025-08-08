@@ -27,7 +27,12 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
         break;
       case 'UPDATE':
         if (newRecord && newRecord.couple_id === coupleId) {
-          dispatch({ type: 'UPDATE_RULE', payload: newRecord });
+          // Handle rule deactivation (is_active = false) as deletion
+          if (newRecord.is_active === false) {
+            dispatch({ type: 'DELETE_RULE', payload: newRecord.id });
+          } else {
+            dispatch({ type: 'UPDATE_RULE', payload: newRecord });
+          }
         }
         break;
       case 'DELETE':

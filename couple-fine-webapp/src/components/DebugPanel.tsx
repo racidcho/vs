@@ -110,7 +110,7 @@ export const DebugPanel: React.FC = () => {
             <div className="border-b pb-2 mb-2">
               <h4 className="font-semibold mb-1">앱 상태</h4>
               <div className="space-y-1 text-gray-600 dark:text-gray-400">
-                <div>Theme: {state.theme}</div>
+                <div>Theme: light (fixed)</div>
                 <div>Rules: {state.rules.length}</div>
                 <div>Violations: {state.violations.length}</div>
                 <div>Rewards: {state.rewards.length}</div>

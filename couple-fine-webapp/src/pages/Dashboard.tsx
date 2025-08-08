@@ -31,7 +31,6 @@ export const Dashboard: React.FC = () => {
     availableRewards: 0,
     recentActivity: [] as any[]
   });
-  const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [editingViolation, setEditingViolation] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState<number>(0);
@@ -53,12 +52,10 @@ export const Dashboard: React.FC = () => {
       }
       
       console.log('📊 DASHBOARD: 데이터 로딩 시작');
-      setIsLoading(true);
       setLoadError(false);
       
       if (!user?.couple_id) {
-        console.log('❌ DASHBOARD: 커플 ID 없음, 로딩 완료');
-        if (isMounted) setIsLoading(false);
+        console.log('❌ DASHBOARD: 커플 ID 없음');
         return;
       }
 
@@ -91,10 +88,9 @@ export const Dashboard: React.FC = () => {
           setLoadError(true);
         }
       } finally {
-        // **중요**: 성공/실패 관계없이 로딩 상태 해제 (마운트된 경우만)
+        // **중요**: API 호출 완료 로깅
         if (isMounted) {
-          console.log('✅ DASHBOARD: 로딩 완료');
-          setIsLoading(false);
+          console.log('✅ DASHBOARD: API 호출 완료');
         }
       }
     };
@@ -102,11 +98,7 @@ export const Dashboard: React.FC = () => {
     // Only load if we have required data
     if (user?.couple_id) {
       loadDashboardData();
-    } else if (user && !user.couple_id) {
-      // User exists but no couple_id - immediately stop loading
-      setIsLoading(false);
     }
-    // If user is null/undefined, keep loading state until user is determined
     
     // Cleanup function
     return () => {
@@ -237,36 +229,29 @@ export const Dashboard: React.FC = () => {
     }
   ];
 
-  // 로딩 중이거나 오류 발생 시
-  if (isLoading || loadError) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          {loadError ? (
-            <>
-              <WifiOff className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">데이터를 불러오지 못했어요</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all flex items-center gap-2 mx-auto"
-              >
-                <RefreshCw className="w-4 h-4" />
-                다시 시도
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="animate-spin text-4xl mb-4">⏳</div>
-              <p className="text-gray-600">데이터 불러오는 중...</p>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }
+  // Show error message inline if data loading fails (but don't block the page)
+  const showInlineError = loadError;
 
   return (
     <div className="space-y-6">
+      {/* 인라인 오류 메시지 (페이지 차단하지 않음) */}
+      {showInlineError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <WifiOff className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-red-800">데이터를 불러오지 못했어요</p>
+            <p className="text-xs text-red-600">기본값으로 표시됩니다</p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
+            title="새로고침"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* 환영 메시지 - 모바일 최적화 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
         <div className="flex items-center justify-between mb-2">

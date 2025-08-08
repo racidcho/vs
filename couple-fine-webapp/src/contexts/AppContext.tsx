@@ -20,7 +20,6 @@ type AppAction =
   | { type: 'ADD_REWARD'; payload: Reward }
   | { type: 'UPDATE_REWARD'; payload: Reward }
   | { type: 'DELETE_REWARD'; payload: string }
-  | { type: 'SET_THEME'; payload: 'light' | 'dark' }
   | { type: 'SET_ONLINE_STATUS'; payload: boolean }
   | { type: 'RESET_STATE' };
 
@@ -31,7 +30,6 @@ const initialState: AppState = {
   rules: [],
   violations: [],
   rewards: [],
-  theme: 'light',
   isOnline: true
 };
 
@@ -103,8 +101,6 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         rewards: state.rewards.filter(reward => reward.id !== action.payload)
       };
-    case 'SET_THEME':
-      return { ...state, theme: action.payload };
     case 'SET_ONLINE_STATUS':
       return { ...state, isOnline: action.payload };
     case 'RESET_STATE':
@@ -125,7 +121,6 @@ interface AppContextType {
   updateCoupleName: (name: string) => Promise<{ error?: string }>;
   joinCouple: (code: string) => Promise<{ error?: string; success?: boolean }>;
   leaveCouple: () => Promise<{ error?: string; success?: boolean }>;
-  updateCoupleTheme: (theme: 'light' | 'dark') => Promise<void>;
   getPartnerInfo: () => Promise<{ partner: any; error?: string } | null>;
   // Rule management
   createRule: (rule: Omit<Rule, 'id' | 'couple_id' | 'created_at'>) => Promise<{ error?: string }>;
@@ -160,16 +155,6 @@ interface AppProviderProps {
   children: React.ReactNode;
 }
 
-// Helper function to apply theme to body
-const applyThemeToBody = (theme: 'light' | 'dark') => {
-  if (theme === 'dark') {
-    document.body.classList.add('dark');
-    document.body.classList.remove('light');
-  } else {
-    document.body.classList.add('light');
-    document.body.classList.remove('dark');
-  }
-};
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -178,15 +163,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Realtime connection status (will be managed directly in this component)
   const isRealtimeConnected = true; // Placeholder for now
 
-  // Initialize theme from localStorage on app start
-  React.useEffect(() => {
-    const savedTheme = localStorage.getItem('app-theme') as 'light' | 'dark' | null;
-    if (savedTheme && savedTheme !== state.theme) {
-      dispatch({ type: 'SET_THEME', payload: savedTheme });
-      // Apply theme to body immediately
-      applyThemeToBody(savedTheme);
-    }
-  }, []);
 
   // Load couple data when user changes with abort signal support
   const loadCoupleData = async (abortSignal?: AbortSignal) => {
@@ -253,7 +229,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const transformedCouple = {
           id: coupleData.id,
           code: coupleData.couple_code,
-          theme: 'light', // Default theme, you might want to add this to DB
           created_at: coupleData.created_at,
           // Additional fields for internal use
           couple_name: coupleData.couple_name,
@@ -671,45 +646,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // Update couple theme
-  const updateCoupleTheme = async (theme: 'light' | 'dark') => {
-    try {
-      console.log('🎨 APPCONTEXT: updateCoupleTheme called with:', theme);
-      
-      // Save theme to localStorage immediately for instant UI feedback
-      localStorage.setItem('app-theme', theme);
-      console.log('💾 APPCONTEXT: Theme saved to localStorage:', theme);
-      
-      // Update local state immediately
-      dispatch({ type: 'SET_THEME', payload: theme });
-      console.log('🔄 APPCONTEXT: Local state updated with theme:', theme);
-      
-      // Apply theme to body immediately using helper function
-      applyThemeToBody(theme);
-      console.log('✨ APPCONTEXT: Theme applied to body:', theme);
-
-      // Update couple theme in database if user is part of a couple
-      if (user?.couple_id) {
-        console.log('🗃️ APPCONTEXT: Updating couple theme in database...');
-        const { error } = await supabase
-          .from('couples')
-          .update({ theme })
-          .eq('id', user.couple_id);
-
-        if (error) {
-          console.error('❌ APPCONTEXT: Error updating theme in database:', error);
-          // Don't revert UI changes even if DB update fails
-        } else {
-          console.log('✅ APPCONTEXT: Theme updated in database successfully');
-        }
-      } else {
-        console.log('ℹ️ APPCONTEXT: No couple ID, skipping database update');
-      }
-    } catch (error) {
-      console.error('💥 APPCONTEXT: Error updating theme:', error);
-      // Don't revert UI changes even if there's an error
-    }
-  };
 
   // Update couple name
   const updateCoupleName = async (name: string) => {
@@ -754,7 +690,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.log('📊 APPCONTEXT: 삽입할 데이터:', {
         ...rule,
         couple_id: user.couple_id,
-        created_by: user.id,
+        created_by_user_id: user.id,
         is_active: true
       });
       
@@ -763,7 +699,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .insert({
           ...rule,
           couple_id: user.couple_id,
-          created_by: user.id,
+          created_by_user_id: user.id,
           is_active: true
         })
         .select()
@@ -833,6 +769,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       if (error) return { error: error.message };
 
+      // **CRITICAL FIX**: Immediately remove the rule from local state
+      dispatch({ type: 'DELETE_RULE', payload: id });
+
       return {};
     } catch (error) {
       return { error: 'Failed to delete rule' };
@@ -897,7 +836,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.log('📊 APPCONTEXT: 삽입할 데이터:', {
         ...reward,
         couple_id: user.couple_id,
-        is_claimed: false
+        created_by_user_id: user.id,
+        is_achieved: false
       });
       
       const { error, data } = await supabase
@@ -905,7 +845,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .insert({
           ...reward,
           couple_id: user.couple_id,
-          is_claimed: false
+          created_by_user_id: user.id,
+          is_achieved: false
         })
         .select()
         .single();
@@ -1148,7 +1089,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           if (payload.eventType === 'INSERT' && payload.new) {
             dispatch({ type: 'ADD_RULE', payload: payload.new as Rule });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            dispatch({ type: 'UPDATE_RULE', payload: payload.new as Rule });
+            // **CRITICAL FIX**: Handle rule deactivation (is_active = false) as deletion
+            if (payload.new.is_active === false) {
+              dispatch({ type: 'DELETE_RULE', payload: payload.new.id });
+            } else {
+              dispatch({ type: 'UPDATE_RULE', payload: payload.new as Rule });
+            }
           } else if (payload.eventType === 'DELETE' && payload.old) {
             dispatch({ type: 'DELETE_RULE', payload: payload.old.id });
           }
@@ -1237,23 +1183,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     };
   }, []);
 
-  // Update theme when couple theme changes
-  useEffect(() => {
-    const coupleTheme = (state.couple as any)?.theme;
-    if (coupleTheme && coupleTheme !== state.theme) {
-      dispatch({ type: 'SET_THEME', payload: coupleTheme as 'light' | 'dark' });
-      // Also apply theme to body when couple theme changes
-      applyThemeToBody(coupleTheme as 'light' | 'dark');
-    }
-  }, [(state.couple as any)?.theme, state.theme]);
-
-  // Ensure theme is applied whenever state.theme changes
-  useEffect(() => {
-    if (state.theme) {
-      applyThemeToBody(state.theme);
-      console.log('🎨 APPCONTEXT: Theme effect triggered, applied:', state.theme);
-    }
-  }, [state.theme]);
 
   const value: AppContextType = {
     state: { ...state, user },
@@ -1265,7 +1194,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     createCouple,
     joinCouple,
     leaveCouple,
-    updateCoupleTheme,
     updateCoupleName,
     getPartnerInfo,
     // Rule management

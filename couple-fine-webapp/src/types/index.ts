@@ -83,7 +83,6 @@ export interface AppState {
   rules: Rule[];
   violations: Violation[];
   rewards: Reward[];
-  theme: 'light' | 'dark';
   isOnline: boolean;
 }
 

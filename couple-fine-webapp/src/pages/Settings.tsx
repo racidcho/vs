@@ -20,7 +20,7 @@ import { useAppLock } from '../hooks/useAppLock';
 
 export const Settings: React.FC = () => {
   const { user, signOut, updateProfile } = useAuth();
-  const { state, updateCoupleTheme, updateCoupleName, getPartnerInfo, leaveCouple, validateData, refreshData } = useApp();
+  const { state, updateCoupleName, getPartnerInfo, leaveCouple, validateData, refreshData } = useApp();
   const { isLocked, lock, hasPin, setPin, removePin } = useAppLock();
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -98,21 +98,6 @@ export const Settings: React.FC = () => {
     }
   };
 
-  // Handle theme change
-  const handleThemeChange = async (newTheme: 'light' | 'dark') => {
-    try {
-      console.log('🎨 SETTINGS: Theme change requested:', newTheme);
-      console.log('🎨 SETTINGS: Current theme state:', state.theme);
-      
-      await updateCoupleTheme(newTheme);
-      
-      console.log('🎨 SETTINGS: Theme change completed, new state:', state.theme);
-      toast.success(`${newTheme === 'light' ? '라이트' : '다크'} 테마로 변경되었어요! 🎨`);
-    } catch (error) {
-      console.error('❌ SETTINGS: Theme change failed:', error);
-      toast.error('테마 변경에 실패했어요');
-    }
-  };
 
   const handleUpdateProfile = async () => {
     if (!displayName.trim()) {
@@ -636,23 +621,6 @@ export const Settings: React.FC = () => {
         </h2>
         
         <div className="space-y-4">
-          {/* Theme */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-gray-900">테마 🎨</h3>
-              <p className="text-sm text-gray-600">선호하는 색상 테마를 선택하세요</p>
-            </div>
-            <select 
-              value={state.theme}
-              onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark')}
-              className="input-field text-sm min-w-0 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 focus:border-indigo-400"
-            >
-              <option value="light">밝은 테마</option>
-              <option value="dark">어두운 테마</option>
-            </select>
-          </div>
-
-
           {/* PWA Install */}
           <div className="flex items-center justify-between">
             <div>
