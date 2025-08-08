@@ -279,6 +279,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       async (event, session) => {
         console.log('🔔 Auth Event:', event, 'Session exists:', !!session);
         
+        // undefined 이벤트는 무시 (Supabase 버그)
+        if (!event || event === 'undefined') {
+          console.log('🔕 undefined 이벤트 무시 - 세션 상태 유지');
+          return;
+        }
+        
+        // USER_UPDATED 이벤트는 세션 상태와 관계없이 무시
+        if (event === 'USER_UPDATED') {
+          console.log('📝 USER_UPDATED 이벤트 감지 - 완전히 무시');
+          return; // 아무것도 하지 않음
+        }
+        
         // 명시적 로그아웃 이벤트만 즉시 처리
         if (event === 'SIGNED_OUT') {
           console.log('👋 명시적 로그아웃 - 세션 정리');
@@ -321,12 +333,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // 기타 이벤트에서 세션이 null인 경우 재확인 (더 강력하게)
         if (!session) {
           console.log('⚠️ 예상치 못한 null 세션 - 이벤트:', event);
-          
-          // USER_UPDATED 이벤트는 종종 일시적으로 null 세션을 보냄
-          if (event === 'USER_UPDATED') {
-            console.log('📝 USER_UPDATED 이벤트 - 세션 유지');
-            return; // 아무것도 하지 않음
-          }
           
           // 재확인 전에 잠시 대기 (네트워크 지연 고려)
           await new Promise(resolve => setTimeout(resolve, 1000));
