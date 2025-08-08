@@ -13,6 +13,8 @@ import { LoginForm } from './components/auth/LoginForm';
 import { PinLockScreen } from './components/auth/PinLockScreen';
 import { RealtimeStatus } from './components/RealtimeStatus';
 import { useAppLock } from './hooks/useAppLock';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { DebugPanel } from './components/DebugPanel';
 
 // Pages (placeholders for now)
 import { Dashboard } from './pages/Dashboard';
@@ -100,19 +102,23 @@ const RouterContent: React.FC = () => {
       </Routes>
       {/* 개발 환경에서만 실시간 연결 상태 표시 */}
       {import.meta.env.DEV && <RealtimeStatus />}
+      {/* 디버그 패널 - 개발 환경에서만 */}
+      <DebugPanel />
     </div>
   );
 };
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <AppProvider>
-          <RouterContent />
-        </AppProvider>
-      </AuthProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <AuthProvider>
+          <AppProvider>
+            <RouterContent />
+          </AppProvider>
+        </AuthProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

@@ -207,6 +207,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     console.log('🏁 APPCONTEXT: 커플 데이터 로드 시작, 커플 ID:', user.couple_id);
 
+    // 5초 타임아웃 설정
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('데이터 로딩 시간 초과')), 5000);
+    });
+
     try {
       console.log('📊 APPCONTEXT: 커플 정보 쿼리 시작...');
       
@@ -216,16 +221,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      // Load couple info with partner details
-      const { data: coupleData, error: coupleError } = await supabase
-        .from('couples')
-        .select(`
-          *,
-          partner_1:profiles!couples_partner_1_id_fkey(*),
-          partner_2:profiles!couples_partner_2_id_fkey(*)
-        `)
-        .eq('id', user.couple_id)
-        .single();
+      // Load couple info with partner details (with timeout)
+      const { data: coupleData, error: coupleError } = await Promise.race([
+        supabase
+          .from('couples')
+          .select(`
+            *,
+            partner_1:profiles!couples_partner_1_id_fkey(*),
+            partner_2:profiles!couples_partner_2_id_fkey(*)
+          `)
+          .eq('id', user.couple_id)
+          .single(),
+        timeoutPromise
+      ]).catch(err => ({ data: null, error: err })) as any;
 
       console.log('💑 APPCONTEXT: 커플 데이터 쿼리 결과:', {
         data: coupleData,
@@ -262,13 +270,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       console.log('📋 APPCONTEXT: 규칙 데이터 로드 시작...');
 
-      // Load rules
-      const { data: rulesData, error: rulesError } = await supabase
-        .from('rules')
-        .select('*')
-        .eq('couple_id', user.couple_id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+      // Load rules (with timeout)
+      const { data: rulesData, error: rulesError } = await Promise.race([
+        supabase
+          .from('rules')
+          .select('*')
+          .eq('couple_id', user.couple_id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false }),
+        timeoutPromise
+      ]).catch(err => ({ data: null, error: err })) as any;
 
       console.log('📋 APPCONTEXT: 규칙 데이터 쿼리 결과:', {
         count: rulesData?.length || 0,
@@ -398,16 +409,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       if (profileError) return { error: profileError.message };
 
-      // Create default rules and rewards using DB functions
-      await supabase.rpc('create_default_rules', {
-        p_couple_id: coupleData.id,
-        p_user_id: user.id
-      });
+      // Create default rules and rewards ONLY for new couples
+      // Check if rules/rewards already exist first
+      const { data: existingRules } = await supabase
+        .from('rules')
+        .select('id')
+        .eq('couple_id', coupleData.id)
+        .limit(1);
       
-      await supabase.rpc('create_default_rewards', {
-        p_couple_id: coupleData.id,
-        p_user_id: user.id
-      });
+      const { data: existingRewards } = await supabase
+        .from('rewards')
+        .select('id')
+        .eq('couple_id', coupleData.id)
+        .limit(1);
+      
+      // Only create defaults if none exist
+      if (!existingRules || existingRules.length === 0) {
+        console.log('📝 Creating default rules for new couple');
+        await supabase.rpc('create_default_rules', {
+          p_couple_id: coupleData.id,
+          p_user_id: user.id
+        });
+      }
+      
+      if (!existingRewards || existingRewards.length === 0) {
+        console.log('🎁 Creating default rewards for new couple');
+        await supabase.rpc('create_default_rewards', {
+          p_couple_id: coupleData.id,
+          p_user_id: user.id
+        });
+      }
 
       return { code: coupleData.couple_code, isNewCouple: true };
     } catch (error) {

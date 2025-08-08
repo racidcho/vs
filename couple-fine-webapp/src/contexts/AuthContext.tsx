@@ -36,8 +36,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshUser = async () => {
     console.log('🔄 refreshUser called');
     
-    // Get current session from Supabase
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    // 5초 타임아웃 설정
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('사용자 정보 로딩 시간 초과')), 5000);
+    });
+    
+    // Get current session from Supabase (with timeout)
+    const sessionResult = await Promise.race([
+      supabase.auth.getSession(),
+      timeoutPromise
+    ]).catch(err => {
+      console.error('⏰ Session fetch timeout:', err);
+      return { data: { session: null } };
+    });
+    
+    const { data: { session: currentSession } } = sessionResult as any;
     
     if (!currentSession?.user) {
       console.log('❌ No session found, setting user to null');
@@ -50,13 +63,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setSession(currentSession);
 
     try {
-      // First try to get existing user
+      // First try to get existing user (with timeout)
       console.log('🔍 Checking if user exists in profiles table...');
-      const { data: userData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', currentSession.user.id)
-        .single();
+      const { data: userData, error } = await Promise.race([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentSession.user.id)
+          .single(),
+        timeoutPromise
+      ]).catch(err => {
+        console.error('⏰ Profile fetch timeout:', err);
+        return { data: null, error: err };
+      }) as any;
       
       if (userData && !error) {
         console.log('✅ User found in database:', userData);
@@ -229,6 +248,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Initialize auth state
     setIsLoading(true);
     
+    // 5초 타임아웃으로 초기화 보호
+    const initTimeout = setTimeout(() => {
+      console.log('⏰ Initialization timeout - forcing completion');
+      setIsLoading(false);
+    }, 5000);
+    
     // Get initial session with error handling
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       console.log('📍 Initial session check:', session?.user?.email || 'No session');
@@ -238,6 +263,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setSession(null);
         setUser(null);
         setIsLoading(false);
+        clearTimeout(initTimeout);
         return;
       }
       
@@ -260,11 +286,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
       setIsLoading(false);
+      clearTimeout(initTimeout);
     }).catch((error) => {
       console.error('❌ Critical error during session initialization:', error);
       setSession(null);
       setUser(null);
       setIsLoading(false);
+      clearTimeout(initTimeout);
     });
 
     // Listen for auth changes
