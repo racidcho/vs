@@ -37,18 +37,27 @@ export const Dashboard: React.FC = () => {
   // Load real dashboard data
   useEffect(() => {
     const loadDashboardData = async () => {
+      // **무한 로딩 방지**: 로딩 시작 상태 명시
+      console.log('📊 DASHBOARD: 데이터 로딩 시작');
+      setIsLoading(true);
+      
       if (!user?.couple_id) {
+        console.log('❌ DASHBOARD: 커플 ID 없음, 로딩 완료');
         setIsLoading(false);
         return;
       }
 
       try {
+        console.log('🔄 DASHBOARD: getDashboardStats 호출');
         const stats = await getDashboardStats(user.couple_id);
+        console.log('✅ DASHBOARD: 통계 데이터 로드 성공:', stats);
         setDashboardData(stats);
       } catch (error) {
-        console.error('대시보드 데이터 로딩 실패:', error);
-        // 기본값 유지
+        console.error('💥 DASHBOARD: 데이터 로딩 실패:', error);
+        // Keep default values on error
       } finally {
+        // **중요**: 성공/실패 관계없이 로딩 상태 해제
+        console.log('✅ DASHBOARD: 로딩 완료');
         setIsLoading(false);
       }
     };
@@ -69,7 +78,10 @@ export const Dashboard: React.FC = () => {
     
     try {
       const violation = state.violations.find(v => v.id === editingViolation);
-      if (!violation) return;
+      if (!violation) {
+        toast.error('위반 기록을 찾을 수 없어요');
+        return;
+      }
 
       const amount = violation.amount < 0 ? -editAmount : editAmount;
       const { error } = await updateViolation(editingViolation, {
@@ -78,6 +90,7 @@ export const Dashboard: React.FC = () => {
       });
 
       if (error) {
+        console.error('Edit violation error:', error);
         toast.error(`수정 실패: ${error}`);
       } else {
         toast.success('위반 기록이 수정되었어요! 💝');
@@ -86,6 +99,7 @@ export const Dashboard: React.FC = () => {
         setEditMemo('');
       }
     } catch (error) {
+      console.error('Edit violation exception:', error);
       toast.error('수정 중 오류가 발생했어요');
     }
   };
@@ -106,11 +120,13 @@ export const Dashboard: React.FC = () => {
     try {
       const { error } = await deleteViolation(violationId);
       if (error) {
+        console.error('Delete violation error:', error);
         toast.error(`삭제 실패: ${error}`);
       } else {
         toast.success('위반 기록이 삭제되었어요');
       }
     } catch (error) {
+      console.error('Delete violation exception:', error);
       toast.error('삭제 중 오류가 발생했어요');
     }
   };

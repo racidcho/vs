@@ -32,18 +32,22 @@ export function useAppLock() {
       // Check if block has expired
       if (parsed.isBlocked && parsed.blockEndTime && Date.now() > parsed.blockEndTime) {
         return {
-          isLocked: hasPin,
+          isLocked: hasPin, // Always lock if PIN exists
           hasPin,
           attemptCount: 0,
           isBlocked: false,
           blockEndTime: null
         };
       }
-      return { ...parsed, hasPin };
+      return { 
+        ...parsed, 
+        hasPin, 
+        isLocked: hasPin ? true : parsed.isLocked // Force lock if PIN exists
+      };
     }
 
     return {
-      isLocked: hasPin,
+      isLocked: hasPin, // Lock immediately if PIN exists
       hasPin,
       attemptCount: 0,
       isBlocked: false,
@@ -183,10 +187,44 @@ export function useAppLock() {
     }
   };
 
+  const unlock = () => {
+    setState(prev => ({ ...prev, isLocked: false }));
+  };
+
   const getRemainingBlockTime = (): number => {
     if (!state.isBlocked || !state.blockEndTime) return 0;
     return Math.max(0, state.blockEndTime - Date.now());
   };
+
+  // Auto-lock on app start/refresh if PIN is set
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && state.hasPin) {
+        // App goes to background - lock it
+        setState(prev => ({ ...prev, isLocked: true }));
+      }
+    };
+
+    const handleFocus = () => {
+      if (state.hasPin) {
+        // App comes back to focus - lock it
+        setState(prev => ({ ...prev, isLocked: true }));
+      }
+    };
+
+    // Lock on page load if PIN is set
+    if (state.hasPin && !state.isLocked && !state.isBlocked) {
+      setState(prev => ({ ...prev, isLocked: true }));
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [state.hasPin]);
 
   return {
     ...state,
@@ -194,6 +232,7 @@ export function useAppLock() {
     verifyPin,
     removePin,
     lock,
+    unlock,
     getRemainingBlockTime,
     remainingAttempts: MAX_ATTEMPTS - state.attemptCount
   };

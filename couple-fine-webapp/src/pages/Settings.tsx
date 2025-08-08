@@ -34,6 +34,70 @@ export const Settings: React.FC = () => {
   const [isEditingCoupleName, setIsEditingCoupleName] = useState(false);
   const [coupleName, setCoupleName] = useState('');
 
+  // PWA Install State
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showIOSInstallModal, setShowIOSInstallModal] = useState(false);
+
+  // Check if app is already installed
+  useEffect(() => {
+    // Check if app is running in standalone mode (PWA installed)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                        (window.navigator as any).standalone ||
+                        document.referrer.includes('android-app://');
+    
+    setIsInstalled(isStandalone);
+  }, []);
+
+  // PWA Install Prompt Handler
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      console.log('PWA install prompt available');
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  // PWA Install Functions
+  const handleInstallPWA = async () => {
+    console.log('Install PWA clicked');
+    
+    // Check if it's iOS Safari
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    
+    if (isIOS && isSafari) {
+      console.log('iOS Safari detected - showing install instructions');
+      setShowIOSInstallModal(true);
+      return;
+    }
+
+    // Android/Chrome PWA install
+    if (installPrompt) {
+      console.log('Showing install prompt');
+      const result = await (installPrompt as any).prompt();
+      console.log('Install prompt result:', result);
+      
+      if (result.outcome === 'accepted') {
+        toast.success('앱이 설치되었어요! 📱');
+        setIsInstalled(true);
+      } else {
+        toast.error('앱 설치가 취소되었어요');
+      }
+      
+      setInstallPrompt(null);
+    } else {
+      console.log('No install prompt available');
+      toast.error('현재 브라우저에서는 앱 설치를 지원하지 않아요 😢');
+    }
+  };
+
   // Handle theme change
   const handleThemeChange = async (newTheme: 'light' | 'dark') => {
     try {
@@ -56,8 +120,10 @@ export const Settings: React.FC = () => {
       setIsEditingProfile(false);
       toast.success('프로필이 업데이트되었어요! ✨');
     } catch (error) {
+      console.error('Profile update error:', error);
       toast.error('프로필 업데이트에 실패했어요 😢');
     } finally {
+      // **무한 로딩 방지**: 항상 로딩 상태 해제
       setIsLoading(false);
     }
   };
@@ -78,8 +144,10 @@ export const Settings: React.FC = () => {
         toast.success('커플 이름이 업데이트되었어요! 💕');
       }
     } catch (error) {
+      console.error('Couple name update error:', error);
       toast.error('커플 이름 업데이트에 실패했어요 😢');
     } finally {
+      // **무한 로딩 방지**: 항상 로딩 상태 해제
       setIsLoading(false);
     }
   };
@@ -108,32 +176,42 @@ export const Settings: React.FC = () => {
   // Load partner info and initialize couple name
   useEffect(() => {
     const loadPartnerInfo = async () => {
+      console.log('🔄 SETTINGS: loadPartnerInfo 시작');
+      
       if (state.couple) {
+        console.log('💑 SETTINGS: 커플 정보 존재, 파트너 정보 로드');
         try {
           const result = await getPartnerInfo();
           if (result && !result.error) {
+            console.log('✅ SETTINGS: 파트너 정보 로드 성공:', result.partner);
             setPartner(result.partner);
+          } else {
+            console.log('❌ SETTINGS: 파트너 정보 로드 실패:', result?.error);
           }
         } catch (error) {
-          console.error('Error loading partner info:', error);
+          console.error('💥 SETTINGS: 파트너 정보 로드 예외:', error);
         }
         
         // Initialize couple name
-        setCoupleName((state.couple as any)?.couple_name || '');
+        const newCoupleName = (state.couple as any)?.couple_name || '';
+        console.log('📝 SETTINGS: 커플 이름 초기화:', newCoupleName);
+        setCoupleName(newCoupleName);
       } else {
+        console.log('❌ SETTINGS: 커플 정보 없음, 관련 상태 초기화');
         // If couple becomes null, clear related states
         setPartner(null);
         setCoupleName('');
         
-        // Ensure loading is not stuck when couple is removed
+        // **무한 로딩 방지**: 커플 해제 시 로딩 상태 확실히 해제
         if (isLoading) {
+          console.log('✅ SETTINGS: 로딩 상태 해제 (커플 없음)');
           setIsLoading(false);
         }
       }
     };
 
     loadPartnerInfo();
-  }, [state.couple, getPartnerInfo, isLoading]);
+  }, [state.couple]); // **중요**: 순환 의존성 제거 - getPartnerInfo, isLoading 제거
 
   // Safety effect: Close leave modal when couple becomes null
   useEffect(() => {
@@ -143,28 +221,33 @@ export const Settings: React.FC = () => {
   }, [state.couple, showLeaveModal]);
 
   const handleLeaveCouple = async () => {
+    // **무한 로딩 방지**: 시작 시 로딩 설정
     setIsLoading(true);
+    
     try {
+      console.log('🔄 SETTINGS: 커플 해제 시작');
       const result = await leaveCouple();
+      
       if (result.success) {
+        console.log('✅ SETTINGS: 커플 해제 성공');
         toast.success('커플 연결이 해제되었어요 💔');
         setShowLeaveModal(false);
         
-        // Clear local states related to couple
+        // Clear local states immediately
         setPartner(null);
         setCoupleName('');
         
-        // Force a small delay to ensure state propagation
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 500);
+        console.log('✅ SETTINGS: 로컬 상태 정리 완료');
       } else {
+        console.log('❌ SETTINGS: 커플 해제 실패:', result.error);
         toast.error(result.error || '연결 해제에 실패했어요 😢');
-        setIsLoading(false);
       }
     } catch (error) {
-      console.error('Leave couple error:', error);
+      console.error('💥 SETTINGS: 커플 해제 예외:', error);
       toast.error('연결 해제에 실패했어요 😢');
+    } finally {
+      // **중요**: 모든 상황에서 로딩 상태 해제
+      console.log('✅ SETTINGS: 로딩 상태 해제');
       setIsLoading(false);
     }
   };
@@ -227,8 +310,10 @@ export const Settings: React.FC = () => {
         console.warn('Data validation errors:', result.errors);
       }
     } catch (error) {
+      console.error('Data validation error:', error);
       toast.error('데이터 검증 중 오류가 발생했어요 😢');
     } finally {
+      // **무한 로딩 방지**: 항상 로딩 상태 해제
       setIsLoading(false);
     }
   };
@@ -239,8 +324,10 @@ export const Settings: React.FC = () => {
       await refreshData();
       toast.success('데이터가 새로고침되었어요! 🔄');
     } catch (error) {
+      console.error('Data refresh error:', error);
       toast.error('데이터 새로고침에 실패했어요 😢');
     } finally {
+      // **무한 로딩 방지**: 항상 로딩 상태 해제
       setIsLoading(false);
     }
   };
@@ -574,12 +661,28 @@ export const Settings: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-gray-900">앱 설치 📱</h3>
-              <p className="text-sm text-gray-600">홈 화면에 추가해서 빠르게 접근하세요</p>
+              <p className="text-sm text-gray-600">
+                {isInstalled 
+                  ? '앱이 이미 설치되어 있어요' 
+                  : '홈 화면에 추가해서 빠르게 접근하세요'
+                }
+              </p>
             </div>
-            <button className="px-4 py-2 bg-gradient-to-r from-indigo-400 to-purple-400 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1">
-              <Smartphone className="w-3 h-3" />
-              설치
-            </button>
+            {!isInstalled && (
+              <button 
+                onClick={handleInstallPWA}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-400 to-purple-400 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1"
+              >
+                <Smartphone className="w-3 h-3" />
+                설치
+              </button>
+            )}
+            {isInstalled && (
+              <div className="flex items-center gap-2 text-green-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-medium">설치됨</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -790,6 +893,44 @@ export const Settings: React.FC = () => {
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
               >
                 변경
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* iOS Install Instructions Modal */}
+      {showIOSInstallModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">
+              앱 설치 안내 (iOS)
+            </h3>
+            <div className="space-y-4 text-sm text-gray-700 mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">1️⃣</span>
+                <span>Safari 하단의 <strong>공유 버튼</strong>을 눌러주세요</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">2️⃣</span>
+                <span><strong>"홈 화면에 추가"</strong> 옵션을 찾아주세요</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">3️⃣</span>
+                <span><strong>"추가"</strong> 버튼을 눌러서 설치하세요</span>
+              </div>
+            </div>
+            <div className="bg-blue-50 rounded-xl p-3 mb-4">
+              <p className="text-xs text-blue-700 text-center">
+                💡 설치 후 홈 화면에서 앱을 바로 실행할 수 있어요!
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowIOSInstallModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                확인
               </button>
             </div>
           </div>

@@ -167,6 +167,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Realtime connection status (will be managed directly in this component)
   const isRealtimeConnected = true; // Placeholder for now
 
+  // Initialize theme from localStorage on app start
+  React.useEffect(() => {
+    const savedTheme = localStorage.getItem('app-theme') as 'light' | 'dark' | null;
+    if (savedTheme && savedTheme !== state.theme) {
+      dispatch({ type: 'SET_THEME', payload: savedTheme });
+    }
+  }, []);
+
   // Load couple data when user changes
   const loadCoupleData = async () => {
     console.log('🔄 APPCONTEXT: loadCoupleData 시작');
@@ -442,9 +450,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Leave couple (disconnect)
   const leaveCouple = async () => {
-    if (!user?.couple_id) return { error: 'No couple to leave' };
+    console.log('🔄 APPCONTEXT: leaveCouple 시작');
+    
+    if (!user?.couple_id) {
+      console.log('❌ APPCONTEXT: 커플 ID 없음');
+      return { error: 'No couple to leave' };
+    }
 
     try {
+      console.log('📊 APPCONTEXT: 커플 데이터 조회 중...');
+      
       // Get couple data to determine which partner is leaving
       const { data: coupleData, error: coupleError } = await supabase
         .from('couples')
@@ -453,33 +468,56 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .single();
 
       if (coupleError || !coupleData) {
+        console.log('❌ APPCONTEXT: 커플 데이터 조회 실패:', coupleError);
         return { error: 'Couple not found' };
       }
 
+      console.log('📝 APPCONTEXT: 커플 데이터 업데이트 중...');
+
       // If this user is partner_1 and there's a partner_2, make partner_2 the new partner_1
       if (coupleData.partner_1_id === user.id && coupleData.partner_2_id) {
-        await supabase
+        console.log('👥 APPCONTEXT: partner_1이 떠남, partner_2를 partner_1로 변경');
+        const { error: updateError } = await supabase
           .from('couples')
           .update({
             partner_1_id: coupleData.partner_2_id,
             partner_2_id: null
           })
           .eq('id', user.couple_id);
+        
+        if (updateError) {
+          console.log('❌ APPCONTEXT: 커플 업데이트 실패:', updateError);
+          return { error: updateError.message };
+        }
       }
       // If this user is partner_2, just remove them
       else if (coupleData.partner_2_id === user.id) {
-        await supabase
+        console.log('👤 APPCONTEXT: partner_2 제거');
+        const { error: updateError } = await supabase
           .from('couples')
           .update({ partner_2_id: null })
           .eq('id', user.couple_id);
+        
+        if (updateError) {
+          console.log('❌ APPCONTEXT: 커플 업데이트 실패:', updateError);
+          return { error: updateError.message };
+        }
       }
       // If this user is the only partner, deactivate the couple
       else {
-        await supabase
+        console.log('🚫 APPCONTEXT: 유일한 파트너, 커플 비활성화');
+        const { error: updateError } = await supabase
           .from('couples')
           .update({ is_active: false })
           .eq('id', user.couple_id);
+        
+        if (updateError) {
+          console.log('❌ APPCONTEXT: 커플 비활성화 실패:', updateError);
+          return { error: updateError.message };
+        }
       }
+
+      console.log('👤 APPCONTEXT: 사용자 프로필 업데이트 중...');
 
       // Remove couple_id from user profile
       const { error: profileError } = await supabase
@@ -488,25 +526,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .eq('id', user.id);
 
       if (profileError) {
+        console.log('❌ APPCONTEXT: 프로필 업데이트 실패:', profileError);
         return { error: profileError.message };
       }
 
+      console.log('🧹 APPCONTEXT: 로컬 상태 리셋');
+
       // Reset local state first
       dispatch({ type: 'RESET_STATE' });
+
+      console.log('🔄 APPCONTEXT: AuthContext 사용자 정보 새로고침');
 
       // Force refresh AuthContext user data to sync couple_id change
       if (refreshUser) {
         try {
           await refreshUser();
+          console.log('✅ APPCONTEXT: 사용자 정보 새로고침 성공');
         } catch (refreshError) {
-          console.error('Failed to refresh user after leaving couple:', refreshError);
+          console.error('⚠️ APPCONTEXT: 사용자 정보 새로고침 실패 (비차단):', refreshError);
           // Don't fail the entire operation if refresh fails
         }
       }
 
+      console.log('🎉 APPCONTEXT: leaveCouple 성공');
       return { success: true };
     } catch (error) {
-      console.error('Leave couple error:', error);
+      console.error('💥 APPCONTEXT: leaveCouple 예외:', error);
       return { error: 'Failed to leave couple' };
     }
   };
@@ -544,19 +589,37 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Update couple theme
   const updateCoupleTheme = async (theme: 'light' | 'dark') => {
-    if (!user?.couple_id) return;
-
     try {
-      const { error } = await supabase
-        .from('couples')
-        .update({ theme })
-        .eq('id', user.couple_id);
+      // Save theme to localStorage immediately for instant UI feedback
+      localStorage.setItem('app-theme', theme);
+      
+      // Update local state immediately
+      dispatch({ type: 'SET_THEME', payload: theme });
+      
+      // Apply theme to body immediately
+      if (theme === 'dark') {
+        document.body.classList.add('dark');
+        document.body.classList.remove('light');
+      } else {
+        document.body.classList.add('light');
+        document.body.classList.remove('dark');
+      }
 
-      if (error) {
-        console.error('Error updating theme:', error);
+      // Update couple theme in database if user is part of a couple
+      if (user?.couple_id) {
+        const { error } = await supabase
+          .from('couples')
+          .update({ theme })
+          .eq('id', user.couple_id);
+
+        if (error) {
+          console.error('Error updating theme in database:', error);
+          // Don't revert UI changes even if DB update fails
+        }
       }
     } catch (error) {
       console.error('Error updating theme:', error);
+      // Don't revert UI changes even if there's an error
     }
   };
 
@@ -625,11 +688,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return { error: error.message };
       }
 
-      console.log('✅ APPCONTEXT: 규칙 생성 성공:', data);
+      console.log('✅ APPCONTEXT: 규칙 생성 성공, 로컬 상태 업데이트:', data);
+      
+      // **중요**: 성공 시 로컬 상태 즉시 업데이트
+      if (data) {
+        dispatch({ type: 'ADD_RULE', payload: data });
+      }
+      
       return {};
     } catch (error) {
       console.log('💥 APPCONTEXT: 예외 발생:', error);
-      return { error: 'Failed to create rule' };
+      return { error: error instanceof Error ? error.message : 'Failed to create rule' };
     }
   };
 
@@ -732,15 +801,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Claim reward
   const claimReward = async (id: string) => {
     try {
-      const { error } = await supabase
+      console.log('🎉 APPCONTEXT: claimReward 시작, ID:', id);
+      
+      const { error, data } = await supabase
         .from('rewards')
-        .update({ is_claimed: true })
-        .eq('id', id);
+        .update({ is_achieved: true })
+        .eq('id', id)
+        .select()
+        .single();
 
-      if (error) return { error: error.message };
+      if (error) {
+        console.log('❌ APPCONTEXT: 보상 획득 실패:', error);
+        return { error: error.message };
+      }
+
+      console.log('✅ APPCONTEXT: 보상 획득 성공, 로컬 상태 업데이트:', data);
+      // **중요**: 성공 시 로컬 상태 즉시 업데이트
+      if (data) {
+        dispatch({ type: 'UPDATE_REWARD', payload: data as Reward });
+      }
 
       return {};
     } catch (error) {
+      console.log('💥 APPCONTEXT: claimReward 예외 발생:', error);
       return { error: 'Failed to claim reward' };
     }
   };
@@ -748,15 +831,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Delete reward
   const deleteReward = async (id: string) => {
     try {
+      console.log('🗑️ APPCONTEXT: deleteReward 시작, ID:', id);
+      
       const { error } = await supabase
         .from('rewards')
         .delete()
         .eq('id', id);
 
-      if (error) return { error: error.message };
+      if (error) {
+        console.log('❌ APPCONTEXT: 보상 삭제 실패:', error);
+        return { error: error.message };
+      }
+
+      console.log('✅ APPCONTEXT: 보상 삭제 성공, 로컬 상태 업데이트');
+      // **중요**: 성공 시 로컬 상태 즉시 업데이트
+      dispatch({ type: 'DELETE_REWARD', payload: id });
 
       return {};
     } catch (error) {
+      console.log('💥 APPCONTEXT: deleteReward 예외 발생:', error);
       return { error: 'Failed to delete reward' };
     }
   };
@@ -871,9 +964,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Real-time subscriptions
   useEffect(() => {
-    if (!user?.couple_id) return;
+    if (!user?.couple_id) {
+      console.log('📡 APPCONTEXT: 커플 ID 없음, 실시간 구독 건너뜀');
+      return;
+    }
 
-    console.log('Setting up real-time subscriptions for couple:', user.couple_id);
+    console.log('📡 APPCONTEXT: 실시간 구독 설정 시작:', user.couple_id);
 
     // Subscribe to couples changes
     const coupleChannel = supabase
@@ -887,7 +983,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           filter: `id=eq.${user.couple_id}`
         },
         (payload) => {
-          console.log('Couple changed:', payload);
+          console.log('💑 APPCONTEXT: 커플 데이터 실시간 변경:', payload.eventType);
           if (payload.eventType === 'UPDATE' && payload.new) {
             const transformedCouple = {
               id: payload.new.id,
@@ -914,9 +1010,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           filter: `couple_id=eq.${user.couple_id}`
         },
         (payload) => {
-          console.log('Rules changed:', payload);
-          // Reload rules data
-          refreshData();
+          console.log('📋 APPCONTEXT: 규칙 실시간 변경:', payload.eventType);
+          // **무한 재실행 방지**: refreshData 대신 직접 상태 업데이트
+          if (payload.eventType === 'INSERT' && payload.new) {
+            dispatch({ type: 'ADD_RULE', payload: payload.new as Rule });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            dispatch({ type: 'UPDATE_RULE', payload: payload.new as Rule });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            dispatch({ type: 'DELETE_RULE', payload: payload.old.id });
+          }
         }
       )
       .subscribe();
@@ -933,9 +1035,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           filter: `couple_id=eq.${user.couple_id}`
         },
         (payload) => {
-          console.log('Violations changed:', payload);
-          // Reload violations data
-          refreshData();
+          console.log('⚠️ APPCONTEXT: 위반 기록 실시간 변경:', payload.eventType);
+          // For violations, we still need to reload due to complex relations
+          // But with throttling to prevent excessive calls
+          setTimeout(() => refreshData(), 1000);
         }
       )
       .subscribe();
@@ -952,21 +1055,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           filter: `couple_id=eq.${user.couple_id}`
         },
         (payload) => {
-          console.log('Rewards changed:', payload);
-          // Reload rewards data
-          refreshData();
+          console.log('🎁 APPCONTEXT: 보상 실시간 변경:', payload.eventType, payload);
+          // **무한 재실행 방지**: 직접 상태 업데이트
+          if (payload.eventType === 'INSERT' && payload.new) {
+            console.log('➕ APPCONTEXT: 보상 INSERT 실시간 이벤트:', payload.new);
+            dispatch({ type: 'ADD_REWARD', payload: payload.new as Reward });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            console.log('📝 APPCONTEXT: 보상 UPDATE 실시간 이벤트:', payload.new);
+            dispatch({ type: 'UPDATE_REWARD', payload: payload.new as Reward });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            console.log('🗑️ APPCONTEXT: 보상 DELETE 실시간 이벤트:', payload.old.id);
+            dispatch({ type: 'DELETE_REWARD', payload: payload.old.id });
+          }
         }
       )
       .subscribe();
 
     return () => {
-      console.log('Cleaning up real-time subscriptions');
+      console.log('🧹 APPCONTEXT: 실시간 구독 정리');
       supabase.removeChannel(coupleChannel);
       supabase.removeChannel(rulesChannel);
       supabase.removeChannel(violationsChannel);
       supabase.removeChannel(rewardsChannel);
     };
-  }, [user?.couple_id, refreshData]);
+  }, [user?.couple_id]); // **중요**: refreshData 의존성 제거로 무한 재실행 방지
 
   // Online/offline status
   useEffect(() => {

@@ -46,6 +46,7 @@ export const Rules: React.FC = () => {
       return;
     }
 
+    // **무한 로딩 방지**: 모든 경로에서 로딩 해제 보장
     console.log('⏳ RULES: 제출 시작, 로딩 상태 설정');
     setIsSubmitting(true);
     
@@ -62,6 +63,14 @@ export const Rules: React.FC = () => {
           console.log('✅ RULES: 수정 성공');
           toast.success('규칙이 수정되었어요! 💝');
           setEditingRule(null);
+          // Reset form on success
+          setFormData({
+            category: 'word',
+            title: '',
+            fine_amount: 1,
+            icon_emoji: '💝',
+            is_active: true
+          });
         }
       } else {
         console.log('🆕 RULES: 새 규칙 생성 모드');
@@ -76,22 +85,21 @@ export const Rules: React.FC = () => {
           console.log('✅ RULES: 생성 성공');
           toast.success('새 규칙이 추가되었어요! 💝');
           setShowForm(false);
+          // Reset form on success
+          setFormData({
+            category: 'word',
+            title: '',
+            fine_amount: 1,
+            icon_emoji: '💝',
+            is_active: true
+          });
         }
       }
-      
-      // Reset form
-      console.log('🔄 RULES: 폼 리셋');
-      setFormData({
-        category: 'word',
-        title: '',
-        fine_amount: 1,
-        icon_emoji: '💝',
-        is_active: true
-      });
     } catch (error) {
       console.log('💥 RULES: 예외 발생:', error);
       toast.error('오류가 발생했어요');
     } finally {
+      // **중요**: 모든 상황에서 로딩 상태를 false로 설정
       console.log('✅ RULES: 제출 완료, 로딩 해제');
       setIsSubmitting(false);
     }

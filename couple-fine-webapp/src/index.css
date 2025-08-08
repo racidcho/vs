@@ -36,11 +36,99 @@
     font-family: var(--font-family-sans);
     color: rgb(17 24 39);
     background-color: rgb(255 255 255);
+    transition: color 0.2s ease, background-color 0.2s ease;
   }
 
-  /* Dark mode support */
+  /* Dark mode styles - explicit dark class override */
+  body.dark {
+    color: rgb(243 244 246);
+    background-color: rgb(17 24 39);
+  }
+
+  body.dark .bg-white {
+    background-color: rgb(31 41 55) !important;
+  }
+
+  body.dark .text-gray-900 {
+    color: rgb(243 244 246) !important;
+  }
+
+  body.dark .text-gray-700 {
+    color: rgb(209 213 219) !important;
+  }
+
+  body.dark .text-gray-600 {
+    color: rgb(156 163 175) !important;
+  }
+
+  body.dark .border-pink-100 {
+    border-color: rgb(75 85 99) !important;
+  }
+
+  body.dark .border-gray-200 {
+    border-color: rgb(75 85 99) !important;
+  }
+
+  body.dark .bg-gray-50 {
+    background-color: rgb(55 65 81) !important;
+  }
+
+  body.dark .bg-gray-100 {
+    background-color: rgb(55 65 81) !important;
+  }
+
+  body.dark .hover\:bg-gray-200:hover {
+    background-color: rgb(75 85 99) !important;
+  }
+
+  /* Dark mode gradient backgrounds */
+  body.dark .from-pink-50 {
+    --tw-gradient-from: rgb(55 65 81);
+  }
+
+  body.dark .to-purple-50 {
+    --tw-gradient-to: rgb(55 65 81);
+  }
+
+  body.dark .from-indigo-50 {
+    --tw-gradient-from: rgb(55 65 81);
+  }
+
+  body.dark .from-cyan-50 {
+    --tw-gradient-to: rgb(55 65 81);
+  }
+
+  body.dark .from-green-50 {
+    --tw-gradient-from: rgb(55 65 81);
+  }
+
+  body.dark .to-teal-50 {
+    --tw-gradient-to: rgb(55 65 81);
+  }
+
+  body.dark .from-yellow-50 {
+    --tw-gradient-from: rgb(55 65 81);
+  }
+
+  body.dark .to-orange-50 {
+    --tw-gradient-to: rgb(55 65 81);
+  }
+
+  body.dark .from-red-50 {
+    --tw-gradient-from: rgb(55 65 81);
+  }
+
+  body.dark .from-blue-50 {
+    --tw-gradient-from: rgb(55 65 81);
+  }
+
+  body.dark .to-indigo-50 {
+    --tw-gradient-to: rgb(55 65 81);
+  }
+
+  /* Auto dark mode support (fallback) */
   @media (prefers-color-scheme: dark) {
-    body {
+    body:not(.light) {
       color: rgb(243 244 246);
       background-color: rgb(17 24 39);
     }

@@ -53,6 +53,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
       
       if (result.success) {
         toast.success('잠금 해제되었어요! 🔓');
+        // Call the onUnlock callback to notify parent
         onUnlock();
       } else {
         toast.error(result.error || 'PIN이 올바르지 않아요');
