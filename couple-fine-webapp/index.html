@@ -3,7 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- Safari Cache Control -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     
     <!-- PWA Meta Tags -->
     <title>우리 벌금통 - 커플을 위한 벌금 관리 앱</title>
@@ -40,23 +45,35 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Service Worker Registration (Optional) -->
+    <!-- Service Worker Registration - Safari Compatible -->
     <script>
-      // Delay service worker registration for mobile compatibility
-      if ('serviceWorker' in navigator) {
+      // Check if not Safari or if on desktop
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      const isMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      
+      // Only register SW on non-Safari or desktop
+      if ('serviceWorker' in navigator && (!isSafari || !isMobile)) {
         window.addEventListener('load', () => {
-          // Add delay for mobile browsers
-          setTimeout(() => {
-            navigator.serviceWorker.register('/sw.js')
-              .then((registration) => {
-                console.log('SW registered: ', registration);
-              })
-              .catch((registrationError) => {
-                console.log('SW registration failed: ', registrationError);
-                // Don't block app if SW fails
-              });
-          }, 1000);
+          // Unregister any existing service worker first
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
+          }).then(() => {
+            // Register new service worker after delay
+            setTimeout(() => {
+              navigator.serviceWorker.register('/sw.js?v=3')
+                .then((registration) => {
+                  console.log('SW registered v3: ', registration);
+                })
+                .catch((registrationError) => {
+                  console.log('SW registration failed: ', registrationError);
+                });
+            }, 2000);
+          });
         });
+      } else {
+        console.log('Service Worker skipped for Safari mobile');
       }
     </script>
   </body>
