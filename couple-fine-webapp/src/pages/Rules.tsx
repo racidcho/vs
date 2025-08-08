@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 interface RuleFormData {
   category: 'word' | 'behavior';
   title: string;
-  fine_amount: number;
+  fine_amount: number | '';
   description?: string;
   icon_emoji: string;
   is_active: boolean;
@@ -19,7 +19,7 @@ export const Rules: React.FC = () => {
   const [formData, setFormData] = useState<RuleFormData>({
     category: 'word',
     title: '',
-    fine_amount: 1,
+    fine_amount: '',
     icon_emoji: '💝',
     is_active: true
   });
@@ -37,7 +37,8 @@ export const Rules: React.FC = () => {
       return;
     }
 
-    if (formData.fine_amount < 1 || formData.fine_amount > 100) {
+    const amount = typeof formData.fine_amount === 'number' ? formData.fine_amount : parseInt(formData.fine_amount);
+    if (isNaN(amount) || amount < 1 || amount > 100) {
 
       toast.error('벌금은 1만원에서 100만원 사이로 설정해주세요');
       return;
@@ -59,7 +60,7 @@ export const Rules: React.FC = () => {
       if (editingRule) {
 
         // Update existing rule with timeout protection
-        const updatePromise = updateRule(editingRule, formData);
+        const updatePromise = updateRule(editingRule, { ...formData, fine_amount: amount });
         const { error } = await Promise.race([
           updatePromise,
           new Promise<{error: string}>((_, reject) =>
@@ -78,7 +79,7 @@ export const Rules: React.FC = () => {
           setFormData({
             category: 'word',
             title: '',
-            fine_amount: 1,
+            fine_amount: '',
             icon_emoji: '💝',
             is_active: true
           });
@@ -86,7 +87,7 @@ export const Rules: React.FC = () => {
       } else {
 
         // Create new rule with timeout protection
-        const createPromise = createRule(formData);
+        const createPromise = createRule({ ...formData, fine_amount: amount });
         const { error } = await Promise.race([
           createPromise,
           new Promise<{error: string}>((_, reject) =>
@@ -105,7 +106,7 @@ export const Rules: React.FC = () => {
           setFormData({
             category: 'word',
             title: '',
-            fine_amount: 1,
+            fine_amount: '',
             icon_emoji: '💝',
             is_active: true
           });
@@ -165,7 +166,7 @@ export const Rules: React.FC = () => {
     setFormData({
       category: 'word',
       title: '',
-      fine_amount: 1,
+      fine_amount: '',
       icon_emoji: '💝',
       is_active: true
     });
@@ -264,7 +265,7 @@ export const Rules: React.FC = () => {
                   min="1"
                   max="100"
                   value={formData.fine_amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fine_amount: parseInt(e.target.value) || 1 }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, fine_amount: e.target.value === '' ? '' : parseInt(e.target.value) || '' }))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   disabled={isSubmitting}
                 />
