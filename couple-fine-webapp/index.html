@@ -42,16 +42,20 @@
     
     <!-- Service Worker Registration (Optional) -->
     <script>
-      // Register service worker for PWA functionality
+      // Delay service worker registration for mobile compatibility
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
+          // Add delay for mobile browsers
+          setTimeout(() => {
+            navigator.serviceWorker.register('/sw.js')
+              .then((registration) => {
+                console.log('SW registered: ', registration);
+              })
+              .catch((registrationError) => {
+                console.log('SW registration failed: ', registrationError);
+                // Don't block app if SW fails
+              });
+          }, 1000);
         });
       }
     </script>

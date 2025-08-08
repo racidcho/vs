@@ -1,59 +1,41 @@
-// Simple Service Worker for PWA functionality
-const CACHE_NAME = 'couple-fine-webapp-v1';
+// Simple Service Worker for PWA functionality - Mobile Compatible
+const CACHE_NAME = 'couple-fine-webapp-v2';
 const urlsToCache = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json'
+  '/'
 ];
 
-// Install event
+// Install event - simplified for mobile compatibility
 self.addEventListener('install', (event) => {
   console.log('[SW] Install event');
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Opened cache');
-        return cache.addAll(urlsToCache);
+  self.skipWaiting(); // Activate worker immediately
+});
+
+// Fetch event - network first, then cache fallback
+self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  
+  // Skip chrome-extension and other non-http(s) requests
+  if (!event.request.url.startsWith('http')) {
+    return;
+  }
+  
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Return the network response
+        return response;
+      })
+      .catch(() => {
+        // Network failed, try cache
+        return caches.match(event.request);
       })
   );
 });
 
-// Fetch event
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached response if found
-        if (response) {
-          return response;
-        }
-        
-        // Clone the request
-        const fetchRequest = event.request.clone();
-        
-        return fetch(fetchRequest).then((response) => {
-          // Check if we received a valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-          
-          // Clone the response
-          const responseToCache = response.clone();
-          
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          
-          return response;
-        });
-      }
-    )
-  );
-});
-
-// Activate event
+// Activate event - simplified
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activate event');
   event.waitUntil(
@@ -68,4 +50,5 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  self.clients.claim(); // Take control immediately
 });
