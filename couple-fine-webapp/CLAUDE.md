@@ -161,35 +161,41 @@ npm run lint
    - 코드 재전송 및 이메일 변경 기능 지원
 
 ### 주요 버그 수정 🛠️
-1. **보상 생성 금액 필드 버그 수정**
+1. **CRUD 작업 전체 수정** ⭐ NEW (2025-08-08)
+   - 커플 코드 표시 안 되던 문제 해결 (Settings.tsx null 체크 추가)
+   - 규칙/보상/벌금 삭제 기능 복구 (deleteRule을 실제 DELETE로 변경)
+   - Supabase RLS DELETE 정책 추가
+   - 커플 참여 코드 입력 오류 해결 (couples 테이블 SELECT 정책 수정)
+
+2. **보상 생성 금액 필드 버그 수정**
    - 금액 필드가 1에 고정되어 지워지지 않던 문제 해결
    - 사용자가 자유롭게 금액 입력 및 수정 가능
 
-2. **규칙 생성 금액 필드 버그 수정** ⭐ NEW
+3. **규칙 생성 금액 필드 버그 수정**
    - Rules 페이지에서도 벌금 금액이 1에 고정되던 문제 해결
    - 빈 값 입력 가능하도록 개선
 
-3. **보상 생성 무한 로딩 문제 해결**
+4. **보상 생성 무한 로딩 문제 해결**
    - 보상 추가 버튼 클릭 시 발생하던 무한 로딩 상태 수정
    - 즉시 응답하는 UI로 개선
 
-4. **월별 벌금 계산 로직 수정**
+5. **월별 벌금 계산 로직 수정**
    - 차감 벌금이 월별 통계에서 올바르게 빼지지 않던 문제 해결
    - 추가(+) 벌금과 차감(-) 벌금이 정확하게 계산되도록 개선
 
-5. **벌금 표시 개선**
+6. **벌금 표시 개선**
    - 각 벌금 기록에 누가 받았는지 명확하게 표시
    - "이지원님이 받은 벌금" vs "한정훈님이 받은 벌금" 형태로 구분
 
-6. **순환 의존성 문제 해결** (이전 수정 완료)
+7. **순환 의존성 문제 해결** (이전 수정 완료)
    - AppContext에서 useRealtime 훅 사용으로 인한 순환 의존성 제거
    - 앱이 로드되지 않는 치명적 버그 수정
    
-7. **환경변수 업데이트** (이전 수정 완료)
+8. **환경변수 업데이트** (이전 수정 완료)
    - Supabase ANON_KEY 올바른 키로 업데이트 (T9U로 끝나는 키)
    - .env 및 .env.production 파일 수정
 
-8. **AuthContext refreshUser 버그 수정** (이전 수정 완료)
+9. **AuthContext refreshUser 버그 수정** (이전 수정 완료)
    - session 변수 참조 오류 수정 (session → currentSession)
 
 ### 알려진 이슈
@@ -199,7 +205,19 @@ npm run lint
 
 ## 💡 중요한 개발 정보
 
-### 1. Supabase 인증 시스템 (OTP 코드 방식 - 완전 구현) ⭐ UPDATED
+### 1. Supabase RLS 정책 추가 사항 ⭐ NEW (2025-08-08)
+```sql
+-- DELETE 정책 (필수 - 삭제 기능을 위해 반드시 필요)
+CREATE POLICY "Users can delete couple rules" ON rules FOR DELETE;
+CREATE POLICY "Users can delete couple rewards" ON rewards FOR DELETE;
+CREATE POLICY "Users can delete couple violations" ON violations FOR DELETE;
+
+-- 커플 참여를 위한 SELECT 정책 (필수)
+CREATE POLICY "Users can view couples" ON couples FOR SELECT
+USING (auth.uid() IS NOT NULL AND is_active = true);
+```
+
+### 2. Supabase 인증 시스템 (OTP 코드 방식 - 완전 구현)
 ```typescript
 // src/contexts/AuthContext.tsx
 // OTP 코드 인증 시스템 완전 구현 (6자리 인증 코드)
@@ -489,4 +507,4 @@ useEffect(() => {
 3. 사용자 테스트 및 피드백 수집
 
 *이 문서는 Claude AI가 지원하는 커플 벌금 관리 PWA 웹앱의 개발 가이드입니다.*
-*최종 업데이트: 2025-08-08 (온보딩 플로우 개선, 대시보드 UI 개선, 네비게이션 바 벌금 상태, Rules 페이지 버그 수정)*
+*최종 업데이트: 2025-08-08 (CRUD 전체 수정, RLS 정책 추가, 커플 참여 버그 수정)*
