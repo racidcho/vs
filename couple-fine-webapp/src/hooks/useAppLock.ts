@@ -15,6 +15,11 @@ const BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // SHA-256 hash function
 async function hashPin(pin: string): Promise<string> {
+  // Check if crypto.subtle is available (HTTPS or localhost)
+  if (!crypto?.subtle) {
+    throw new Error('Crypto API not available. Please use HTTPS.');
+  }
+  
   const encoder = new TextEncoder();
   const data = encoder.encode(pin + 'couple-fine-salt'); // Add salt
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -24,45 +29,61 @@ async function hashPin(pin: string): Promise<string> {
 
 export function useAppLock() {
   const [state, setState] = useState<AppLockState>(() => {
-    const savedState = localStorage.getItem(LOCK_STATE_KEY);
-    const hasPin = !!localStorage.getItem(PIN_KEY);
+    try {
+      const savedState = localStorage.getItem(LOCK_STATE_KEY);
+      const hasPin = !!localStorage.getItem(PIN_KEY);
     
-    if (savedState) {
-      const parsed = JSON.parse(savedState);
-      // Check if block has expired
-      if (parsed.isBlocked && parsed.blockEndTime && Date.now() > parsed.blockEndTime) {
-        return {
-          isLocked: hasPin, // Always lock if PIN exists
-          hasPin,
-          attemptCount: 0,
-          isBlocked: false,
-          blockEndTime: null
+      if (savedState) {
+        const parsed = JSON.parse(savedState);
+        // Check if block has expired
+        if (parsed.isBlocked && parsed.blockEndTime && Date.now() > parsed.blockEndTime) {
+          return {
+            isLocked: hasPin, // Always lock if PIN exists
+            hasPin,
+            attemptCount: 0,
+            isBlocked: false,
+            blockEndTime: null
+          };
+        }
+        return { 
+          ...parsed, 
+          hasPin, 
+          isLocked: hasPin ? true : parsed.isLocked // Force lock if PIN exists
         };
       }
-      return { 
-        ...parsed, 
-        hasPin, 
-        isLocked: hasPin ? true : parsed.isLocked // Force lock if PIN exists
+
+      return {
+        isLocked: hasPin, // Lock immediately if PIN exists
+        hasPin,
+        attemptCount: 0,
+        isBlocked: false,
+        blockEndTime: null
+      };
+    } catch (error) {
+      // If localStorage is not available or corrupted, return safe defaults
+      console.error('Failed to load app lock state:', error);
+      return {
+        isLocked: false,
+        hasPin: false,
+        attemptCount: 0,
+        isBlocked: false,
+        blockEndTime: null
       };
     }
-
-    return {
-      isLocked: hasPin, // Lock immediately if PIN exists
-      hasPin,
-      attemptCount: 0,
-      isBlocked: false,
-      blockEndTime: null
-    };
   });
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem(LOCK_STATE_KEY, JSON.stringify({
-      isLocked: state.isLocked,
-      attemptCount: state.attemptCount,
-      isBlocked: state.isBlocked,
-      blockEndTime: state.blockEndTime
-    }));
+    try {
+      localStorage.setItem(LOCK_STATE_KEY, JSON.stringify({
+        isLocked: state.isLocked,
+        attemptCount: state.attemptCount,
+        isBlocked: state.isBlocked,
+        blockEndTime: state.blockEndTime
+      }));
+    } catch (error) {
+      console.error('Failed to save app lock state:', error);
+    }
   }, [state]);
 
   // Auto-unlock when block expires

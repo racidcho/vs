@@ -31,7 +31,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
       const interval = setInterval(updateBlockTime, 1000);
       return () => clearInterval(interval);
     }
-  }, [isBlocked, getRemainingBlockTime]);
+  }, [isBlocked]); // Removed getRemainingBlockTime from dependencies to prevent unnecessary re-renders
 
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
