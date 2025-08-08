@@ -209,6 +209,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const transformedCouple = {
           id: coupleData.id,
           code: coupleData.couple_code,
+          couple_code: coupleData.couple_code, // Add this for backward compatibility
           created_at: coupleData.created_at,
           // Additional fields for internal use
           couple_name: coupleData.couple_name,
