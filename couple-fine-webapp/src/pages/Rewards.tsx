@@ -28,34 +28,64 @@ export const Rewards: React.FC = () => {
     is_achieved: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasError, setHasError] = useState(false);
   
   // Calculate total penalties for progress calculation (user-specific)
   const totalPenalties = user ? getUserTotalFines(user.id) : 0;
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('🎁 REWARDS: 보상 추가 버튼 클릭됨!');
+    console.log('📝 REWARDS: 폼 데이터:', formData);
+    console.log('👤 REWARDS: 현재 사용자:', user);
+    
     e.preventDefault();
     
     if (!formData.title.trim()) {
+      console.log('❌ REWARDS: 제목 없음');
       toast.error('보상 제목을 입력해주세요');
       return;
     }
     
     if (formData.target_amount < 1 || formData.target_amount > 1000) {
+      console.log('❌ REWARDS: 금액 범위 초과');
       toast.error('목표 금액은 1만원에서 1000만원 사이로 설정해주세요');
       return;
     }
 
+    // **무한 로딩 방지**: 모든 경로에서 로딩 해제 보장 + 타임아웃 추가
+    console.log('⏳ REWARDS: 제출 시작, 로딩 상태 설정');
     setIsSubmitting(true);
+    setHasError(false);
+    
+    // **타임아웃 추가**: 10초 후 강제 로딩 해제
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ REWARDS: 타임아웃으로 로딩 해제');
+      setIsSubmitting(false);
+      toast.error('요청 시간이 초과되었어요. 다시 시도해주세요.');
+    }, 10000);
     
     try {
-      const { error } = await createReward(formData);
+      console.log('🏗️ REWARDS: createReward 호출 시작');
+      // Create reward with timeout protection
+      const createPromise = createReward(formData);
+      const { error } = await Promise.race([
+        createPromise,
+        new Promise<{error: string}>((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 9000)
+        )
+      ]);
+      
+      console.log('🔄 REWARDS: createReward 결과:', { error });
       
       if (error) {
+        console.log('❌ REWARDS: 생성 실패:', error);
         toast.error(`보상 생성 실패: ${error}`);
       } else {
+        console.log('✅ REWARDS: 생성 성공');
         toast.success('새 보상이 추가되었어요! 🎁');
         setShowForm(false);
+        // Reset form on success
         setFormData({
           title: '',
           target_amount: 10,
@@ -67,8 +97,17 @@ export const Rewards: React.FC = () => {
         });
       }
     } catch (error) {
-      toast.error('오류가 발생했어요');
+      console.log('💥 REWARDS: 예외 발생:', error);
+      setHasError(true);
+      if (error instanceof Error && error.message === 'Request timeout') {
+        toast.error('요청 시간이 초과되었어요. 다시 시도해주세요.');
+      } else {
+        toast.error('오류가 발생했어요');
+      }
     } finally {
+      // **중요**: 타임아웃 클리어 및 모든 상황에서 로딩 상태를 false로 설정
+      clearTimeout(timeoutId);
+      console.log('✅ REWARDS: 제출 완료, 로딩 해제');
       setIsSubmitting(false);
     }
   };
@@ -216,7 +255,7 @@ export const Rewards: React.FC = () => {
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                disabled={isSubmitting || !formData.title.trim()}
+                disabled={isSubmitting || !formData.title.trim() || hasError}
                 className="flex-1 bg-gradient-to-r from-purple-400 to-pink-400 text-white py-3 px-4 rounded-xl font-medium shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (

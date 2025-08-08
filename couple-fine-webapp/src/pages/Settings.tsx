@@ -101,9 +101,15 @@ export const Settings: React.FC = () => {
   // Handle theme change
   const handleThemeChange = async (newTheme: 'light' | 'dark') => {
     try {
+      console.log('🎨 SETTINGS: Theme change requested:', newTheme);
+      console.log('🎨 SETTINGS: Current theme state:', state.theme);
+      
       await updateCoupleTheme(newTheme);
+      
+      console.log('🎨 SETTINGS: Theme change completed, new state:', state.theme);
       toast.success(`${newTheme === 'light' ? '라이트' : '다크'} 테마로 변경되었어요! 🎨`);
     } catch (error) {
+      console.error('❌ SETTINGS: Theme change failed:', error);
       toast.error('테마 변경에 실패했어요');
     }
   };
@@ -646,16 +652,6 @@ export const Settings: React.FC = () => {
             </select>
           </div>
 
-          {/* Notifications */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-gray-900">푸시 알림 🔔</h3>
-              <p className="text-sm text-gray-600">벌금과 보상에 대한 알림을 받아보세요</p>
-            </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-6" />
-            </button>
-          </div>
 
           {/* PWA Install */}
           <div className="flex items-center justify-between">

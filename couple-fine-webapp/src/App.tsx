@@ -29,11 +29,10 @@ const RouterContent: React.FC = () => {
   const { state } = useApp();
   const { isLocked, hasPin, unlock } = useAppLock();
   
-  // Apply theme to document body
+  // Apply theme to document body - this will be handled by AppContext
   useEffect(() => {
-    // Get theme from localStorage first, then from app state
-    const savedTheme = localStorage.getItem('app-theme') as 'light' | 'dark' | null;
-    const currentTheme = savedTheme || state.theme || 'light';
+    // Apply theme based on current state
+    const currentTheme = state.theme || 'light';
     
     // Apply theme class to body
     if (currentTheme === 'dark') {
@@ -43,6 +42,8 @@ const RouterContent: React.FC = () => {
       document.body.classList.add('light');
       document.body.classList.remove('dark');
     }
+    
+    console.log('🎨 APP: Theme applied to body from App.tsx:', currentTheme);
   }, [state.theme]);
   
   // Show PIN lock screen if user is logged in, has PIN set, and app is locked

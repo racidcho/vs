@@ -45,22 +45,37 @@
     background-color: rgb(17 24 39);
   }
 
+  /* Card and container backgrounds */
   body.dark .bg-white {
     background-color: rgb(31 41 55) !important;
   }
 
+  /* Text colors for better readability */
   body.dark .text-gray-900 {
-    color: rgb(243 244 246) !important;
+    color: rgb(249 250 251) !important; /* Even brighter for main headings */
+  }
+
+  body.dark .text-gray-800 {
+    color: rgb(243 244 246) !important; /* Bright for secondary headings */
   }
 
   body.dark .text-gray-700 {
-    color: rgb(209 213 219) !important;
+    color: rgb(229 231 235) !important; /* Better contrast for body text */
   }
 
   body.dark .text-gray-600 {
-    color: rgb(156 163 175) !important;
+    color: rgb(209 213 219) !important; /* Improved contrast for secondary text */
   }
 
+  body.dark .text-gray-500 {
+    color: rgb(156 163 175) !important; /* Muted text but still readable */
+  }
+
+  body.dark .text-gray-400 {
+    color: rgb(156 163 175) !important; /* Placeholder text */
+  }
+
+  /* Border colors */
   body.dark .border-pink-100 {
     border-color: rgb(75 85 99) !important;
   }
@@ -69,6 +84,11 @@
     border-color: rgb(75 85 99) !important;
   }
 
+  body.dark .border-gray-300 {
+    border-color: rgb(107 114 128) !important;
+  }
+
+  /* Background colors */
   body.dark .bg-gray-50 {
     background-color: rgb(55 65 81) !important;
   }
@@ -77,25 +97,79 @@
     background-color: rgb(55 65 81) !important;
   }
 
-  body.dark .hover\:bg-gray-200:hover {
+  body.dark .bg-gray-200 {
     background-color: rgb(75 85 99) !important;
   }
 
-  /* Dark mode gradient backgrounds */
+  /* Hover states */
+  body.dark .hover\:bg-gray-50:hover {
+    background-color: rgb(55 65 81) !important;
+  }
+
+  body.dark .hover\:bg-gray-100:hover {
+    background-color: rgb(75 85 99) !important;
+  }
+
+  body.dark .hover\:bg-gray-200:hover {
+    background-color: rgb(107 114 128) !important;
+  }
+
+  /* Button and interactive elements */
+  body.dark .text-pink-600 {
+    color: rgb(244 114 182) !important;
+  }
+
+  body.dark .text-pink-700 {
+    color: rgb(236 72 153) !important;
+  }
+
+  body.dark .text-blue-600 {
+    color: rgb(147 197 253) !important;
+  }
+
+  body.dark .text-blue-700 {
+    color: rgb(96 165 250) !important;
+  }
+
+  body.dark .text-green-600 {
+    color: rgb(134 239 172) !important;
+  }
+
+  body.dark .text-green-700 {
+    color: rgb(74 222 128) !important;
+  }
+
+  body.dark .text-red-600 {
+    color: rgb(248 113 113) !important;
+  }
+
+  body.dark .text-red-700 {
+    color: rgb(239 68 68) !important;
+  }
+
+  body.dark .text-indigo-600 {
+    color: rgb(165 180 252) !important;
+  }
+
+  body.dark .text-purple-600 {
+    color: rgb(196 181 253) !important;
+  }
+
+  /* Dark mode gradient backgrounds - subtle variations for better visual hierarchy */
   body.dark .from-pink-50 {
-    --tw-gradient-from: rgb(55 65 81);
+    --tw-gradient-from: rgb(55 65 81); /* Consistent dark background */
   }
 
   body.dark .to-purple-50 {
-    --tw-gradient-to: rgb(55 65 81);
+    --tw-gradient-to: rgb(75 85 99); /* Slightly lighter for subtle gradient */
   }
 
   body.dark .from-indigo-50 {
     --tw-gradient-from: rgb(55 65 81);
   }
 
-  body.dark .from-cyan-50 {
-    --tw-gradient-to: rgb(55 65 81);
+  body.dark .to-cyan-50 {
+    --tw-gradient-to: rgb(75 85 99);
   }
 
   body.dark .from-green-50 {
@@ -103,7 +177,7 @@
   }
 
   body.dark .to-teal-50 {
-    --tw-gradient-to: rgb(55 65 81);
+    --tw-gradient-to: rgb(75 85 99);
   }
 
   body.dark .from-yellow-50 {
@@ -111,7 +185,7 @@
   }
 
   body.dark .to-orange-50 {
-    --tw-gradient-to: rgb(55 65 81);
+    --tw-gradient-to: rgb(75 85 99);
   }
 
   body.dark .from-red-50 {
@@ -123,7 +197,77 @@
   }
 
   body.dark .to-indigo-50 {
-    --tw-gradient-to: rgb(55 65 81);
+    --tw-gradient-to: rgb(75 85 99);
+  }
+
+  /* Additional gradient fixes */
+  body.dark .from-cyan-50 {
+    --tw-gradient-from: rgb(55 65 81);
+  }
+
+  /* Input field styles for dark mode */
+  body.dark .input-field {
+    background-color: rgb(55 65 81) !important;
+    color: rgb(243 244 246) !important;
+    border-color: rgb(107 114 128) !important;
+  }
+
+  body.dark .input-field:focus {
+    background-color: rgb(55 65 81) !important;
+    border-color: var(--color-primary-400) !important;
+  }
+
+  body.dark .input-field::placeholder {
+    color: rgb(156 163 175) !important;
+  }
+
+  /* Select dropdown styles for dark mode */
+  body.dark select.input-field {
+    background-color: rgb(55 65 81) !important;
+    color: rgb(243 244 246) !important;
+  }
+
+  body.dark select.input-field option {
+    background-color: rgb(55 65 81) !important;
+    color: rgb(243 244 246) !important;
+  }
+
+  /* Modal and overlay styles for dark mode */
+  body.dark .bg-black {
+    background-color: rgb(0 0 0) !important; /* Keep modals black for overlay */
+  }
+
+  /* Button text contrast improvements */
+  body.dark button {
+    color: inherit; /* Inherit from parent for better text contrast */
+  }
+
+  body.dark button.text-gray-700 {
+    color: rgb(229 231 235) !important;
+  }
+
+  body.dark button:hover {
+    color: inherit;
+  }
+
+  /* Card and surface backgrounds with better hierarchy */
+  body.dark .shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+  }
+
+  body.dark .shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  body.dark .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  /* Toast notification styles for dark mode */
+  body.dark [data-toast] {
+    background-color: rgb(31 41 55) !important;
+    color: rgb(243 244 246) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
   }
 
   /* Auto dark mode support (fallback) */

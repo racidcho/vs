@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,36 +34,80 @@ export const Dashboard: React.FC = () => {
   const [editAmount, setEditAmount] = useState<number>(0);
   const [editMemo, setEditMemo] = useState<string>('');
 
-  // Load real dashboard data
+  // Load real dashboard data with cleanup and abort controller
   useEffect(() => {
+    console.log('📊 DASHBOARD: useEffect 트리거됨', { user_couple_id: user?.couple_id });
+    
+    // Create AbortController for cleanup
+    const abortController = new AbortController();
+    let isMounted = true;
+    
     const loadDashboardData = async () => {
-      // **무한 로딩 방지**: 로딩 시작 상태 명시
+      // **무한 로딩 방지**: 이미 언마운트된 경우 조기 리턴
+      if (!isMounted || abortController.signal.aborted) {
+        console.log('🚫 DASHBOARD: 컴포넌트 언마운트됨 또는 중단됨');
+        return;
+      }
+      
       console.log('📊 DASHBOARD: 데이터 로딩 시작');
       setIsLoading(true);
       
       if (!user?.couple_id) {
         console.log('❌ DASHBOARD: 커플 ID 없음, 로딩 완료');
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
         return;
       }
 
       try {
+        // Check abort signal before making API call
+        if (abortController.signal.aborted) {
+          console.log('🚫 DASHBOARD: 요청 중단됨');
+          return;
+        }
+        
         console.log('🔄 DASHBOARD: getDashboardStats 호출');
         const stats = await getDashboardStats(user.couple_id);
+        
+        // Check if still mounted and not aborted before updating state
+        if (!isMounted || abortController.signal.aborted) {
+          console.log('🚫 DASHBOARD: 응답 후 컴포넌트 언마운트됨');
+          return;
+        }
+        
         console.log('✅ DASHBOARD: 통계 데이터 로드 성공:', stats);
         setDashboardData(stats);
       } catch (error) {
+        if (abortController.signal.aborted) {
+          console.log('🚫 DASHBOARD: 요청이 중단되었습니다');
+          return;
+        }
         console.error('💥 DASHBOARD: 데이터 로딩 실패:', error);
         // Keep default values on error
       } finally {
-        // **중요**: 성공/실패 관계없이 로딩 상태 해제
-        console.log('✅ DASHBOARD: 로딩 완료');
-        setIsLoading(false);
+        // **중요**: 성공/실패 관계없이 로딩 상태 해제 (마운트된 경우만)
+        if (isMounted) {
+          console.log('✅ DASHBOARD: 로딩 완료');
+          setIsLoading(false);
+        }
       }
     };
 
-    loadDashboardData();
-  }, [user?.couple_id]);
+    // Only load if we have required data
+    if (user?.couple_id) {
+      loadDashboardData();
+    } else if (user && !user.couple_id) {
+      // User exists but no couple_id - immediately stop loading
+      setIsLoading(false);
+    }
+    // If user is null/undefined, keep loading state until user is determined
+    
+    // Cleanup function
+    return () => {
+      console.log('🧹 DASHBOARD: useEffect 정리 - 요청 중단');
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [user?.couple_id]); // Only depend on couple_id change
 
   // Handle edit violation
   const handleEdit = (violation: any) => {

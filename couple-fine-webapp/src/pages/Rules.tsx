@@ -24,6 +24,7 @@ export const Rules: React.FC = () => {
     is_active: true
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,15 +47,30 @@ export const Rules: React.FC = () => {
       return;
     }
 
-    // **무한 로딩 방지**: 모든 경로에서 로딩 해제 보장
+    // **무한 로딩 방지**: 모든 경로에서 로딩 해제 보장 + 타임아웃 추가
     console.log('⏳ RULES: 제출 시작, 로딩 상태 설정');
     setIsSubmitting(true);
+    setHasError(false);
+    
+    // **타임아웃 추가**: 10초 후 강제 로딩 해제
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ RULES: 타임아웃으로 로딩 해제');
+      setIsSubmitting(false);
+      toast.error('요청 시간이 초과되었어요. 다시 시도해주세요.');
+    }, 10000);
     
     try {
       if (editingRule) {
         console.log('✏️ RULES: 규칙 수정 모드');
-        // Update existing rule
-        const { error } = await updateRule(editingRule, formData);
+        // Update existing rule with timeout protection
+        const updatePromise = updateRule(editingRule, formData);
+        const { error } = await Promise.race([
+          updatePromise,
+          new Promise<{error: string}>((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), 9000)
+          )
+        ]);
+        
         console.log('🔄 RULES: updateRule 결과:', { error });
         if (error) {
           console.log('❌ RULES: 수정 실패:', error);
@@ -75,8 +91,15 @@ export const Rules: React.FC = () => {
       } else {
         console.log('🆕 RULES: 새 규칙 생성 모드');
         console.log('🏗️ RULES: createRule 호출 시작');
-        // Create new rule
-        const { error } = await createRule(formData);
+        // Create new rule with timeout protection
+        const createPromise = createRule(formData);
+        const { error } = await Promise.race([
+          createPromise,
+          new Promise<{error: string}>((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), 9000)
+          )
+        ]);
+        
         console.log('🔄 RULES: createRule 결과:', { error });
         if (error) {
           console.log('❌ RULES: 생성 실패:', error);
@@ -97,9 +120,15 @@ export const Rules: React.FC = () => {
       }
     } catch (error) {
       console.log('💥 RULES: 예외 발생:', error);
-      toast.error('오류가 발생했어요');
+      setHasError(true);
+      if (error instanceof Error && error.message === 'Request timeout') {
+        toast.error('요청 시간이 초과되었어요. 다시 시도해주세요.');
+      } else {
+        toast.error('오류가 발생했어요');
+      }
     } finally {
-      // **중요**: 모든 상황에서 로딩 상태를 false로 설정
+      // **중요**: 타임아웃 클리어 및 모든 상황에서 로딩 상태를 false로 설정
+      clearTimeout(timeoutId);
       console.log('✅ RULES: 제출 완료, 로딩 해제');
       setIsSubmitting(false);
     }
@@ -256,7 +285,7 @@ export const Rules: React.FC = () => {
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                disabled={isSubmitting || !formData.title.trim()}
+                disabled={isSubmitting || !formData.title.trim() || hasError}
                 className="flex-1 bg-gradient-to-r from-pink-400 to-purple-400 text-white py-3 px-4 rounded-xl font-medium shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
