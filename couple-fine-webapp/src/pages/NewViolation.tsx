@@ -84,9 +84,18 @@ export const NewViolation: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // Get couple_id from state.couple if user.couple_id is not available
+      const coupleId = user.couple_id || (state.couple as any)?.id;
+      
+      if (!coupleId) {
+        toast.error('커플 정보를 찾을 수 없어요. 다시 로그인해주세요.');
+        navigate('/couple-setup');
+        return;
+      }
+
       const violationData = {
         rule_id: selectedRuleId,
-        couple_id: user.couple_id!,
+        couple_id: coupleId,
         violator_user_id: selectedViolatorId,
         recorded_by_user_id: user.id,
         amount: violationType === 'add' ? amount : -amount,

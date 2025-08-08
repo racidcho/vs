@@ -655,7 +655,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       const { error } = await supabase
         .from('rules')
-        .update({ is_active: false })
+        .delete()
         .eq('id', id);
 
       if (error) return { error: error.message };
