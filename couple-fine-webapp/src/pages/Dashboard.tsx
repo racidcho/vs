@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getDashboardStats } from '../lib/supabaseApi';
@@ -23,7 +23,8 @@ import {
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const { state, updateViolation, deleteViolation } = useApp();
+  const navigate = useNavigate();
+  const { state, updateViolation, deleteViolation, getPartnerInfo } = useApp();
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState({
     totalBalance: 0,
@@ -36,6 +37,29 @@ export const Dashboard: React.FC = () => {
   const [editingViolation, setEditingViolation] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState<number>(0);
   const [editMemo, setEditMemo] = useState<string>('');
+
+  // 축하 페이지 본 적 있는지 체크 및 리다이렉트
+  useEffect(() => {
+    const checkCelebration = async () => {
+      if (user && state.couple) {
+        const celebrationKey = `couple_celebrated_${user.id}_${state.couple.id}`;
+        const hasCelebrated = localStorage.getItem(celebrationKey);
+        
+        // 파트너가 있는지 확인
+        try {
+          const partnerInfo = await getPartnerInfo();
+          if (partnerInfo && partnerInfo.partner && !hasCelebrated) {
+            // 파트너가 있고 축하 페이지를 안 봤으면 리다이렉트
+            navigate('/couple-complete');
+          }
+        } catch (error) {
+          // 파트너 정보 로딩 실패는 무시
+        }
+      }
+    };
+
+    checkCelebration();
+  }, [user, state.couple, navigate, getPartnerInfo]);
 
   // Load real dashboard data with cleanup and abort controller
   useEffect(() => {

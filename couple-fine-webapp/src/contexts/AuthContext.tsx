@@ -35,9 +35,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshUser = async () => {
 
-    // 5초 타임아웃 설정
+    // 30초 타임아웃 설정 (네트워크 지연 고려)
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('사용자 정보 로딩 시간 초과')), 5000);
+      setTimeout(() => reject(new Error('사용자 정보 로딩 시간 초과')), 30000);
     });
 
     // Get current session from Supabase (with timeout)
@@ -45,7 +45,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       supabase.auth.getSession(),
       timeoutPromise
     ]).catch(err => {
-      console.error('⏰ Session fetch timeout:', err);
       return { data: { session: null } };
     });
 
@@ -71,7 +70,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .single(),
         timeoutPromise
       ]).catch(err => {
-        console.error('⏰ Profile fetch timeout:', err);
         return { data: null, error: err };
       }) as any;
 
@@ -99,7 +97,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           setUser(createdUser);
         } else {
-          console.error('❌ Failed to create user:', createError);
           // Even if database creation fails, set a minimal user object
           // This prevents the login loop
           const fallbackUser: User = {
@@ -112,7 +109,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(fallbackUser);
         }
       } else {
-        console.error('❌ Unexpected database error:', error);
         // Set fallback user to prevent login loop
         const fallbackUser: User = {
           id: currentSession.user.id,
@@ -124,7 +120,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(fallbackUser);
       }
     } catch (error) {
-      console.error('❌ Critical error in refreshUser:', error);
       // Even on error, if we have a session, set a minimal user
       if (currentSession?.user) {
         const fallbackUser: User = {
@@ -155,13 +150,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (error) {
-        console.error('❌ Supabase OTP error:', error);
         return { error: error.message };
       }
 
       return { success: true, message: 'OTP sent! Check your email.' };
     } catch (error) {
-      console.error('❌ Unexpected error in signIn:', error);
       return { error: 'An unexpected error occurred' };
     } finally {
       setIsLoading(false);
@@ -180,7 +173,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (error) {
-        console.error('❌ OTP verification error:', error);
         return { error: error.message };
       }
 
@@ -205,7 +197,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return { error: 'Failed to verify OTP' };
     } catch (error) {
-      console.error('❌ Unexpected error during OTP verification:', error);
       return { error: 'An unexpected error occurred' };
     } finally {
       setIsLoading(false);
@@ -241,17 +232,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Initialize auth state
     setIsLoading(true);
 
-    // 5초 타임아웃으로 초기화 보호
+    // 30초 타임아웃으로 초기화 보호 (네트워크 지연 고려)
     const initTimeout = setTimeout(() => {
-
       setIsLoading(false);
-    }, 5000);
+    }, 30000);
 
     // Get initial session with error handling
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
 
       if (error) {
-        console.error('❌ Session check error:', error);
         setSession(null);
         setUser(null);
         setIsLoading(false);
@@ -264,7 +253,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           await refreshUser();
         } catch (refreshError) {
-          console.error('❌ RefreshUser error during initialization:', refreshError);
           // Even if refresh fails, we have a session so set basic user
           if (session.user) {
             const fallbackUser: User = {
@@ -280,7 +268,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(false);
       clearTimeout(initTimeout);
     }).catch((error) => {
-      console.error('❌ Critical error during session initialization:', error);
       setSession(null);
       setUser(null);
       setIsLoading(false);
@@ -290,13 +277,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-
         setSession(session);
         if (session) {
           try {
             await refreshUser();
           } catch (refreshError) {
-            console.error('❌ RefreshUser error during auth change:', refreshError);
             // Fallback user creation
             if (session.user) {
               const fallbackUser: User = {
@@ -314,8 +299,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     );
 
+    // 세션 자동 갱신 - 10분마다 세션 확인 및 갱신
+    // 세션 자동 갱신 (더 안정적으로)
+    const sessionRefreshInterval = setInterval(async () => {
+      try {
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.log('🔄 세션 확인 오류:', error.message);
+          return;
+        }
+        
+        if (currentSession) {
+          // 세션 만료 시간 확인 (5분 전에 갱신)
+          const expiresAt = currentSession.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+          const timeUntilExpiry = expiresAt ? (expiresAt - now) : 0;
+          
+          if (timeUntilExpiry < 300) { // 5분 미만 남았으면 갱신
+            console.log('🔄 세션 자동 갱신 중...');
+            const { data, error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError) {
+              console.error('❌ 세션 갱신 실패:', refreshError.message);
+            } else {
+              console.log('✅ 세션 갱신 성공');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('💥 세션 관리 오류:', err);
+      }
+    }, 5 * 60 * 1000); // 5분마다 실행 (더 자주 체크)
+
     return () => {
       subscription.unsubscribe();
+      clearInterval(sessionRefreshInterval);
     };
   }, []);
 

@@ -164,16 +164,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Load couple data when user changes with abort signal support
   const loadCoupleData = async (abortSignal?: AbortSignal) => {
+    console.log('🔄 APPCONTEXT: loadCoupleData 시작', {
+      userId: user?.id,
+      coupleId: user?.couple_id,
+      hasAbortSignal: !!abortSignal
+    });
 
     if (!user?.couple_id) {
-
+      console.log('❌ APPCONTEXT: 커플 ID 없음 - 상태 리셋');
       dispatch({ type: 'RESET_STATE' });
       return;
     }
 
-    // 5초 타임아웃 설정
+    // 60초 타임아웃 설정 (네트워크 지연 고려 - 더 안정적으로)
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('데이터 로딩 시간 초과')), 5000);
+      setTimeout(() => reject(new Error('데이터 로딩 시간 초과')), 60000);
     });
 
     try {
@@ -199,27 +204,41 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       ]).catch(err => ({ data: null, error: err })) as any;
 
       if (coupleError) {
-
+        console.error('💥 APPCONTEXT: 커플 데이터 로드 실패:', coupleError);
         return;
       }
 
       if (coupleData) {
-
-        // Transform the data to match existing Couple interface
-        const transformedCouple = {
+        console.log('📊 APPCONTEXT: 커플 데이터 로드됨:', {
           id: coupleData.id,
-          code: coupleData.couple_code,
-          couple_code: coupleData.couple_code, // Add this for backward compatibility
-          created_at: coupleData.created_at,
-          // Additional fields for internal use
-          couple_name: coupleData.couple_name,
-          total_balance: coupleData.total_balance,
-          partner_1: coupleData.partner_1,
-          partner_2: coupleData.partner_2
+          partner_1_id: coupleData.partner_1_id,
+          partner_2_id: coupleData.partner_2_id,
+          partner_1_data: coupleData.partner_1 ? {
+            id: coupleData.partner_1.id,
+            display_name: coupleData.partner_1.display_name,
+            email: coupleData.partner_1.email
+          } : null,
+          partner_2_data: coupleData.partner_2 ? {
+            id: coupleData.partner_2.id,
+            display_name: coupleData.partner_2.display_name,
+            email: coupleData.partner_2.email
+          } : null
+        });
+
+        // Transform the data to match Couple interface
+        const transformedCouple: Couple = {
+          id: coupleData.id,
+          couple_code: coupleData.couple_code,
+          couple_name: coupleData.couple_name || '',
+          partner_1_id: coupleData.partner_1_id,
+          partner_2_id: coupleData.partner_2_id,
+          total_balance: coupleData.total_balance || 0,
+          is_active: coupleData.is_active,
+          created_at: coupleData.created_at
         };
 
-        dispatch({ type: 'SET_COUPLE', payload: transformedCouple as any });
-
+        dispatch({ type: 'SET_COUPLE', payload: transformedCouple });
+        console.log('✅ APPCONTEXT: 커플 상태 업데이트됨');
       }
 
       // Load rules (with timeout)
@@ -341,7 +360,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       return { code: coupleData.couple_code, isNewCouple: true };
     } catch (error) {
-      console.error('Create couple error:', error);
       return { error: 'Failed to create couple' };
     }
   };
@@ -400,7 +418,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      console.error('Join couple error:', error);
       return { error: 'Failed to join couple' };
     }
   };
@@ -499,7 +516,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             await refreshUser();
 
           } catch (refreshError) {
-            console.error('⚠️ APPCONTEXT: 사용자 정보 새로고침 실패 (비차단):', refreshError);
             // Don't fail the entire operation if refresh fails
           }
         }
@@ -530,7 +546,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Get partner information
   const getPartnerInfo = async (): Promise<{ partner: any; error?: string } | null> => {
-    if (!user?.couple_id) return null;
+    console.log('🔍 APPCONTEXT: getPartnerInfo 호출', { 
+      userId: user?.id, 
+      coupleId: user?.couple_id 
+    });
+
+    if (!user?.couple_id) {
+      console.log('❌ APPCONTEXT: 커플 ID 없음');
+      return null;
+    }
 
     try {
       const { data: coupleData, error: coupleError } = await supabase
@@ -543,18 +567,51 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .eq('id', user.couple_id)
         .single();
 
+      console.log('📊 APPCONTEXT: 커플 데이터 조회 결과:', {
+        error: coupleError,
+        hasData: !!coupleData,
+        partner1Id: coupleData?.partner_1_id,
+        partner2Id: coupleData?.partner_2_id,
+        partner1Data: coupleData?.partner_1 ? {
+          id: coupleData.partner_1.id,
+          display_name: coupleData.partner_1.display_name,
+          email: coupleData.partner_1.email
+        } : null,
+        partner2Data: coupleData?.partner_2 ? {
+          id: coupleData.partner_2.id,
+          display_name: coupleData.partner_2.display_name,
+          email: coupleData.partner_2.email
+        } : null
+      });
+
       if (coupleError || !coupleData) {
+        console.log('❌ APPCONTEXT: 커플 데이터 없음:', coupleError?.message);
         return { partner: null, error: 'Couple not found' };
       }
 
       // Return the partner (the one who is not the current user)
-      const partner = coupleData.partner_1_id === user.id
-        ? coupleData.partner_2
-        : coupleData.partner_1;
+      let partner = null;
+      if (coupleData.partner_1_id === user.id) {
+        partner = coupleData.partner_2;
+        console.log('👫 APPCONTEXT: 현재 사용자는 partner_1, partner_2 반환');
+      } else if (coupleData.partner_2_id === user.id) {
+        partner = coupleData.partner_1;
+        console.log('👫 APPCONTEXT: 현재 사용자는 partner_2, partner_1 반환');
+      } else {
+        console.log('⚠️ APPCONTEXT: 현재 사용자가 이 커플의 멤버가 아님');
+        return { partner: null, error: 'User is not a member of this couple' };
+      }
+
+      console.log('✅ APPCONTEXT: 파트너 정보 반환:', {
+        partnerId: partner?.id,
+        partnerName: partner?.display_name,
+        partnerEmail: partner?.email,
+        isNull: partner === null
+      });
 
       return { partner };
     } catch (error) {
-      console.error('Get partner info error:', error);
+      console.error('💥 APPCONTEXT: getPartnerInfo 예외:', error);
       return { partner: null, error: 'Failed to get partner info' };
     }
   };
@@ -575,7 +632,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (state.couple) {
         dispatch({
           type: 'SET_COUPLE',
-          payload: { ...state.couple, couple_name: name.trim() } as any
+          payload: { ...state.couple, couple_name: name.trim() }
         });
       }
 
@@ -611,7 +668,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return { error: error.message };
       }
 
-      // **중요**: 성공 시 로컬 상태 즉시 업데이트
       if (data) {
         dispatch({ type: 'ADD_RULE', payload: data });
       }
@@ -639,7 +695,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return { error: error.message };
       }
 
-      // **중요**: 성공 시 로컬 상태 즉시 업데이트
       if (data) {
         dispatch({ type: 'UPDATE_RULE', payload: data as Rule });
       }
@@ -661,7 +716,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       if (error) return { error: error.message };
 
-      // **CRITICAL FIX**: Immediately remove the rule from local state
       dispatch({ type: 'DELETE_RULE', payload: id });
 
       return {};
@@ -694,7 +748,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       dispatch({ type: 'UPDATE_VIOLATION', payload: updatedViolation });
       return {};
     } catch (error) {
-      console.error('Failed to update violation:', error);
       return { error: error instanceof Error ? error.message : 'Failed to update violation' };
     }
   };
@@ -706,7 +759,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       dispatch({ type: 'DELETE_VIOLATION', payload: id });
       return {};
     } catch (error) {
-      console.error('Failed to delete violation:', error);
       return { error: error instanceof Error ? error.message : 'Failed to delete violation' };
     }
   };
@@ -737,7 +789,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return { error: error.message };
       }
 
-      // **중요**: 성공 시 로컬 상태 즉시 업데이트
       if (data) {
         dispatch({ type: 'ADD_REWARD', payload: data as Reward });
       }
@@ -765,7 +816,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return { error: error.message };
       }
 
-      // **중요**: 성공 시 로컬 상태 즉시 업데이트
       if (data) {
         dispatch({ type: 'UPDATE_REWARD', payload: data as Reward });
       }
@@ -791,7 +841,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return { error: error.message };
       }
 
-      // **중요**: 성공 시 로컬 상태 즉시 업데이트
       dispatch({ type: 'DELETE_REWARD', payload: id });
 
       return {};
@@ -841,11 +890,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           errors.push('커플 데이터를 서버에서 찾을 수 없습니다.');
         } else {
           // Check if local data matches server data
-          if ((state.couple as any).couple_code !== dbCouple.couple_code) {
+          if (state.couple.couple_code !== dbCouple.couple_code) {
             errors.push('커플 코드가 서버와 일치하지 않습니다.');
           }
 
-          if ((state.couple as any)?.total_balance !== dbCouple.total_balance) {
+          if (state.couple.total_balance !== dbCouple.total_balance) {
             errors.push('벌금 총액이 서버와 일치하지 않습니다.');
           }
         }
@@ -856,7 +905,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .filter(v => v.rule?.couple_id === user.couple_id)
         .reduce((total, violation) => total + violation.amount, 0);
 
-      const coupleBalance = (state.couple as any)?.total_balance || 0;
+      const coupleBalance = state.couple?.total_balance || 0;
       if (Math.abs(calculatedTotal - coupleBalance) > 0.01) {
         errors.push(`계산된 벌금 총액(${calculatedTotal})이 커플 잔액(${coupleBalance})과 일치하지 않습니다.`);
       }
@@ -876,7 +925,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       return { isValid: errors.length === 0, errors };
     } catch (error) {
-      console.error('Data validation error:', error);
       errors.push('데이터 검증 중 오류가 발생했습니다.');
       return { isValid: false, errors };
     }
@@ -920,14 +968,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         (payload) => {
 
           if (payload.eventType === 'UPDATE' && payload.new) {
-            const transformedCouple = {
+            const transformedCouple: Couple = {
               id: payload.new.id,
               couple_code: payload.new.couple_code,
-              created_at: payload.new.created_at,
-              couple_name: payload.new.couple_name,
-              total_balance: payload.new.total_balance,
+              couple_name: payload.new.couple_name || '',
+              partner_1_id: payload.new.partner_1_id,
+              partner_2_id: payload.new.partner_2_id,
+              total_balance: payload.new.total_balance || 0,
+              is_active: payload.new.is_active,
+              created_at: payload.new.created_at
             };
-            dispatch({ type: 'SET_COUPLE', payload: transformedCouple as any });
+            dispatch({ type: 'SET_COUPLE', payload: transformedCouple });
           }
         }
       )
@@ -946,11 +997,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         },
         (payload) => {
 
-          // **무한 재실행 방지**: refreshData 대신 직접 상태 업데이트
           if (payload.eventType === 'INSERT' && payload.new) {
             dispatch({ type: 'ADD_RULE', payload: payload.new as Rule });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            // **CRITICAL FIX**: Handle rule deactivation (is_active = false) as deletion
+            // Handle rule deactivation (is_active = false) as deletion
             if (payload.new.is_active === false) {
               dispatch({ type: 'DELETE_RULE', payload: payload.new.id });
             } else {
@@ -1002,7 +1052,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         },
         (payload) => {
 
-          // **무한 재실행 방지**: 직접 상태 업데이트
           if (payload.eventType === 'INSERT' && payload.new) {
 
             dispatch({ type: 'ADD_REWARD', payload: payload.new as Reward });
@@ -1024,7 +1073,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       supabase.removeChannel(violationsChannel);
       supabase.removeChannel(rewardsChannel);
     };
-  }, [user?.couple_id]); // **중요**: refreshData 의존성 제거로 무한 재실행 방지
+  }, [user?.couple_id]);
 
   // Online/offline status
   useEffect(() => {

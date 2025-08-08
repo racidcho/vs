@@ -55,9 +55,9 @@ export const NameSetup: React.FC = () => {
       
       toast.success('이름이 저장되었어요! 💕');
       
-      // Navigate to dashboard
+      // Navigate to couple complete page
       setTimeout(() => {
-        navigate('/');
+        navigate('/couple-complete');
       }, 1500);
       
     } catch (error) {

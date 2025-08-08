@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import {
@@ -19,6 +20,7 @@ import toast from 'react-hot-toast';
 import { useAppLock } from '../hooks/useAppLock';
 
 export const Settings: React.FC = () => {
+  const navigate = useNavigate();
   const { user, signOut, updateProfile } = useAuth();
   const { state, updateCoupleName, getPartnerInfo, leaveCouple, validateData, refreshData } = useApp();
   const { isLocked, lock, hasPin, setPin, removePin } = useAppLock();
@@ -29,6 +31,7 @@ export const Settings: React.FC = () => {
   const [confirmPin, setConfirmPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [partner, setPartner] = useState<any>(null);
+  const [partnerLoading, setPartnerLoading] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showPinChangeModal, setShowPinChangeModal] = useState(false);
   const [isEditingCoupleName, setIsEditingCoupleName] = useState(false);
@@ -111,7 +114,6 @@ export const Settings: React.FC = () => {
       console.error('Profile update error:', error);
       toast.error('프로필 업데이트에 실패했어요 😢');
     } finally {
-      // **무한 로딩 방지**: 항상 로딩 상태 해제
       setIsLoading(false);
     }
   };
@@ -135,7 +137,6 @@ export const Settings: React.FC = () => {
       console.error('Couple name update error:', error);
       toast.error('커플 이름 업데이트에 실패했어요 😢');
     } finally {
-      // **무한 로딩 방지**: 항상 로딩 상태 해제
       setIsLoading(false);
     }
   };
@@ -164,32 +165,50 @@ export const Settings: React.FC = () => {
   // Load partner info and initialize couple name
   useEffect(() => {
     const loadPartnerInfo = async () => {
+      console.log('🔄 SETTINGS: loadPartnerInfo 시작', { 
+        hasCouple: !!state.couple, 
+        coupleId: state.couple?.id,
+        partner1Id: state.couple?.partner_1_id,
+        partner2Id: state.couple?.partner_2_id,
+        currentUserId: user?.id
+      });
 
       if (state.couple) {
-
+        console.log('📡 SETTINGS: 파트너 정보 요청 중...');
+        setPartnerLoading(true);
+        
         try {
           const result = await getPartnerInfo();
-          if (result && !result.error) {
-
+          console.log('📥 SETTINGS: getPartnerInfo 결과:', result);
+          
+          if (result && !result.error && result.partner) {
+            console.log('✅ SETTINGS: 파트너 정보 설정:', {
+              partnerId: result.partner.id,
+              partnerName: result.partner.display_name,
+              partnerEmail: result.partner.email
+            });
             setPartner(result.partner);
           } else {
-
+            console.log('⚠️ SETTINGS: 파트너 정보 없음:', result?.error || 'No partner data');
+            setPartner(null);
           }
         } catch (error) {
           console.error('💥 SETTINGS: 파트너 정보 로드 예외:', error);
+          setPartner(null);
+        } finally {
+          setPartnerLoading(false);
         }
 
         // Initialize couple name
-        const newCoupleName = (state.couple as any)?.couple_name || '';
-
+        const newCoupleName = state.couple?.couple_name || '';
+        console.log('📝 SETTINGS: 커플명 설정:', newCoupleName);
         setCoupleName(newCoupleName);
       } else {
-
+        console.log('🚫 SETTINGS: 커플 정보 없음 - 상태 초기화');
         // If couple becomes null, clear related states
         setPartner(null);
         setCoupleName('');
 
-        // **무한 로딩 방지**: 커플 해제 시 로딩 상태 확실히 해제
         if (isLoading) {
           console.log('✅ SETTINGS: 로딩 상태 해제 (커플 없음)');
           setIsLoading(false);
@@ -198,7 +217,7 @@ export const Settings: React.FC = () => {
     };
 
     loadPartnerInfo();
-  }, [state.couple]); // **중요**: 순환 의존성 제거 - getPartnerInfo, isLoading 제거
+  }, [state.couple, user?.id, getPartnerInfo]);
 
   // Safety effect: Close leave modal when couple becomes null
   useEffect(() => {
@@ -208,7 +227,6 @@ export const Settings: React.FC = () => {
   }, [state.couple, showLeaveModal]);
 
   const handleLeaveCouple = async () => {
-    // **무한 로딩 방지**: 시작 시 로딩 설정
     setIsLoading(true);
 
     try {
@@ -299,7 +317,6 @@ export const Settings: React.FC = () => {
       console.error('Data validation error:', error);
       toast.error('데이터 검증 중 오류가 발생했어요 😢');
     } finally {
-      // **무한 로딩 방지**: 항상 로딩 상태 해제
       setIsLoading(false);
     }
   };
@@ -309,11 +326,26 @@ export const Settings: React.FC = () => {
     try {
       await refreshData();
       toast.success('데이터가 새로고침되었어요! 🔄');
+      
+      // Also refresh partner info after data refresh
+      if (state.couple) {
+        setPartnerLoading(true);
+        try {
+          const result = await getPartnerInfo();
+          if (result && !result.error && result.partner) {
+            setPartner(result.partner);
+            console.log('✅ SETTINGS: 파트너 정보 새로고침됨');
+          }
+        } catch (error) {
+          console.error('💥 SETTINGS: 파트너 정보 새로고침 실패:', error);
+        } finally {
+          setPartnerLoading(false);
+        }
+      }
     } catch (error) {
       console.error('Data refresh error:', error);
       toast.error('데이터 새로고침에 실패했어요 😢');
     } finally {
-      // **무한 로딩 방지**: 항상 로딩 상태 해제
       setIsLoading(false);
     }
   };
@@ -420,7 +452,7 @@ export const Settings: React.FC = () => {
             </div>
 
             {/* Partner Name Card */}
-            {partner && (
+            {partner ? (
               <div className="bg-white rounded-2xl p-6 shadow-md border-2 border-indigo-200 transform hover:scale-105 transition-all duration-300">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-14 h-14 bg-gradient-to-br from-indigo-400 to-blue-400 rounded-2xl flex items-center justify-center shadow-lg">
@@ -444,11 +476,25 @@ export const Settings: React.FC = () => {
                     <span className="text-sm font-bold">파트너</span>
                   </div>
                 </div>
+                {/* Debug info for troubleshooting - remove after fix confirmed */}
+                {process.env.NODE_ENV === 'development' && partner && (
+                  <div className="mt-2 text-xs text-gray-400 bg-gray-50 p-2 rounded">
+                    🐛 Debug: ID={partner.id}, Email={partner.email}, Name="{partner.display_name || 'NULL'}"
+                  </div>
+                )}
               </div>
-            )}
-
-            {/* Show empty partner card when no partner */}
-            {!partner && (
+            ) : partnerLoading || (state.couple?.partner_2_id && !partner) ? (
+              <div className="bg-gradient-to-br from-yellow-50 to-orange-100 rounded-2xl p-6 shadow-md border-2 border-dashed border-yellow-300">
+                <div className="text-center">
+                  <div className="w-14 h-14 bg-yellow-300 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <span className="text-yellow-700 text-2xl animate-spin">🔄</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-yellow-800 mb-2">파트너 정보 로딩 중...</h3>
+                  <p className="text-yellow-600 text-sm mb-4">잠시만 기다려주세요</p>
+                  <div className="text-yellow-600 text-lg animate-pulse">💕</div>
+                </div>
+              </div>
+            ) : (
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 shadow-md border-2 border-dashed border-gray-300">
                 <div className="text-center">
                   <div className="w-14 h-14 bg-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -598,17 +644,35 @@ export const Settings: React.FC = () => {
                 <span>💑</span> 커플 코드
               </span>
               <span className="font-mono font-bold text-indigo-600 bg-white px-3 py-1 rounded-lg">
-                {(state.couple as any)?.couple_code || '로딩중...'}
+                {state.couple?.couple_code || '생성중...'}
               </span>
             </div>
 
-            {partner && (
+            {partner ? (
               <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl">
                 <span className="text-gray-700 font-medium flex items-center gap-2">
                   <span>👫</span> 파트너
                 </span>
                 <span className="text-gray-900 font-medium">
-                  {partner.display_name}
+                  {partner.display_name || '(이름 없음)'}
+                </span>
+              </div>
+            ) : partnerLoading || (state.couple?.partner_2_id && !partner) ? (
+              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
+                <span className="text-gray-700 font-medium flex items-center gap-2">
+                  <span>👫</span> 파트너
+                </span>
+                <span className="text-gray-600 font-medium animate-pulse">
+                  로딩 중...
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl">
+                <span className="text-gray-500 font-medium flex items-center gap-2">
+                  <span>👫</span> 파트너
+                </span>
+                <span className="text-gray-500 font-medium">
+                  연결된 파트너 없음
                 </span>
               </div>
             )}
@@ -630,6 +694,15 @@ export const Settings: React.FC = () => {
                 {(state.couple as any)?.total_balance?.toLocaleString() || '0'}원
               </span>
             </div>
+
+            {/* Celebration Page Link */}
+            <button
+              onClick={() => navigate('/couple-complete')}
+              className="w-full p-3 bg-gradient-to-r from-pink-50 to-purple-50 hover:from-pink-100 hover:to-purple-100 text-purple-600 rounded-xl transition-all font-medium flex items-center justify-center gap-2"
+            >
+              <Heart className="w-4 h-4" />
+              커플 연결 축하 페이지 다시 보기 🎉
+            </button>
 
             {/* Leave Couple Button */}
             <div className="pt-2">

@@ -20,6 +20,7 @@ import { DebugPanel } from './components/DebugPanel';
 import { Dashboard } from './pages/Dashboard';
 import { CoupleSetup } from './pages/CoupleSetup';
 import { NameSetup } from './pages/NameSetup';
+import { CoupleComplete } from './pages/CoupleComplete';
 import { Rules } from './pages/Rules';
 import { NewViolation } from './pages/NewViolation';
 import { Rewards } from './pages/Rewards';
@@ -78,6 +79,7 @@ const RouterContent: React.FC = () => {
         
         {/* Protected routes that require couple setup but allow incomplete profiles */}
         <Route path="/name-setup" element={<ProtectedRoute requireCouple><NameSetupPage /></ProtectedRoute>} />
+        <Route path="/couple-complete" element={<ProtectedRoute requireCouple><CoupleCompletePage /></ProtectedRoute>} />
 
         {/* Protected routes that require couple setup */}
         <Route path="/" element={<RequireCouple><AppLayout /></RequireCouple>}>
@@ -147,6 +149,11 @@ const CoupleSetupPage: React.FC = () => {
 // Name setup page wrapper (the page already has its own styling)
 const NameSetupPage: React.FC = () => {
   return <NameSetup />;
+};
+
+// Couple complete page wrapper
+const CoupleCompletePage: React.FC = () => {
+  return <CoupleComplete />;
 };
 
 export default App;
