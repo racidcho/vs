@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { AppProvider } from './contexts/AppContext';
+import { AppProvider, useApp } from './contexts/AppContext';
 
 // Components
 import { ProtectedRoute, RequireCouple } from './components/auth/ProtectedRoute';
@@ -26,11 +26,28 @@ import { Settings } from './pages/Settings';
 // Router content component that can use hooks
 const RouterContent: React.FC = () => {
   const { user } = useAuth();
-  const { isLocked, hasPin } = useAppLock();
+  const { state } = useApp();
+  const { isLocked, hasPin, unlock } = useAppLock();
+  
+  // Apply theme to document body
+  useEffect(() => {
+    // Get theme from localStorage first, then from app state
+    const savedTheme = localStorage.getItem('app-theme') as 'light' | 'dark' | null;
+    const currentTheme = savedTheme || state.theme || 'light';
+    
+    // Apply theme class to body
+    if (currentTheme === 'dark') {
+      document.body.classList.add('dark');
+      document.body.classList.remove('light');
+    } else {
+      document.body.classList.add('light');
+      document.body.classList.remove('dark');
+    }
+  }, [state.theme]);
   
   // Show PIN lock screen if user is logged in, has PIN set, and app is locked
   if (user && hasPin && isLocked) {
-    return <PinLockScreen onUnlock={() => {}} />;
+    return <PinLockScreen onUnlock={unlock} />;
   }
   
   return (
@@ -80,7 +97,8 @@ const RouterContent: React.FC = () => {
         {/* Catch all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <RealtimeStatus />
+      {/* 개발 환경에서만 실시간 연결 상태 표시 */}
+      {import.meta.env.DEV && <RealtimeStatus />}
     </div>
   );
 };
