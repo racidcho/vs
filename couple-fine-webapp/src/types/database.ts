@@ -5,7 +5,7 @@
 export interface Database {
   public: {
     Tables: {
-      users: {
+      profiles: {
         Row: {
           id: string;
           email: string;
@@ -194,19 +194,19 @@ export type Enums<T extends keyof Database['public']['Enums']> = Database['publi
 export type Functions<T extends keyof Database['public']['Functions']> = Database['public']['Functions'][T];
 
 // Convenience aliases
-export type UserRow = Tables<'users'>;
+export type UserRow = Tables<'profiles'>;
 export type CoupleRow = Tables<'couples'>;
 export type RuleRow = Tables<'rules'>;
 export type ViolationRow = Tables<'violations'>;
 export type RewardRow = Tables<'rewards'>;
 
-export type UserInsert = Inserts<'users'>;
+export type UserInsert = Inserts<'profiles'>;
 export type CoupleInsert = Inserts<'couples'>;
 export type RuleInsert = Inserts<'rules'>;
 export type ViolationInsert = Inserts<'violations'>;
 export type RewardInsert = Inserts<'rewards'>;
 
-export type UserUpdate = Updates<'users'>;
+export type UserUpdate = Updates<'profiles'>;
 export type CoupleUpdate = Updates<'couples'>;
 export type RuleUpdate = Updates<'rules'>;
 export type ViolationUpdate = Updates<'violations'>;

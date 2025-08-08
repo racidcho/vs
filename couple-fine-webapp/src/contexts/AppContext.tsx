@@ -573,13 +573,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
 
     try {
+      // First, get the couple information
       const { data: coupleData, error: coupleError } = await supabase
         .from('couples')
-        .select(`
-          *,
-          partner_1:profiles!couples_partner_1_id_fkey(*),
-          partner_2:profiles!couples_partner_2_id_fkey(*)
-        `)
+        .select('*')
         .eq('id', user.couple_id)
         .single();
 
@@ -588,16 +585,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         hasData: !!coupleData,
         partner1Id: coupleData?.partner_1_id,
         partner2Id: coupleData?.partner_2_id,
-        partner1Data: coupleData?.partner_1 ? {
-          id: coupleData.partner_1.id,
-          display_name: coupleData.partner_1.display_name,
-          email: coupleData.partner_1.email
-        } : null,
-        partner2Data: coupleData?.partner_2 ? {
-          id: coupleData.partner_2.id,
-          display_name: coupleData.partner_2.display_name,
-          email: coupleData.partner_2.email
-        } : null
       });
 
       if (coupleError || !coupleData) {
@@ -605,17 +592,39 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return { partner: null, error: 'Couple not found' };
       }
 
-      // Return the partner (the one who is not the current user)
-      let partner = null;
+      // Determine which partner to fetch (the one who is not the current user)
+      let partnerId = null;
       if (coupleData.partner_1_id === user.id) {
-        partner = coupleData.partner_2;
-        console.log('👫 APPCONTEXT: 현재 사용자는 partner_1, partner_2 반환');
+        partnerId = coupleData.partner_2_id;
+        console.log('👫 APPCONTEXT: 현재 사용자는 partner_1, partner_2_id로 파트너 조회:', partnerId);
       } else if (coupleData.partner_2_id === user.id) {
-        partner = coupleData.partner_1;
-        console.log('👫 APPCONTEXT: 현재 사용자는 partner_2, partner_1 반환');
+        partnerId = coupleData.partner_1_id;
+        console.log('👫 APPCONTEXT: 현재 사용자는 partner_2, partner_1_id로 파트너 조회:', partnerId);
       } else {
         console.log('⚠️ APPCONTEXT: 현재 사용자가 이 커플의 멤버가 아님');
         return { partner: null, error: 'User is not a member of this couple' };
+      }
+
+      // Fetch partner profile directly
+      let partner = null;
+      if (partnerId) {
+        const { data: partnerData, error: partnerError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', partnerId)
+          .single();
+
+        console.log('👤 APPCONTEXT: 파트너 프로필 조회 결과:', {
+          error: partnerError,
+          hasData: !!partnerData,
+          partnerId,
+          partnerName: partnerData?.display_name,
+          partnerEmail: partnerData?.email
+        });
+
+        if (!partnerError && partnerData) {
+          partner = partnerData;
+        }
       }
 
       console.log('✅ APPCONTEXT: 파트너 정보 반환:', {

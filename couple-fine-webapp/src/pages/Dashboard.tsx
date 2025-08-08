@@ -304,21 +304,84 @@ export const Dashboard: React.FC = () => {
           </h1>
         </div>
 
-        {/* 대결 위젯 - 크고 눈에 띄게! */}
-        {state.couple && (state.couple as any).partner_1 && (state.couple as any).partner_2 ? (
-          <div className="transform hover:scale-105 transition-all duration-300">
-            <VersusWidget />
+        {/* 커플 정보 및 대결 위젯 */}
+        {state.couple ? (
+          <div>
+            {/* 커플 연결 상태 카드 */}
+            <div className="bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100 rounded-3xl p-6 mb-4 shadow-lg border-2 border-pink-200">
+              <div className="text-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
+                  <span className="text-2xl animate-bounce">💑</span>
+                  우리들의 연결 상태
+                  <span className="text-2xl animate-bounce" style={{animationDelay: '0.5s'}}>💑</span>
+                </h2>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {/* 내 정보 */}
+                <div className="bg-white/80 rounded-2xl p-4 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <span className="text-white font-bold text-lg">
+                      {user?.display_name?.charAt(0) || '👩'}
+                    </span>
+                  </div>
+                  <p className="font-bold text-gray-900">{user?.display_name || '나'}</p>
+                  <p className="text-xs text-gray-500 mt-1">나</p>
+                </div>
+                
+                {/* 파트너 정보 */}
+                <div className="bg-white/80 rounded-2xl p-4 text-center">
+                  {(() => {
+                    const couple = state.couple as any;
+                    const isPartner1 = user?.id === couple?.partner_1_id;
+                    const partnerData = isPartner1 ? couple?.partner_2 : couple?.partner_1;
+                    
+                    return (
+                      <>
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-400 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <span className="text-white font-bold text-lg">
+                            {partnerData?.display_name?.charAt(0) || '👨'}
+                          </span>
+                        </div>
+                        <p className="font-bold text-gray-900">
+                          {partnerData?.display_name || '파트너'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {partnerData ? '연결됨' : '연결 대기 중'}
+                        </p>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+              
+              <div className="text-center">
+                {state.couple.couple_code && (
+                  <p className="text-sm text-pink-600 font-medium">
+                    커플 코드: 💑 {state.couple.couple_code}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            {/* 대결 위젯 */}
+            {(state.couple as any).partner_1 && (state.couple as any).partner_2 ? (
+              <div className="transform hover:scale-105 transition-all duration-300">
+                <VersusWidget />
+              </div>
+            ) : (
+              <div className="bg-gradient-to-r from-yellow-100 via-orange-100 to-pink-100 rounded-3xl p-6 text-center shadow-lg">
+                <div className="text-4xl mb-3">⏳💕</div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">파트너 연결 대기중</h3>
+                <p className="text-gray-600 text-sm">파트너가 커플 코드를 입력하면 대결이 시작돼요!</p>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100 rounded-3xl p-8 text-center shadow-lg animate-pulse">
-            <div className="text-6xl mb-4">🥰💕</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">벌금 대결 준비중! 💖</h2>
-            <p className="text-gray-600">커플 연결을 기다리고 있어요 😊</p>
-            {state.couple && (
-              <p className="text-sm text-pink-600 mt-2 font-medium">
-                커플 코드: 💑 {state.couple.couple_code}
-              </p>
-            )}
+          <div className="bg-gradient-to-r from-gray-100 to-gray-200 rounded-3xl p-8 text-center shadow-lg">
+            <div className="text-6xl mb-4">💔</div>
+            <h2 className="text-2xl font-bold text-gray-600 mb-2">커플 연결이 필요해요</h2>
+            <p className="text-gray-500">먼저 커플 설정을 완료해주세요</p>
           </div>
         )}
 

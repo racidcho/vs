@@ -718,16 +718,44 @@ export const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* Security */}
+      {/* 앱 설정 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
         <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-teal-400 rounded-lg flex items-center justify-center">
-            <Shield className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-purple-400 rounded-lg flex items-center justify-center">
+            <Palette className="w-4 h-4 text-white" />
           </div>
-          보안 설정
+          앱 설정
         </h2>
 
         <div className="space-y-4">
+          {/* PWA Install */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-gray-900">앱 설치 📱</h3>
+              <p className="text-sm text-gray-600">
+                {isInstalled
+                  ? '앱이 이미 설치되어 있어요'
+                  : '홈 화면에 추가해서 빠르게 접근하세요'
+                }
+              </p>
+            </div>
+            {!isInstalled && (
+              <button
+                onClick={handleInstallPWA}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-400 to-purple-400 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1"
+              >
+                <Smartphone className="w-3 h-3" />
+                설치
+              </button>
+            )}
+            {isInstalled && (
+              <div className="flex items-center gap-2 text-green-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-medium">설치됨</span>
+              </div>
+            )}
+          </div>
+
           {/* App Lock */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -803,77 +831,6 @@ export const Settings: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* App Preferences */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
-        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-purple-400 rounded-lg flex items-center justify-center">
-            <Palette className="w-4 h-4 text-white" />
-          </div>
-          환경설정
-        </h2>
-
-        <div className="space-y-4">
-          {/* PWA Install */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-gray-900">앱 설치 📱</h3>
-              <p className="text-sm text-gray-600">
-                {isInstalled
-                  ? '앱이 이미 설치되어 있어요'
-                  : '홈 화면에 추가해서 빠르게 접근하세요'
-                }
-              </p>
-            </div>
-            {!isInstalled && (
-              <button
-                onClick={handleInstallPWA}
-                className="px-4 py-2 bg-gradient-to-r from-indigo-400 to-purple-400 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1"
-              >
-                <Smartphone className="w-3 h-3" />
-                설치
-              </button>
-            )}
-            {isInstalled && (
-              <div className="flex items-center gap-2 text-green-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-medium">설치됨</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Advanced Settings */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
-        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-indigo-400 rounded-lg flex items-center justify-center">
-            <SettingsIcon className="w-4 h-4 text-white" />
-          </div>
-          고급 설정
-        </h2>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-gray-900">데이터 동기화 검증 🔍</h3>
-              <p className="text-sm text-gray-600">데이터 무결성을 확인하고 불일치를 감지해요</p>
-            </div>
-            <button
-              onClick={handleValidateData}
-              disabled={isLoading}
-              className="px-4 py-2 bg-gradient-to-r from-purple-400 to-indigo-400 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <Shield className="w-3 h-3" />
-              )}
-              검증
-            </button>
-          </div>
 
           <div className="flex items-center justify-between">
             <div>
@@ -892,24 +849,6 @@ export const Settings: React.FC = () => {
               )}
               새로고침
             </button>
-          </div>
-
-          {/* Connection Status */}
-          <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-700 font-medium flex items-center gap-2">
-                <span>📡</span> 실시간 연결 상태
-              </span>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${state.isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className="text-sm font-medium text-gray-900">
-                  {state.isOnline ? '온라인' : '오프라인'}
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-blue-700 mt-1">
-              실시간 데이터 동기화를 위한 서버 연결 상태입니다
-            </p>
           </div>
         </div>
       </div>

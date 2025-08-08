@@ -181,7 +181,17 @@ DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
 CREATE POLICY "profiles_select_policy" ON profiles
   FOR SELECT 
   USING (
-    id = auth.uid()
+    id = auth.uid() OR
+    -- Allow viewing partner's profile if they're in the same couple
+    id IN (
+      SELECT CASE 
+        WHEN partner_1_id = auth.uid() THEN partner_2_id
+        WHEN partner_2_id = auth.uid() THEN partner_1_id
+        ELSE NULL
+      END
+      FROM couples 
+      WHERE partner_1_id = auth.uid() OR partner_2_id = auth.uid()
+    )
   );
 
 CREATE POLICY "profiles_insert_policy" ON profiles

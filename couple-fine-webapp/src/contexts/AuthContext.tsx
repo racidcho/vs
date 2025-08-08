@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(userData);
       } else if (error?.code === 'PGRST116') {
 
-        // User doesn't exist in our users table, create them
+        // User doesn't exist in our profiles table, create them
         // For OTP login, email is automatically confirmed
         const newUser: Omit<User, 'id'> = {
           email: currentSession.user.email || '',
@@ -228,19 +228,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-
+    // StrictMode 대응 - mounted 플래그로 언마운트 후 업데이트 방지
+    let mounted = true;
+    
     // Initialize auth state
     setIsLoading(true);
 
     // 30초 타임아웃으로 초기화 보호 (네트워크 지연 고려)
     const initTimeout = setTimeout(() => {
-      setIsLoading(false);
+      if (mounted) {
+        setIsLoading(false);
+      }
     }, 30000);
 
     // Get initial session with error handling
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-
+      if (!mounted) return; // StrictMode 대응
+      
       if (error) {
+        console.error('❌ 초기 세션 가져오기 실패:', error);
         setSession(null);
         setUser(null);
         setIsLoading(false);
@@ -248,13 +254,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
+      console.log('✅ 초기 세션 확인:', session ? '세션 있음' : '세션 없음');
       setSession(session);
       if (session) {
         try {
           await refreshUser();
         } catch (refreshError) {
+          console.error('⚠️ 초기 사용자 로드 실패:', refreshError);
           // Even if refresh fails, we have a session so set basic user
-          if (session.user) {
+          if (session.user && mounted) {
             const fallbackUser: User = {
               id: session.user.id,
               email: session.user.email || '',
@@ -265,132 +273,111 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
       }
-      setIsLoading(false);
+      if (mounted) {
+        setIsLoading(false);
+      }
       clearTimeout(initTimeout);
     }).catch((error) => {
-      setSession(null);
-      setUser(null);
-      setIsLoading(false);
+      console.error('💥 초기화 중 예외:', error);
+      if (mounted) {
+        setSession(null);
+        setUser(null);
+        setIsLoading(false);
+      }
       clearTimeout(initTimeout);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return; // StrictMode 대응 - 언마운트 후 업데이트 방지
+        
         console.log('🔔 Auth Event:', event, 'Session exists:', !!session);
         
         // undefined 이벤트는 무시 (Supabase 버그)
-        if (!event || event === 'undefined') {
+        if (!event || (event as string) === 'undefined') {
           console.log('🔕 undefined 이벤트 무시 - 세션 상태 유지');
           return;
         }
         
-        // USER_UPDATED 이벤트는 세션 상태와 관계없이 무시
+        // USER_UPDATED 이벤트 스마트 처리 - 세션이 있으면 유지, 없을 때만 재확인
         if (event === 'USER_UPDATED') {
-          console.log('📝 USER_UPDATED 이벤트 감지 - 완전히 무시');
-          return; // 아무것도 하지 않음
+          console.log('📝 USER_UPDATED 이벤트 - 세션 상태 확인');
+          if (!session) {
+            // 세션이 없을 때만 재확인
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            if (currentSession && mounted) {
+              console.log('✅ USER_UPDATED: 세션 복구됨');
+              setSession(currentSession);
+              await refreshUser();
+            } else if (!currentSession && mounted) {
+              console.log('⚠️ USER_UPDATED: 세션 없음 확인');
+              // 정말로 세션이 없을 때만 로그아웃
+              setSession(null);
+              setUser(null);
+            }
+          } else if (mounted) {
+            // 세션이 있으면 갱신만
+            console.log('✅ USER_UPDATED: 세션 유지 및 갱신');
+            setSession(session);
+            await refreshUser();
+          }
+          return;
         }
         
         // 명시적 로그아웃 이벤트만 즉시 처리
         if (event === 'SIGNED_OUT') {
           console.log('👋 명시적 로그아웃 - 세션 정리');
-          setSession(null);
-          setUser(null);
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+          }
           return;
         }
         
         // 로그인 및 토큰 갱신 이벤트
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log('✅ 로그인/토큰갱신 이벤트 처리');
-          setSession(session);
-          if (session) {
-            // 세션 정보를 localStorage에 백업 (복구용)
-            localStorage.setItem('lastValidSession', JSON.stringify({
-              userId: session.user.id,
-              email: session.user.email,
-              timestamp: Date.now()
-            }));
-            
-            try {
-              await refreshUser();
-            } catch (refreshError) {
-              console.error('⚠️ refreshUser 실패:', refreshError);
-              // 세션이 있으니 fallback 사용자 생성
-              if (session.user) {
-                const fallbackUser: User = {
-                  id: session.user.id,
-                  email: session.user.email || '',
-                  display_name: session.user.email?.split('@')[0] || 'User',
-                  created_at: new Date().toISOString()
-                };
-                setUser(fallbackUser);
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+          console.log('✅ 로그인/토큰갱신 이벤트 처리:', event);
+          if (mounted) {
+            setSession(session);
+            if (session) {
+              // 세션 정보를 localStorage에 백업 (복구용)
+              localStorage.setItem('lastValidSession', JSON.stringify({
+                userId: session.user.id,
+                email: session.user.email,
+                timestamp: Date.now()
+              }));
+              
+              try {
+                await refreshUser();
+              } catch (refreshError) {
+                console.error('⚠️ refreshUser 실패:', refreshError);
+                // 세션이 있으니 fallback 사용자 생성
+                if (session.user && mounted) {
+                  const fallbackUser: User = {
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    display_name: session.user.email?.split('@')[0] || 'User',
+                    created_at: new Date().toISOString()
+                  };
+                  setUser(fallbackUser);
+                }
               }
             }
           }
           return;
         }
         
-        // 기타 이벤트에서 세션이 null인 경우 재확인 (더 강력하게)
-        if (!session) {
-          console.log('⚠️ 예상치 못한 null 세션 - 이벤트:', event);
-          
-          // 재확인 전에 잠시 대기 (네트워크 지연 고려)
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          try {
-            const { data: { session: reconfirmSession }, error } = await supabase.auth.getSession();
-            if (error) {
-              console.error('❌ 세션 재확인 중 오류:', error);
-              // 오류가 있어도 바로 로그아웃하지 않고 한 번 더 시도
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              const { data: { session: retrySession } } = await supabase.auth.getSession();
-              if (retrySession) {
-                console.log('✅ 재시도 성공 - 세션 유지');
-                setSession(retrySession);
-                await refreshUser();
-                return;
-              }
-              // 재시도도 실패하면 로그아웃
-              setSession(null);
-              setUser(null);
-              return;
-            }
-            
-            if (reconfirmSession) {
-              console.log('✅ 세션 재확인 성공 - 로그인 상태 유지');
-              setSession(reconfirmSession);
-              await refreshUser();
-            } else {
-              console.log('⚠️ 세션이 없지만 현재 사용자 상태 확인');
-              // 현재 사용자 상태도 한 번 더 확인
-              if (user) {
-                console.log('👤 사용자 정보 있음 - 세션 복구 시도');
-                const { data: { session: recoverySession } } = await supabase.auth.refreshSession();
-                if (recoverySession) {
-                  console.log('✅ 세션 복구 성공');
-                  setSession(recoverySession);
-                  return;
-                }
-              }
-              console.log('❌ 세션 재확인 완전 실패 - 실제 로그아웃');
-              setSession(null);
-              setUser(null);
-            }
-          } catch (reconfirmError) {
-            console.error('💥 세션 재확인 중 예외:', reconfirmError);
-            setSession(null);
-            setUser(null);
-          }
-        } else {
-          // 세션이 있는 경우 정상 처리
-          setSession(session);
+        // 기타 이벤트 처리
+        console.log('📋 기타 이벤트 처리:', event);
+        if (mounted) {
           if (session) {
+            setSession(session);
             try {
               await refreshUser();
             } catch (refreshError) {
               console.error('⚠️ refreshUser 실패:', refreshError);
-              // 세션이 있으니 fallback 사용자 생성
-              if (session.user) {
+              if (session.user && mounted) {
                 const fallbackUser: User = {
                   id: session.user.id,
                   email: session.user.email || '',
@@ -399,95 +386,105 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 };
                 setUser(fallbackUser);
               }
+            }
+          } else {
+            // 세션이 없는 경우 한 번만 재확인
+            console.log('⚠️ 세션 없음 - 재확인 시도');
+            const { data: { session: verifySession } } = await supabase.auth.getSession();
+            if (verifySession && mounted) {
+              console.log('✅ 세션 재확인 성공');
+              setSession(verifySession);
+              await refreshUser();
+            } else if (!verifySession && mounted) {
+              console.log('❌ 세션 없음 확인 - 로그아웃');
+              setSession(null);
+              setUser(null);
             }
           }
         }
       }
     );
 
-    // 세션 자동 갱신 - 매우 자주 체크하고 갱신
-    const sessionRefreshInterval = setInterval(async () => {
+    // JWT 토큰 만료 시간 추적 및 자동 갱신
+    const checkAndRefreshToken = async () => {
+      if (!mounted) return;
+      
       try {
-        console.log('🔍 세션 상태 확인 중...');
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.log('🔄 세션 확인 오류:', error.message);
-          // 오류 시에도 refreshSession 시도
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          if (!refreshError && refreshData.session) {
-            console.log('✅ 오류 후 세션 복구 성공');
-            setSession(refreshData.session);
-          }
+          console.error('🔴 세션 확인 오류:', error.message);
           return;
         }
         
         if (currentSession) {
-          // 세션이 있으면 무조건 갱신 (더 공격적으로)
-          console.log('🔄 세션 강제 갱신 시도...');
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError) {
-            console.error('❌ 세션 갱신 실패:', refreshError.message);
-            // 실패해도 현재 세션 유지
-            if (currentSession) {
-              setSession(currentSession);
+          // JWT 토큰의 만료 시간 확인
+          const expiresAt = currentSession.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+          const timeUntilExpiry = expiresAt ? expiresAt - now : 0;
+          
+          console.log(`⏰ 토큰 만료까지 ${Math.floor(timeUntilExpiry / 60)}분 남음`);
+          
+          // 토큰이 5분 이내에 만료되면 즉시 갱신
+          if (timeUntilExpiry < 300) { // 5분 = 300초
+            console.log('🔄 토큰 만료 임박 - 즉시 갱신 시작!');
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (refreshError) {
+              console.error('❌ 토큰 갱신 실패:', refreshError.message);
+              // 갱신 실패 시 재시도
+              setTimeout(async () => {
+                if (!mounted) return;
+                console.log('🔁 토큰 갱신 재시도...');
+                const { data: retryData } = await supabase.auth.refreshSession();
+                if (retryData?.session && mounted) {
+                  console.log('✅ 재시도 성공!');
+                  setSession(retryData.session);
+                  await refreshUser();
+                }
+              }, 2000);
+            } else if (refreshData?.session) {
+              console.log('✅ 토큰 갱신 성공! 새 만료 시간:', new Date(refreshData.session.expires_at! * 1000).toLocaleTimeString());
+              setSession(refreshData.session);
+              
+              // localStorage 백업
+              localStorage.setItem('lastValidSession', JSON.stringify({
+                userId: refreshData.session.user.id,
+                email: refreshData.session.user.email,
+                expiresAt: refreshData.session.expires_at,
+                timestamp: Date.now()
+              }));
             }
-          } else if (refreshData.session) {
-            console.log('✅ 세션 갱신 성공');
-            setSession(refreshData.session);
-            // localStorage에도 백업
-            localStorage.setItem('lastValidSession', JSON.stringify({
-              userId: refreshData.session.user.id,
-              email: refreshData.session.user.email,
-              timestamp: Date.now()
-            }));
+          } else if (timeUntilExpiry < 600) { // 10분 이내면 경고
+            console.log('⚠️ 토큰 만료 10분 전 - 곧 갱신 예정');
           }
         } else {
-          // 세션이 없으면 localStorage에서 복구 시도
-          console.log('⚠️ 세션 없음 - 복구 시도');
-          const lastSession = localStorage.getItem('lastValidSession');
-          if (lastSession) {
-            const sessionData = JSON.parse(lastSession);
-            // 24시간 이내의 세션만 복구 시도
-            if (Date.now() - sessionData.timestamp < 24 * 60 * 60 * 1000) {
-              console.log('📦 localStorage에서 세션 복구 시도');
-              const { data: refreshData } = await supabase.auth.refreshSession();
-              if (refreshData?.session) {
-                console.log('✅ 세션 복구 성공');
-                setSession(refreshData.session);
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error('💥 세션 관리 오류:', err);
-      }
-    }, 1 * 60 * 1000); // 1분마다 실행 (매우 자주 체크)
-
-    // 브라우저 탭이 포커스를 받을 때마다 세션 확인
-    const handleFocus = async () => {
-      console.log('👀 탭 포커스 - 세션 확인');
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (!currentSession) {
-          console.log('⚠️ 포커스 시 세션 없음 - 복구 시도');
+          // 세션이 없으면 복구 시도
+          console.log('🔍 세션 없음 - 복구 시도...');
           const { data: refreshData } = await supabase.auth.refreshSession();
-          if (refreshData?.session) {
-            console.log('✅ 포커스 시 세션 복구 성공');
+          if (refreshData?.session && mounted) {
+            console.log('✅ 세션 복구 성공!');
             setSession(refreshData.session);
             await refreshUser();
           }
-        } else {
-          // 세션이 있어도 갱신
-          const { data: refreshData } = await supabase.auth.refreshSession();
-          if (refreshData?.session) {
-            console.log('✅ 포커스 시 세션 갱신');
-            setSession(refreshData.session);
-          }
         }
-      } catch (error) {
-        console.error('💥 포커스 시 세션 확인 오류:', error);
+      } catch (err) {
+        console.error('💥 토큰 관리 오류:', err);
       }
+    };
+    
+    // 초기 토큰 체크
+    setTimeout(checkAndRefreshToken, 5000);
+    
+    // 3분마다 토큰 상태 체크 (JWT 만료 전에 미리 갱신)
+    const sessionRefreshInterval = setInterval(checkAndRefreshToken, 3 * 60 * 1000);
+
+    // 브라우저 탭이 포커스를 받을 때마다 토큰 상태 즉시 체크
+    const handleFocus = async () => {
+      if (!mounted) return;
+      console.log('👀 탭 포커스 - 토큰 상태 즉시 확인');
+      // 포커스 시 즉시 토큰 체크
+      await checkAndRefreshToken();
     };
     
     window.addEventListener('focus', handleFocus);
@@ -502,8 +499,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      mounted = false; // StrictMode 대응 - 언마운트 플래그
       subscription.unsubscribe();
       clearInterval(sessionRefreshInterval);
+      clearTimeout(initTimeout);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };

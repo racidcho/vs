@@ -110,8 +110,8 @@ export class RealtimeSubscriptionManager {
                 .select(`
                   *,
                   rule:rules(*),
-                  violator:users!violator_id(*),
-                  partner:users!partner_id(*)
+                  violator:profiles!violator_id(*),
+                  partner:profiles!partner_id(*)
                 `)
                 .eq('id', (payload.new as Violation).id)
                 .single();
@@ -169,13 +169,13 @@ export class RealtimeSubscriptionManager {
         {
           event: '*',
           schema: 'public',
-          table: 'users',
+          table: 'profiles',
           filter: `couple_id=eq.${coupleId}`
         },
         (payload: RealtimePostgresChangesPayload<User>) => {
           callbacks.onUserChange!({
             eventType: payload.eventType,
-            table: 'users',
+            table: 'profiles',
             new: payload.new as User,
             old: payload.old as User,
             errors: payload.errors

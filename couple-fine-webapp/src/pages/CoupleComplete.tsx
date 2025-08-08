@@ -21,15 +21,32 @@ export const CoupleComplete: React.FC = () => {
   }, [user, state.couple]);
 
   useEffect(() => {
-    // 화면 진입 시 confetti 효과
-    const duration = 3 * 1000;
+    // Enhanced fireworks effect with multiple stages
+    const duration = 5 * 1000; // Extended to 5 seconds
     const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+    const defaults = { 
+      startVelocity: 30, 
+      spread: 360, 
+      ticks: 120, // More ticks for longer lasting particles
+      zIndex: 1000,
+      gravity: 0.5,
+      drift: 0,
+      scalar: 1.2
+    };
 
     function randomInRange(min: number, max: number) {
       return Math.random() * (max - min) + min;
     }
 
+    // Immediate big burst
+    confetti({
+      ...defaults,
+      particleCount: 100,
+      origin: { x: 0.5, y: 0.5 },
+      colors: ['#ff69b4', '#ff1493', '#ffc0cb', '#9333ea', '#a855f7', '#c084fc', '#ffd700']
+    });
+
+    // Continuous smaller bursts
     const interval = setInterval(function() {
       const timeLeft = animationEnd - Date.now();
 
@@ -37,20 +54,44 @@ export const CoupleComplete: React.FC = () => {
         return clearInterval(interval);
       }
 
-      const particleCount = 50 * (timeLeft / duration);
+      const particleCount = 30 + Math.random() * 40;
+      
+      // Left side bursts
       confetti({
         ...defaults,
         particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-        colors: ['#ff69b4', '#ff1493', '#ff69b4', '#ffc0cb', '#ffb6c1']
+        origin: { x: randomInRange(0.1, 0.4), y: randomInRange(0.2, 0.8) },
+        colors: ['#ff69b4', '#ff1493', '#ffc0cb', '#ffb6c1', '#ffd1dc']
       });
+      
+      // Right side bursts  
       confetti({
         ...defaults,
         particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        origin: { x: randomInRange(0.6, 0.9), y: randomInRange(0.2, 0.8) },
         colors: ['#9333ea', '#a855f7', '#c084fc', '#e9d5ff', '#f3e8ff']
       });
-    }, 250);
+
+      // Center bursts with gold/yellow
+      if (Math.random() > 0.7) {
+        confetti({
+          ...defaults,
+          particleCount: particleCount * 1.5,
+          origin: { x: randomInRange(0.4, 0.6), y: randomInRange(0.3, 0.7) },
+          colors: ['#ffd700', '#ffff00', '#ffa500', '#ff6347', '#ff69b4']
+        });
+      }
+    }, 200);
+
+    // Additional confetti burst after 2 seconds
+    setTimeout(() => {
+      confetti({
+        ...defaults,
+        particleCount: 50,
+        origin: { x: 0.5, y: 0.4 },
+        colors: ['#ff69b4', '#ff1493', '#ffc0cb']
+      });
+    }, 2000);
 
     return () => clearInterval(interval);
   }, []);
@@ -74,7 +115,7 @@ export const CoupleComplete: React.FC = () => {
   }, [state.couple, getPartnerInfo]);
 
   const handleContinue = () => {
-    navigate('/dashboard');
+    navigate('/');
   };
 
   return (
@@ -300,12 +341,29 @@ export const CoupleComplete: React.FC = () => {
                 🎊 연결 완료! 🎊
               </h3>
               
-              <div className="space-y-3 text-gray-700">
-                <p className="text-lg font-medium">
-                  이제 서로의 약속을 지키며
-                </p>
-                <p className="text-lg font-medium">
-                  더욱 사랑스러운 추억을 만들어가세요
+              <div className="space-y-4 text-gray-700">
+                <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-4 border border-pink-100">
+                  <h4 className="text-lg font-bold text-pink-800 mb-3 flex items-center justify-center gap-2">
+                    <span>💰</span> 우리 벌금통이란? <span>💰</span>
+                  </h4>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <p className="flex items-center gap-2">
+                      <span>📝</span> <strong>규칙 만들기:</strong> 서로 지킬 약속들을 정해요
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span>⚠️</span> <strong>벌금 기록:</strong> 약속을 어기면 벌금을 받아요
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span>🎁</span> <strong>보상 받기:</strong> 모인 벌금으로 달콤한 보상을!
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span>📊</span> <strong>대결 현황:</strong> 누가 더 많이 벌금을 받았는지 확인
+                    </p>
+                  </div>
+                </div>
+                <p className="text-lg font-medium text-purple-800">
+                  이제 서로의 약속을 지키며<br/>
+                  더욱 사랑스러운 추억을 만들어가세요! 💕
                 </p>
               </div>
               
@@ -342,13 +400,13 @@ export const CoupleComplete: React.FC = () => {
           <div className="mt-8 text-center animate-fadeIn">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/70 backdrop-blur-sm rounded-full border border-pink-100">
               <span className="text-yellow-400">💡</span>
-              <span className="text-sm text-gray-600 font-medium">설정에서 언제든지 이름을 변경할 수 있어요</span>
+              <span className="text-sm text-gray-600 font-medium">설정에서 언제든지 프로필을 수정할 수 있어요</span>
             </div>
           </div>
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(10deg); }

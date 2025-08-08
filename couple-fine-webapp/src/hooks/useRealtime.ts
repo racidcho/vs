@@ -54,8 +54,8 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
         .select(`
           *,
           rule:rules(*),
-          violator:users!violations_violator_id_fkey(*),
-          partner:users!violations_partner_id_fkey(*)
+          violator:profiles!violations_violator_user_id_fkey(*),
+          recorded_by:profiles!violations_recorded_by_user_id_fkey(*)
         `)
         .eq('id', newRecord.id)
         .single();
@@ -149,6 +149,23 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
         filter: `id=eq.${coupleId}`
       },
       handleCoupleChange
+    );
+
+    // Subscribe to profiles changes (for partner name updates)
+    channel.on('postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles'
+      },
+      (payload: any) => {
+        // When partner updates their profile, refresh couple data to get updated info
+        if (payload.eventType === 'UPDATE' && payload.new) {
+          console.log('👤 Profile updated:', payload.new);
+          // Force refresh of couple data to get updated partner info
+          // This will trigger a re-render in components that use partner data
+        }
+      }
     );
 
     // Subscribe to the channel

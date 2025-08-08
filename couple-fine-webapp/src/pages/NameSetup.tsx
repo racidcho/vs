@@ -55,10 +55,26 @@ export const NameSetup: React.FC = () => {
       
       toast.success('이름이 저장되었어요! 💕');
       
-      // Navigate to couple complete page
-      setTimeout(() => {
-        navigate('/couple-complete');
-      }, 1500);
+      // Check if both partners have set their names
+      try {
+        const updatedPartnerInfo = await getPartnerInfo();
+        if (updatedPartnerInfo?.partner && updatedPartnerInfo.partner.display_name && displayName.trim()) {
+          // Both partners have set their names - navigate to couple complete
+          setTimeout(() => {
+            navigate('/couple-complete');
+          }, 1500);
+        } else {
+          // Only one partner has set name - navigate to dashboard
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1500);
+        }
+      } catch (error) {
+        // Fallback to dashboard if partner info fails
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1500);
+      }
       
     } catch (error) {
       console.error('Failed to update display name:', error);
@@ -190,34 +206,6 @@ export const NameSetup: React.FC = () => {
               </div>
             </div>
 
-            {/* Cute suggestions */}
-            <div className="bg-gradient-to-r from-pink-50/50 to-purple-50/50 rounded-2xl p-4 border border-pink-100">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="text-pink-500 animate-bounce">
-                  💡
-                </div>
-                <h3 className="font-semibold text-pink-900 text-sm">이름 아이디어</h3>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { name: '자기야', emoji: '💕' },
-                  { name: '여보', emoji: '💖' },
-                  { name: '달링', emoji: '🌙' },
-                  { name: '허니', emoji: '🍯' }
-                ].map((suggestion, index) => (
-                  <button
-                    key={suggestion.name}
-                    onClick={() => setDisplayName(suggestion.name)}
-                    className="flex items-center gap-2 p-2 bg-white/60 hover:bg-white/80 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-sm group"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <span className="group-hover:animate-bounce">{suggestion.emoji}</span>
-                    <span className="text-sm text-pink-800 font-medium">{suggestion.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Action Button */}
             <button
@@ -240,14 +228,6 @@ export const NameSetup: React.FC = () => {
               )}
             </button>
 
-            {/* Skip option */}
-            <button
-              onClick={() => navigate('/')}
-              className="w-full text-gray-500 hover:text-gray-700 py-2 text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 group"
-            >
-              <span>나중에 설정할게요</span>
-              <div className="group-hover:animate-bounce">🔄</div>
-            </button>
 
             {/* Bottom decoration */}
             <div className="text-center pt-4 border-t border-pink-100/50">

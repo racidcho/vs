@@ -594,8 +594,8 @@ export const updateViolation = async (violationId: string, updates: Partial<Pick
     .select(`
       *,
       rule:rules(*),
-      violator:users!violator_id(*),
-      partner:users!partner_id(*)
+      violator:profiles!violations_violator_user_id_fkey(*),
+      recorded_by:profiles!violations_recorded_by_user_id_fkey(*)
     `)
     .single();
 
