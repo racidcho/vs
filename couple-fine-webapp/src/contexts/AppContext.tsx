@@ -297,7 +297,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
     } catch (error) {
-
+      console.error('💥 APPCONTEXT: 데이터 로드 실패:', error);
+      
+      // 인증 오류와 네트워크 오류 구분
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('JWT') || 
+          errorMessage.includes('auth') || 
+          errorMessage.includes('unauthorized') ||
+          errorMessage.includes('Invalid') ||
+          errorMessage.includes('token')) {
+        console.log('🚨 인증 오류 감지 - 세션 문제로 판단');
+        // 인증 오류는 다시 throw해서 AuthContext에서 처리하도록 함
+        throw error;
+      } else {
+        console.log('🌐 네트워크/서버 오류 - 세션 유지하고 상태만 리셋');
+        // 네트워크 오류는 앱 상태만 리셋하고 세션은 유지
+        dispatch({ type: 'RESET_STATE' });
+      }
     }
   };
 

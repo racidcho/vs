@@ -276,25 +276,87 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        if (session) {
-          try {
-            await refreshUser();
-          } catch (refreshError) {
-            // Fallback user creation
-            if (session.user) {
-              const fallbackUser: User = {
-                id: session.user.id,
-                email: session.user.email || '',
-                display_name: session.user.email?.split('@')[0] || 'User',
-                created_at: new Date().toISOString()
-              };
-              setUser(fallbackUser);
+      async (event, session) => {
+        console.log('🔔 Auth Event:', event, 'Session exists:', !!session);
+        
+        // 명시적 로그아웃 이벤트만 즉시 처리
+        if (event === 'SIGNED_OUT') {
+          console.log('👋 명시적 로그아웃 - 세션 정리');
+          setSession(null);
+          setUser(null);
+          return;
+        }
+        
+        // 로그인 및 토큰 갱신 이벤트
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('✅ 로그인/토큰갱신 이벤트 처리');
+          setSession(session);
+          if (session) {
+            try {
+              await refreshUser();
+            } catch (refreshError) {
+              console.error('⚠️ refreshUser 실패:', refreshError);
+              // 세션이 있으니 fallback 사용자 생성
+              if (session.user) {
+                const fallbackUser: User = {
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  display_name: session.user.email?.split('@')[0] || 'User',
+                  created_at: new Date().toISOString()
+                };
+                setUser(fallbackUser);
+              }
             }
           }
+          return;
+        }
+        
+        // 기타 이벤트에서 세션이 null인 경우 재확인
+        if (!session) {
+          console.log('⚠️ 예상치 못한 null 세션 - 재확인 중...');
+          try {
+            const { data: { session: reconfirmSession }, error } = await supabase.auth.getSession();
+            if (error) {
+              console.error('❌ 세션 재확인 중 오류:', error);
+              setSession(null);
+              setUser(null);
+              return;
+            }
+            
+            if (reconfirmSession) {
+              console.log('✅ 세션 재확인 성공 - 로그인 상태 유지');
+              setSession(reconfirmSession);
+              await refreshUser();
+            } else {
+              console.log('❌ 세션 재확인 실패 - 실제 로그아웃');
+              setSession(null);
+              setUser(null);
+            }
+          } catch (reconfirmError) {
+            console.error('💥 세션 재확인 중 예외:', reconfirmError);
+            setSession(null);
+            setUser(null);
+          }
         } else {
-          setUser(null);
+          // 세션이 있는 경우 정상 처리
+          setSession(session);
+          if (session) {
+            try {
+              await refreshUser();
+            } catch (refreshError) {
+              console.error('⚠️ refreshUser 실패:', refreshError);
+              // 세션이 있으니 fallback 사용자 생성
+              if (session.user) {
+                const fallbackUser: User = {
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  display_name: session.user.email?.split('@')[0] || 'User',
+                  created_at: new Date().toISOString()
+                };
+                setUser(fallbackUser);
+              }
+            }
+          }
         }
       }
     );
