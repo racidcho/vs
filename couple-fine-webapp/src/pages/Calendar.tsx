@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter, TrendingUp, TrendingDown, Clock, Edit, Trash2 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { toast } from 'react-hot-toast';
 
 export const Calendar: React.FC = () => {
-  const { state } = useApp();
+  const { state, updateViolation, deleteViolation } = useApp();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filter, setFilter] = useState<'all' | 'add' | 'subtract'>('all');
+  const [editingViolation, setEditingViolation] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState<number>(0);
+  const [editMemo, setEditMemo] = useState<string>('');
 
   // Get current month/year
   const currentMonth = currentDate.getMonth();
@@ -42,6 +46,65 @@ export const Calendar: React.FC = () => {
 
   const nextMonth = () => {
     setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+  };
+
+  // Handle edit violation
+  const handleEdit = (violation: any) => {
+    setEditingViolation(violation.id);
+    setEditAmount(Math.abs(violation.amount));
+    setEditMemo(violation.memo || '');
+  };
+
+  // Handle save edit
+  const handleSaveEdit = async () => {
+    if (!editingViolation) return;
+    
+    try {
+      const violation = state.violations.find(v => v.id === editingViolation);
+      if (!violation) return;
+
+      const amount = violation.amount < 0 ? -editAmount : editAmount;
+      const { error } = await updateViolation(editingViolation, {
+        amount,
+        memo: editMemo.trim() || undefined
+      });
+
+      if (error) {
+        toast.error(`수정 실패: ${error}`);
+      } else {
+        toast.success('위반 기록이 수정되었어요! 💝');
+        setEditingViolation(null);
+        setEditAmount(0);
+        setEditMemo('');
+      }
+    } catch (error) {
+      toast.error('수정 중 오류가 발생했어요');
+    }
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setEditingViolation(null);
+    setEditAmount(0);
+    setEditMemo('');
+  };
+
+  // Handle delete violation
+  const handleDelete = async (violationId: string, violationInfo: string) => {
+    if (!window.confirm(`"${violationInfo}" 기록을 정말 삭제하시겠어요?\n\n⚠️ 삭제된 기록은 복구할 수 없습니다.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await deleteViolation(violationId);
+      if (error) {
+        toast.error(`삭제 실패: ${error}`);
+      } else {
+        toast.success('위반 기록이 삭제되었어요');
+      }
+    } catch (error) {
+      toast.error('삭제 중 오류가 발생했어요');
+    }
   };
 
   const isToday = (date: Date) => {
@@ -237,39 +300,119 @@ export const Calendar: React.FC = () => {
         </h3>
         
         {monthlyViolations.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {monthlyViolations
               .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
               .slice(0, 10)
               .map((violation) => {
                 const rule = state.rules?.find(r => r.id === violation.rule_id);
                 return (
-                  <div key={violation.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        violation.amount > 0 ? 'bg-red-100' : 'bg-green-100'
-                      }`}>
-                        {violation.amount > 0 ? (
-                          <TrendingUp className="w-4 h-4 text-red-600" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4 text-green-600" />
-                        )}
+                  <div key={violation.id} className="border border-gray-100 rounded-xl p-4 bg-gradient-to-r from-white to-gray-50 hover:shadow-md transition-all">
+                    {editingViolation === violation.id ? (
+                      /* Edit Mode */
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            violation.amount > 0 ? 'bg-red-100' : 'bg-green-100'
+                          }`}>
+                            <Edit className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{rule?.title || 'Unknown Rule'}</p>
+                            <p className="text-sm text-gray-500">편집 중...</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">금액 (만원)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={editAmount || ''}
+                              onChange={(e) => setEditAmount(parseInt(e.target.value) || 0)}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-sm"
+                              placeholder="금액"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">메모</label>
+                            <input
+                              type="text"
+                              value={editMemo}
+                              onChange={(e) => setEditMemo(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-sm"
+                              placeholder="메모 (선택사항)"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            취소
+                          </button>
+                          <button
+                            onClick={handleSaveEdit}
+                            disabled={editAmount <= 0}
+                            className="px-3 py-2 text-sm bg-pink-500 text-white rounded-lg hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            저장
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {rule?.title || 'Unknown Rule'}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {new Date(violation.created_at).toLocaleDateString('ko-KR')} • 
-                          {violation.memo && ` ${violation.memo}`}
-                        </p>
+                    ) : (
+                      /* View Mode */
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            violation.amount > 0 ? 'bg-red-100' : 'bg-green-100'
+                          }`}>
+                            {violation.amount > 0 ? (
+                              <TrendingUp className="w-4 h-4 text-red-600" />
+                            ) : (
+                              <TrendingDown className="w-4 h-4 text-green-600" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">
+                              {rule?.title || 'Unknown Rule'}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {new Date(violation.created_at).toLocaleDateString('ko-KR')}
+                              {violation.memo && ` • ${violation.memo}`}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <span className={`font-semibold ${
+                            violation.amount > 0 ? 'text-red-600' : 'text-green-600'
+                          }`}>
+                            {violation.amount > 0 ? '+' : ''}{violation.amount}만원
+                          </span>
+                          
+                          <div className="flex gap-1 ml-3">
+                            <button
+                              onClick={() => handleEdit(violation)}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="편집"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(violation.id, `${rule?.title || 'Unknown'} (${violation.amount}만원)`)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="삭제"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <span className={`font-semibold ${
-                      violation.amount > 0 ? 'text-red-600' : 'text-green-600'
-                    }`}>
-                      {violation.amount > 0 ? '+' : '-'}{violation.amount}만원
-                    </span>
+                    )}
                   </div>
                 );
               })}

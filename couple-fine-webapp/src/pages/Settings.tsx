@@ -120,11 +120,27 @@ export const Settings: React.FC = () => {
         
         // Initialize couple name
         setCoupleName((state.couple as any)?.couple_name || '');
+      } else {
+        // If couple becomes null, clear related states
+        setPartner(null);
+        setCoupleName('');
+        
+        // Ensure loading is not stuck when couple is removed
+        if (isLoading) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadPartnerInfo();
-  }, [state.couple, getPartnerInfo]);
+  }, [state.couple, getPartnerInfo, isLoading]);
+
+  // Safety effect: Close leave modal when couple becomes null
+  useEffect(() => {
+    if (!state.couple && showLeaveModal) {
+      setShowLeaveModal(false);
+    }
+  }, [state.couple, showLeaveModal]);
 
   const handleLeaveCouple = async () => {
     setIsLoading(true);
@@ -133,12 +149,22 @@ export const Settings: React.FC = () => {
       if (result.success) {
         toast.success('커플 연결이 해제되었어요 💔');
         setShowLeaveModal(false);
+        
+        // Clear local states related to couple
+        setPartner(null);
+        setCoupleName('');
+        
+        // Force a small delay to ensure state propagation
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
       } else {
         toast.error(result.error || '연결 해제에 실패했어요 😢');
+        setIsLoading(false);
       }
     } catch (error) {
+      console.error('Leave couple error:', error);
       toast.error('연결 해제에 실패했어요 😢');
-    } finally {
       setIsLoading(false);
     }
   };

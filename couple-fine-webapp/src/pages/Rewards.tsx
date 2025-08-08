@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gift, Plus, Sparkles, Star, Trophy, Save, X } from 'lucide-react';
+import { Gift, Plus, Sparkles, Star, Trophy, Save, X, Trash2 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
@@ -15,7 +15,7 @@ interface RewardFormData {
 }
 
 export const Rewards: React.FC = () => {
-  const { state, createReward, claimReward, getUserTotalFines } = useApp();
+  const { state, createReward, claimReward, deleteReward, getUserTotalFines } = useApp();
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<RewardFormData>({
@@ -85,6 +85,25 @@ export const Rewards: React.FC = () => {
       }
     } catch (error) {
       toast.error('보상 획득 중 오류가 발생했어요');
+    }
+  };
+
+  // Handle reward deletion
+  const handleDeleteReward = async (rewardId: string, rewardTitle: string) => {
+    if (!window.confirm(`"${rewardTitle}" 보상을 정말 삭제하시겠어요?`)) {
+      return;
+    }
+    
+    try {
+      const { error } = await deleteReward(rewardId);
+      
+      if (error) {
+        toast.error(`보상 삭제 실패: ${error}`);
+      } else {
+        toast.success('보상이 삭제되었어요');
+      }
+    } catch (error) {
+      toast.error('보상 삭제 중 오류가 발생했어요');
     }
   };
 
@@ -261,23 +280,32 @@ export const Rewards: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="flex flex-col items-end gap-2">
-                    {reward.is_achieved ? (
-                      <span className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                        ✨ 달성 완료!
-                      </span>
-                    ) : canClaim ? (
-                      <button 
-                        onClick={() => handleClaimReward(reward.id, reward.title)}
-                        className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95"
-                      >
-                        🎉 받기
-                      </button>
-                    ) : (
-                      <span className="text-xs text-gray-600 font-medium">
-                        앞으로 {reward.target_amount - totalPenalties}만원
-                      </span>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end gap-2">
+                      {reward.is_achieved ? (
+                        <span className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+                          ✨ 달성 완료!
+                        </span>
+                      ) : canClaim ? (
+                        <button 
+                          onClick={() => handleClaimReward(reward.id, reward.title)}
+                          className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95"
+                        >
+                          🎉 받기
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-600 font-medium">
+                          앞으로 {reward.target_amount - totalPenalties}만원
+                        </span>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => handleDeleteReward(reward.id, reward.title)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="보상 삭제"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 

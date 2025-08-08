@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { AppState, Couple, Rule, Violation, Reward } from '../types';
 import { supabase } from '../lib/supabase';
+import { updateViolation as updateViolationApi, deleteViolation as deleteViolationApi } from '../lib/supabaseApi';
 import { useAuth } from './AuthContext';
 
 // Action Types
@@ -13,9 +14,12 @@ type AppAction =
   | { type: 'DELETE_RULE'; payload: string }
   | { type: 'SET_VIOLATIONS'; payload: Violation[] }
   | { type: 'ADD_VIOLATION'; payload: Violation }
+  | { type: 'UPDATE_VIOLATION'; payload: Violation }
+  | { type: 'DELETE_VIOLATION'; payload: string }
   | { type: 'SET_REWARDS'; payload: Reward[] }
   | { type: 'ADD_REWARD'; payload: Reward }
   | { type: 'UPDATE_REWARD'; payload: Reward }
+  | { type: 'DELETE_REWARD'; payload: string }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' }
   | { type: 'SET_ONLINE_STATUS'; payload: boolean }
   | { type: 'RESET_STATE' };
@@ -67,6 +71,18 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         return state;
       }
       return { ...state, violations: [action.payload, ...state.violations] };
+    case 'UPDATE_VIOLATION':
+      return {
+        ...state,
+        violations: state.violations.map(violation =>
+          violation.id === action.payload.id ? action.payload : violation
+        )
+      };
+    case 'DELETE_VIOLATION':
+      return {
+        ...state,
+        violations: state.violations.filter(violation => violation.id !== action.payload)
+      };
     case 'SET_REWARDS':
       return { ...state, rewards: action.payload };
     case 'ADD_REWARD':
@@ -81,6 +97,11 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         rewards: state.rewards.map(reward =>
           reward.id === action.payload.id ? action.payload : reward
         )
+      };
+    case 'DELETE_REWARD':
+      return {
+        ...state,
+        rewards: state.rewards.filter(reward => reward.id !== action.payload)
       };
     case 'SET_THEME':
       return { ...state, theme: action.payload };
@@ -112,9 +133,12 @@ interface AppContextType {
   deleteRule: (id: string) => Promise<{ error?: string }>;
   // Violation management
   createViolation: (violation: Omit<Violation, 'id' | 'created_at'>) => Promise<{ error?: string }>;
+  updateViolation: (id: string, updates: Partial<Pick<Violation, 'amount' | 'memo'>>) => Promise<{ error?: string }>;
+  deleteViolation: (id: string) => Promise<{ error?: string }>;
   // Reward management
   createReward: (reward: Omit<Reward, 'id' | 'couple_id' | 'created_at'>) => Promise<{ error?: string }>;
   claimReward: (id: string) => Promise<{ error?: string }>;
+  deleteReward: (id: string) => Promise<{ error?: string }>;
   // Utility functions
   getUserTotalFines: (userId: string) => number;
   getRewardProgress: (targetAmount: number) => number;
@@ -138,7 +162,7 @@ interface AppProviderProps {
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
   
   // Realtime connection status (will be managed directly in this component)
   const isRealtimeConnected = true; // Placeholder for now
@@ -467,8 +491,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return { error: profileError.message };
       }
 
-      // Reset local state
+      // Reset local state first
       dispatch({ type: 'RESET_STATE' });
+
+      // Force refresh AuthContext user data to sync couple_id change
+      if (refreshUser) {
+        try {
+          await refreshUser();
+        } catch (refreshError) {
+          console.error('Failed to refresh user after leaving couple:', refreshError);
+          // Don't fail the entire operation if refresh fails
+        }
+      }
 
       return { success: true };
     } catch (error) {
@@ -648,6 +682,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Update violation
+  const updateViolation = async (id: string, updates: Partial<Pick<Violation, 'amount' | 'memo'>>) => {
+    try {
+      const updatedViolation = await updateViolationApi(id, updates);
+      dispatch({ type: 'UPDATE_VIOLATION', payload: updatedViolation });
+      return {};
+    } catch (error) {
+      console.error('Failed to update violation:', error);
+      return { error: error instanceof Error ? error.message : 'Failed to update violation' };
+    }
+  };
+
+  // Delete violation
+  const deleteViolation = async (id: string) => {
+    try {
+      await deleteViolationApi(id);
+      dispatch({ type: 'DELETE_VIOLATION', payload: id });
+      return {};
+    } catch (error) {
+      console.error('Failed to delete violation:', error);
+      return { error: error instanceof Error ? error.message : 'Failed to delete violation' };
+    }
+  };
+
   // Create reward
   const createReward = async (reward: Omit<Reward, 'id' | 'couple_id' | 'created_at'>) => {
     if (!user?.couple_id) return { error: 'No couple found' };
@@ -684,6 +742,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       return {};
     } catch (error) {
       return { error: 'Failed to claim reward' };
+    }
+  };
+
+  // Delete reward
+  const deleteReward = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('rewards')
+        .delete()
+        .eq('id', id);
+
+      if (error) return { error: error.message };
+
+      return {};
+    } catch (error) {
+      return { error: 'Failed to delete reward' };
     }
   };
 
@@ -939,9 +1013,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     deleteRule,
     // Violation management
     createViolation,
+    updateViolation,
+    deleteViolation,
     // Reward management
     createReward,
     claimReward,
+    deleteReward,
     // Utility functions
     getUserTotalFines,
     getRewardProgress,
