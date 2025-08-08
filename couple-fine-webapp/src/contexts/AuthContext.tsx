@@ -51,9 +51,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       // First try to get existing user
-      console.log('🔍 Checking if user exists in users table...');
+      console.log('🔍 Checking if user exists in profiles table...');
       const { data: userData, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select('*')
         .eq('id', currentSession.user.id)
         .single();
@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         console.log('📝 Creating user with data:', newUser);
         const { data: createdUser, error: createError } = await supabase
-          .from('users')
+          .from('profiles')
           .insert({ ...newUser, id: currentSession.user.id })
           .select()
           .single();
@@ -212,7 +212,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) throw new Error('No user found');
     
     const { error } = await supabase
-      .from('users')
+      .from('profiles')
       .update(updates)
       .eq('id', user.id);
       

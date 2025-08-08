@@ -71,7 +71,7 @@ export const supabase = createClient<Database>(finalUrl, finalKey, {
 
 // Database table helpers with type safety
 export const Tables = {
-  users: 'users',
+  users: 'profiles', // Updated to match actual DB schema
   couples: 'couples', 
   rules: 'rules',
   violations: 'violations',
@@ -114,7 +114,7 @@ export const healthCheck = async (): Promise<{
 
   try {
     // Database health check
-    const { error } = await supabase.from('users').select('id').limit(1);
+    const { error } = await supabase.from('profiles').select('id').limit(1);
     results.database = !error;
   } catch (error) {
     console.warn('Database health check failed:', error);
