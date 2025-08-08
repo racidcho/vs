@@ -28,55 +28,50 @@ export const Rules: React.FC = () => {
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('🔥 RULES: 규칙 추가 버튼 클릭됨!');
-    console.log('📝 RULES: 폼 데이터:', formData);
-    console.log('👤 RULES: 현재 사용자:', state.user);
-    console.log('💑 RULES: 커플 정보:', state.couple);
-    
+
     e.preventDefault();
-    
+
     if (!formData.title.trim()) {
-      console.log('❌ RULES: 제목 없음');
+
       toast.error('규칙 제목을 입력해주세요');
       return;
     }
-    
+
     if (formData.fine_amount < 1 || formData.fine_amount > 100) {
-      console.log('❌ RULES: 금액 범위 초과');
+
       toast.error('벌금은 1만원에서 100만원 사이로 설정해주세요');
       return;
     }
 
     // **무한 로딩 방지**: 모든 경로에서 로딩 해제 보장 + 타임아웃 추가
-    console.log('⏳ RULES: 제출 시작, 로딩 상태 설정');
+
     setIsSubmitting(true);
     setHasError(false);
-    
+
     // **타임아웃 추가**: 10초 후 강제 로딩 해제
     const timeoutId = setTimeout(() => {
-      console.log('⏰ RULES: 타임아웃으로 로딩 해제');
+
       setIsSubmitting(false);
       toast.error('요청 시간이 초과되었어요. 다시 시도해주세요.');
     }, 10000);
-    
+
     try {
       if (editingRule) {
-        console.log('✏️ RULES: 규칙 수정 모드');
+
         // Update existing rule with timeout protection
         const updatePromise = updateRule(editingRule, formData);
         const { error } = await Promise.race([
           updatePromise,
-          new Promise<{error: string}>((_, reject) => 
+          new Promise<{error: string}>((_, reject) =>
             setTimeout(() => reject(new Error('Request timeout')), 9000)
           )
         ]);
-        
-        console.log('🔄 RULES: updateRule 결과:', { error });
+
         if (error) {
-          console.log('❌ RULES: 수정 실패:', error);
+
           toast.error(`규칙 수정 실패: ${error}`);
         } else {
-          console.log('✅ RULES: 수정 성공');
+
           toast.success('규칙이 수정되었어요! 💝');
           setEditingRule(null);
           // Reset form on success
@@ -89,23 +84,21 @@ export const Rules: React.FC = () => {
           });
         }
       } else {
-        console.log('🆕 RULES: 새 규칙 생성 모드');
-        console.log('🏗️ RULES: createRule 호출 시작');
+
         // Create new rule with timeout protection
         const createPromise = createRule(formData);
         const { error } = await Promise.race([
           createPromise,
-          new Promise<{error: string}>((_, reject) => 
+          new Promise<{error: string}>((_, reject) =>
             setTimeout(() => reject(new Error('Request timeout')), 9000)
           )
         ]);
-        
-        console.log('🔄 RULES: createRule 결과:', { error });
+
         if (error) {
-          console.log('❌ RULES: 생성 실패:', error);
+
           toast.error(`규칙 생성 실패: ${error}`);
         } else {
-          console.log('✅ RULES: 생성 성공');
+
           toast.success('새 규칙이 추가되었어요! 💝');
           setShowForm(false);
           // Reset form on success
@@ -119,7 +112,7 @@ export const Rules: React.FC = () => {
         }
       }
     } catch (error) {
-      console.log('💥 RULES: 예외 발생:', error);
+
       setHasError(true);
       if (error instanceof Error && error.message === 'Request timeout') {
         toast.error('요청 시간이 초과되었어요. 다시 시도해주세요.');
@@ -129,7 +122,7 @@ export const Rules: React.FC = () => {
     } finally {
       // **중요**: 타임아웃 클리어 및 모든 상황에서 로딩 상태를 false로 설정
       clearTimeout(timeoutId);
-      console.log('✅ RULES: 제출 완료, 로딩 해제');
+
       setIsSubmitting(false);
     }
   };
@@ -194,7 +187,7 @@ export const Rules: React.FC = () => {
               사랑하는 사람과 함께 지킬 소중한 규칙들이에요 💝
             </p>
           </div>
-          <button 
+          <button
             onClick={() => setShowForm(!showForm)}
             className="bg-gradient-to-r from-pink-400 to-purple-400 text-white px-4 py-2 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
           >
@@ -210,7 +203,7 @@ export const Rules: React.FC = () => {
           <h3 className="text-lg font-bold text-gray-900 mb-4">
             {editingRule ? '규칙 수정하기' : '새 규칙 만들기'} ✨
           </h3>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Rule Type */}
             <div>
@@ -320,7 +313,7 @@ export const Rules: React.FC = () => {
               'from-coral-400 to-pink-400',
               'from-orange-400 to-coral-400'
             ];
-            
+
             return (
               <div key={rule.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all">
                 <div className="flex items-center justify-between">
@@ -336,15 +329,15 @@ export const Rules: React.FC = () => {
                           <span>벌금 {rule.fine_amount}만원</span>
                         </span>
                         <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          rule.category === 'word' 
-                            ? 'bg-blue-50 text-blue-700' 
+                          rule.category === 'word'
+                            ? 'bg-blue-50 text-blue-700'
                             : 'bg-green-50 text-green-700'
                         }`}>
                           {rule.category === 'word' ? '💬 말' : '🏃 행동'}
                         </span>
                         <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          rule.is_active !== false 
-                            ? 'bg-green-50 text-green-700' 
+                          rule.is_active !== false
+                            ? 'bg-green-50 text-green-700'
                             : 'bg-gray-100 text-gray-500'
                         }`}>
                           {rule.is_active !== false ? '✅ 활성' : '⏸️ 비활성'}
@@ -353,13 +346,13 @@ export const Rules: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 ml-2">
-                    <button 
+                    <button
                       onClick={() => handleEdit(rule)}
                       className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDelete(rule.id, rule.title)}
                       className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
@@ -381,7 +374,7 @@ export const Rules: React.FC = () => {
             서로를 위한 첫 번째 약속을 만들어보세요 🌸<br />
             작은 규칙부터 시작하면 좋아요!
           </p>
-          <button 
+          <button
             onClick={() => setShowForm(true)}
             className="bg-gradient-to-r from-pink-400 to-purple-400 text-white px-6 py-3 rounded-xl font-medium shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2"
           >

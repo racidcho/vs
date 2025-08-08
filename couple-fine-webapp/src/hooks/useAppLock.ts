@@ -19,7 +19,7 @@ async function hashPin(pin: string): Promise<string> {
   if (!crypto?.subtle) {
     throw new Error('Crypto API not available. Please use HTTPS.');
   }
-  
+
   const encoder = new TextEncoder();
   const data = encoder.encode(pin + 'couple-fine-salt'); // Add salt
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -32,7 +32,7 @@ export function useAppLock() {
     try {
       const savedState = localStorage.getItem(LOCK_STATE_KEY);
       const hasPin = !!localStorage.getItem(PIN_KEY);
-    
+
       if (savedState) {
         const parsed = JSON.parse(savedState);
         // Check if block has expired
@@ -45,9 +45,9 @@ export function useAppLock() {
             blockEndTime: null
           };
         }
-        return { 
-          ...parsed, 
-          hasPin, 
+        return {
+          ...parsed,
+          hasPin,
           isLocked: hasPin ? true : parsed.isLocked // Force lock if PIN exists
         };
       }
@@ -113,13 +113,13 @@ export function useAppLock() {
     try {
       const hash = await hashPin(pin);
       localStorage.setItem(PIN_KEY, hash);
-      
+
       setState(prev => ({
         ...prev,
         hasPin: true,
         isLocked: false
       }));
-      
+
       return { success: true };
     } catch (error) {
       return { success: false, error: 'Failed to set PIN' };
@@ -130,9 +130,9 @@ export function useAppLock() {
     if (state.isBlocked) {
       const remainingTime = state.blockEndTime ? Math.max(0, state.blockEndTime - Date.now()) : 0;
       const minutes = Math.ceil(remainingTime / 60000);
-      return { 
-        success: false, 
-        error: `Too many failed attempts. Try again in ${minutes} minutes.` 
+      return {
+        success: false,
+        error: `Too many failed attempts. Try again in ${minutes} minutes.`
       };
     }
 
@@ -143,7 +143,7 @@ export function useAppLock() {
     try {
       const hash = await hashPin(pin);
       const storedHash = localStorage.getItem(PIN_KEY);
-      
+
       if (hash === storedHash) {
         setState(prev => ({
           ...prev,
@@ -155,7 +155,7 @@ export function useAppLock() {
         return { success: true };
       } else {
         const newAttemptCount = state.attemptCount + 1;
-        
+
         if (newAttemptCount >= MAX_ATTEMPTS) {
           const blockEndTime = Date.now() + BLOCK_DURATION;
           setState(prev => ({
@@ -164,9 +164,9 @@ export function useAppLock() {
             isBlocked: true,
             blockEndTime
           }));
-          return { 
-            success: false, 
-            error: `Too many failed attempts. App locked for 5 minutes.` 
+          return {
+            success: false,
+            error: `Too many failed attempts. App locked for 5 minutes.`
           };
         } else {
           setState(prev => ({
@@ -174,9 +174,9 @@ export function useAppLock() {
             attemptCount: newAttemptCount
           }));
           const remaining = MAX_ATTEMPTS - newAttemptCount;
-          return { 
-            success: false, 
-            error: `Wrong PIN. ${remaining} attempts remaining.` 
+          return {
+            success: false,
+            error: `Wrong PIN. ${remaining} attempts remaining.`
           };
         }
       }

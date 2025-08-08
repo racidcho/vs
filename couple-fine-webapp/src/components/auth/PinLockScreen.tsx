@@ -20,7 +20,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
       const updateBlockTime = () => {
         const remaining = getRemainingBlockTime();
         setBlockTimeLeft(remaining);
-        
+
         if (remaining <= 0) {
           // Block has expired, allow trying again
           setPin('');
@@ -35,7 +35,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
 
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (pin.length !== 4) {
       toast.error('4자리 PIN을 입력해주세요');
       return;
@@ -50,7 +50,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
     setIsVerifying(true);
     try {
       const result = await verifyPin(pin);
-      
+
       if (result.success) {
         toast.success('잠금 해제되었어요! 🔓');
         // Call the onUnlock callback to notify parent

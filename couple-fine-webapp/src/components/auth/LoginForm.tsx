@@ -18,25 +18,23 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !email.includes('@')) {
       toast.error('올바른 이메일 주소를 입력해주세요');
       return;
     }
 
     setIsLoading(true);
-    console.log('📧 Requesting OTP for:', email);
-    
+
     try {
       const result = await signIn(email);
-      console.log('📬 SignIn result:', result);
-      
+
       if (result.error) {
         console.error('❌ SignIn error:', result.error);
         toast.error(result.error);
       } else if (result.success) {
         // OTP 전송 성공 - OTP 입력 화면 표시
-        console.log('✅ OTP sent successfully, switching to OTP input screen');
+
         setOtpSent(true);
         toast.success('📧 인증 코드를 보냈어요! 이메일을 확인해주세요');
       } else {
@@ -52,28 +50,27 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
 
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!otp || otp.length !== 6) {
       toast.error('6자리 인증 코드를 입력해주세요');
       return;
     }
 
     setIsLoading(true);
-    console.log('📝 Submitting OTP for:', email);
-    
+
     try {
       const { error, success } = await verifyOtp(email, otp);
-      
+
       if (error) {
         console.error('❌ OTP verification failed:', error);
         toast.error(error);
       } else if (success) {
-        console.log('✅ OTP verification successful, redirecting...');
+
         toast.success('🎉 로그인 성공!');
         // 로그인 성공 후 명시적으로 리디렉션
         // 약간의 딜레이를 주어 상태 업데이트가 완료되도록 함
         setTimeout(() => {
-          console.log('🚀 Navigating to home...');
+
           navigate('/');
           // 추가적으로 페이지 리로드를 강제할 수도 있음
           // window.location.href = '/';
@@ -118,7 +115,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
               <strong>{email}</strong>로 6자리 코드를 보냈어요
             </p>
           </div>
-          
+
           <form onSubmit={handleOtpSubmit} className="space-y-4">
             <div>
               <input

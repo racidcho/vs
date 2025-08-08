@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
-import { 
-  User, 
-  Palette, 
-  Shield, 
+import {
+  User,
+  Palette,
+  Shield,
   Smartphone,
   LogOut,
   Edit,
@@ -22,7 +22,7 @@ export const Settings: React.FC = () => {
   const { user, signOut, updateProfile } = useAuth();
   const { state, updateCoupleName, getPartnerInfo, leaveCouple, validateData, refreshData } = useApp();
   const { isLocked, lock, hasPin, setPin, removePin } = useAppLock();
-  
+
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [displayName, setDisplayName] = useState(user?.display_name || '');
   const [newPin, setNewPin] = useState('');
@@ -45,7 +45,7 @@ export const Settings: React.FC = () => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                         (window.navigator as any).standalone ||
                         document.referrer.includes('android-app://');
-    
+
     setIsInstalled(isStandalone);
   }, []);
 
@@ -53,7 +53,7 @@ export const Settings: React.FC = () => {
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      console.log('PWA install prompt available');
+
       setInstallPrompt(e);
     };
 
@@ -66,38 +66,35 @@ export const Settings: React.FC = () => {
 
   // PWA Install Functions
   const handleInstallPWA = async () => {
-    console.log('Install PWA clicked');
-    
+
     // Check if it's iOS Safari
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    
+
     if (isIOS && isSafari) {
-      console.log('iOS Safari detected - showing install instructions');
+
       setShowIOSInstallModal(true);
       return;
     }
 
     // Android/Chrome PWA install
     if (installPrompt) {
-      console.log('Showing install prompt');
+
       const result = await (installPrompt as any).prompt();
-      console.log('Install prompt result:', result);
-      
+
       if (result.outcome === 'accepted') {
         toast.success('앱이 설치되었어요! 📱');
         setIsInstalled(true);
       } else {
         toast.error('앱 설치가 취소되었어요');
       }
-      
+
       setInstallPrompt(null);
     } else {
-      console.log('No install prompt available');
+
       toast.error('현재 브라우저에서는 앱 설치를 지원하지 않아요 😢');
     }
   };
-
 
   const handleUpdateProfile = async () => {
     if (!displayName.trim()) {
@@ -167,32 +164,31 @@ export const Settings: React.FC = () => {
   // Load partner info and initialize couple name
   useEffect(() => {
     const loadPartnerInfo = async () => {
-      console.log('🔄 SETTINGS: loadPartnerInfo 시작');
-      
+
       if (state.couple) {
-        console.log('💑 SETTINGS: 커플 정보 존재, 파트너 정보 로드');
+
         try {
           const result = await getPartnerInfo();
           if (result && !result.error) {
-            console.log('✅ SETTINGS: 파트너 정보 로드 성공:', result.partner);
+
             setPartner(result.partner);
           } else {
-            console.log('❌ SETTINGS: 파트너 정보 로드 실패:', result?.error);
+
           }
         } catch (error) {
           console.error('💥 SETTINGS: 파트너 정보 로드 예외:', error);
         }
-        
+
         // Initialize couple name
         const newCoupleName = (state.couple as any)?.couple_name || '';
-        console.log('📝 SETTINGS: 커플 이름 초기화:', newCoupleName);
+
         setCoupleName(newCoupleName);
       } else {
-        console.log('❌ SETTINGS: 커플 정보 없음, 관련 상태 초기화');
+
         // If couple becomes null, clear related states
         setPartner(null);
         setCoupleName('');
-        
+
         // **무한 로딩 방지**: 커플 해제 시 로딩 상태 확실히 해제
         if (isLoading) {
           console.log('✅ SETTINGS: 로딩 상태 해제 (커플 없음)');
@@ -214,23 +210,22 @@ export const Settings: React.FC = () => {
   const handleLeaveCouple = async () => {
     // **무한 로딩 방지**: 시작 시 로딩 설정
     setIsLoading(true);
-    
+
     try {
-      console.log('🔄 SETTINGS: 커플 해제 시작');
+
       const result = await leaveCouple();
-      
+
       if (result.success) {
-        console.log('✅ SETTINGS: 커플 해제 성공');
+
         toast.success('커플 연결이 해제되었어요 💔');
         setShowLeaveModal(false);
-        
+
         // Clear local states immediately
         setPartner(null);
         setCoupleName('');
-        
-        console.log('✅ SETTINGS: 로컬 상태 정리 완료');
+
       } else {
-        console.log('❌ SETTINGS: 커플 해제 실패:', result.error);
+
         toast.error(result.error || '연결 해제에 실패했어요 😢');
       }
     } catch (error) {
@@ -238,7 +233,7 @@ export const Settings: React.FC = () => {
       toast.error('연결 해제에 실패했어요 😢');
     } finally {
       // **중요**: 모든 상황에서 로딩 상태 해제
-      console.log('✅ SETTINGS: 로딩 상태 해제');
+
       setIsLoading(false);
     }
   };
@@ -293,12 +288,12 @@ export const Settings: React.FC = () => {
     setIsLoading(true);
     try {
       const result = await validateData();
-      
+
       if (result.isValid) {
         toast.success('데이터가 모두 정상이에요! ✅');
       } else {
         toast.error(`${result.errors.length}개의 데이터 불일치가 발견되었어요`);
-        console.warn('Data validation errors:', result.errors);
+
       }
     } catch (error) {
       console.error('Data validation error:', error);
@@ -338,40 +333,56 @@ export const Settings: React.FC = () => {
         </p>
       </div>
 
-      {/* Profile Section */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
-        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-400 rounded-lg flex items-center justify-center">
-            <User className="w-4 h-4 text-white" />
-          </div>
-          프로필
-        </h2>
-        
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-400 rounded-2xl flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-2xl">
-                {user?.display_name?.charAt(0) || '💕'}
-              </span>
+      {/* Couple Names Section */}
+      {state.couple && (
+        <div className="bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 rounded-2xl p-6 shadow-sm border border-pink-200">
+          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-400 rounded-lg flex items-center justify-center animate-pulse">
+              <Heart className="w-4 h-4 text-white" />
             </div>
-            <div className="flex-1">
+            우리들의 이름 💑
+          </h2>
+          <p className="text-gray-600 text-sm mb-4">
+            서로를 부를 예쁜 이름을 설정해보세요 ✨
+          </p>
+
+          <div className="space-y-4">
+            {/* My Name */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-pink-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">
+                    {user?.display_name?.charAt(0) || '💖'}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">내 이름</h3>
+                  <p className="text-gray-500 text-xs">나를 부를 이름이에요</p>
+                </div>
+              </div>
+
               {isEditingProfile ? (
                 <div className="space-y-3">
                   <input
                     type="text"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="input-field bg-gradient-to-r from-pink-50 to-purple-50 border-pink-200 focus:border-pink-400"
-                    placeholder="닉네임을 입력해주세요"
+                    className="w-full px-4 py-3 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-xl focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all text-center text-lg font-medium placeholder-gray-400"
+                    placeholder="예: 이지원, 정훈이 💕"
+                    maxLength={20}
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={handleUpdateProfile}
                       disabled={isLoading}
-                      className="px-4 py-2 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-1"
+                      className="flex-1 py-2 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1 disabled:opacity-50"
                     >
-                      <Save className="w-3 h-3" />
-                      저장
+                      {isLoading ? (
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Save className="w-3 h-3" />
+                      )}
+                      저장하기 💝
                     </button>
                     <button
                       onClick={() => {
@@ -387,17 +398,91 @@ export const Settings: React.FC = () => {
                 </div>
               ) : (
                 <div>
-                  <h3 className="font-bold text-gray-900 text-lg">{user?.display_name}</h3>
-                  <p className="text-gray-600 text-sm">{user?.email}</p>
-                  <button
-                    onClick={() => setIsEditingProfile(true)}
-                    className="text-pink-600 hover:text-pink-700 text-sm font-medium flex items-center gap-1 mt-2 transition-colors"
-                  >
-                    <Edit className="w-3 h-3" />
-                    프로필 수정
-                  </button>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                      {user?.display_name || '이름을 설정해주세요'}
+                    </span>
+                    <button
+                      onClick={() => setIsEditingProfile(true)}
+                      className="px-3 py-1 bg-pink-100 text-pink-600 hover:bg-pink-200 text-xs font-medium rounded-lg transition-all hover:scale-105 flex items-center gap-1"
+                    >
+                      <Edit className="w-3 h-3" />
+                      수정
+                    </button>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">{user?.email}</p>
                 </div>
               )}
+            </div>
+
+            {/* Partner Name */}
+            {partner && (
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-blue-400 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">
+                      {partner.display_name?.charAt(0) || '💙'}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900">파트너 이름</h3>
+                    <p className="text-gray-500 text-xs">내 소중한 사람의 이름이에요</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xl font-bold bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent">
+                    {partner.display_name || '이름을 설정해달라고 말해보세요'}
+                  </span>
+                  <div className="flex items-center gap-1 text-indigo-600">
+                    <Heart className="w-3 h-3 animate-pulse" />
+                    <span className="text-xs">파트너</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Cute Message */}
+            <div className="bg-gradient-to-r from-yellow-50 to-pink-50 rounded-xl p-3 border border-yellow-200">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">💡</span>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-700 font-medium">
+                    예쁜 이름으로 서로를 불러보세요!
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    예: 지원이, 정훈이, 자기야, 여보, 내사랑 등 💕
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
+        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-400 rounded-lg flex items-center justify-center">
+            <User className="w-4 h-4 text-white" />
+          </div>
+          기본 프로필
+        </h2>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-400 rounded-2xl flex items-center justify-center shadow-md">
+              <span className="text-white font-bold text-2xl">
+                {user?.display_name?.charAt(0) || '💕'}
+              </span>
+            </div>
+            <div className="flex-1">
+              <div>
+                <h3 className="font-bold text-gray-900 text-lg">{user?.display_name}</h3>
+                <p className="text-gray-600 text-sm">{user?.email}</p>
+                <p className="text-gray-500 text-xs mt-1">
+                  위의 "우리들의 이름" 섹션에서 이름을 예쁘게 바꿔보세요! ✨
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -412,7 +497,7 @@ export const Settings: React.FC = () => {
             </div>
             커플 정보
           </h2>
-          
+
           <div className="space-y-3">
             {/* Couple Name */}
             <div className="p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl">
@@ -430,7 +515,7 @@ export const Settings: React.FC = () => {
                   </button>
                 )}
               </div>
-              
+
               {isEditingCoupleName ? (
                 <div className="mt-3 space-y-3">
                   <input
@@ -490,7 +575,7 @@ export const Settings: React.FC = () => {
                 </span>
               </div>
             )}
-            
+
             <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl">
               <span className="text-gray-700 font-medium flex items-center gap-2">
                 <span>📅</span> 시작일
@@ -499,7 +584,7 @@ export const Settings: React.FC = () => {
                 {new Date(state.couple.created_at).toLocaleDateString('ko-KR')}
               </span>
             </div>
-            
+
             <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
               <span className="text-gray-700 font-medium flex items-center gap-2">
                 <span>💰</span> 현재 벌금
@@ -531,7 +616,7 @@ export const Settings: React.FC = () => {
           </div>
           보안 설정
         </h2>
-        
+
         <div className="space-y-4">
           {/* App Lock */}
           <div>
@@ -550,7 +635,7 @@ export const Settings: React.FC = () => {
                 </button>
               )}
             </div>
-            
+
             {!hasPin ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
@@ -619,21 +704,21 @@ export const Settings: React.FC = () => {
           </div>
           환경설정
         </h2>
-        
+
         <div className="space-y-4">
           {/* PWA Install */}
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-gray-900">앱 설치 📱</h3>
               <p className="text-sm text-gray-600">
-                {isInstalled 
-                  ? '앱이 이미 설치되어 있어요' 
+                {isInstalled
+                  ? '앱이 이미 설치되어 있어요'
                   : '홈 화면에 추가해서 빠르게 접근하세요'
                 }
               </p>
             </div>
             {!isInstalled && (
-              <button 
+              <button
                 onClick={handleInstallPWA}
                 className="px-4 py-2 bg-gradient-to-r from-indigo-400 to-purple-400 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1"
               >
@@ -659,14 +744,14 @@ export const Settings: React.FC = () => {
           </div>
           고급 설정
         </h2>
-        
+
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-gray-900">데이터 동기화 검증 🔍</h3>
               <p className="text-sm text-gray-600">데이터 무결성을 확인하고 불일치를 감지해요</p>
             </div>
-            <button 
+            <button
               onClick={handleValidateData}
               disabled={isLoading}
               className="px-4 py-2 bg-gradient-to-r from-purple-400 to-indigo-400 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1 disabled:opacity-50"
@@ -685,7 +770,7 @@ export const Settings: React.FC = () => {
               <h3 className="font-bold text-gray-900">데이터 새로고침 🔄</h3>
               <p className="text-sm text-gray-600">서버에서 최신 데이터를 다시 불러와요</p>
             </div>
-            <button 
+            <button
               onClick={handleRefreshData}
               disabled={isLoading}
               className="px-4 py-2 bg-gradient-to-r from-green-400 to-teal-400 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1 disabled:opacity-50"
@@ -727,7 +812,7 @@ export const Settings: React.FC = () => {
           </div>
           도움말 & 지원
         </h2>
-        
+
         <div className="space-y-2">
           <button className="w-full text-left p-3 bg-gradient-to-r from-yellow-50 to-orange-50 hover:from-yellow-100 hover:to-orange-100 rounded-xl transition-all flex items-center gap-3">
             <span className="text-xl">❓</span>
@@ -785,7 +870,7 @@ export const Settings: React.FC = () => {
               커플 연결 해제 확인
             </h3>
             <p className="text-gray-600 text-sm mb-6 text-center">
-              정말로 커플 연결을 해제하시겠어요? 이 작업은 되돌릴 수 없어요. 
+              정말로 커플 연결을 해제하시겠어요? 이 작업은 되돌릴 수 없어요.
               모든 데이터는 보존되지만 파트너와의 연결이 끊어집니다.
             </p>
             <div className="flex gap-3">

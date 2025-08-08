@@ -8,9 +8,9 @@ interface ProtectedRouteProps {
   requireCouple?: boolean;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  requireCouple = false 
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  requireCouple = false
 }) => {
   const { user, isLoading } = useAuth();
   const location = useLocation();

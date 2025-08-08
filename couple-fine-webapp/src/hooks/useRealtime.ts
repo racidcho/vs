@@ -18,7 +18,7 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
   // Handle rules changes
   const handleRuleChange = useCallback((payload: DatabaseChange<Rule>) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
-    
+
     switch (eventType) {
       case 'INSERT':
         if (newRecord && newRecord.couple_id === coupleId) {
@@ -46,7 +46,7 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
   // Handle violation changes
   const handleViolationChange = useCallback(async (payload: DatabaseChange<Violation>) => {
     const { eventType, new: newRecord, old: _ } = payload;
-    
+
     if (eventType === 'INSERT' && newRecord) {
       // Fetch the complete violation data with relations
       const { data: violationWithRelations, error } = await supabase
@@ -72,7 +72,7 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
   // Handle reward changes
   const handleRewardChange = useCallback((payload: DatabaseChange<Reward>) => {
     const { eventType, new: newRecord, old: _ } = payload;
-    
+
     switch (eventType) {
       case 'INSERT':
         if (newRecord && newRecord.couple_id === coupleId) {
@@ -90,7 +90,7 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
   // Handle couple changes
   const handleCoupleChange = useCallback((payload: DatabaseChange<Couple>) => {
     const { eventType, new: newRecord } = payload;
-    
+
     if (eventType === 'UPDATE' && newRecord && newRecord.id === coupleId) {
       dispatch({ type: 'SET_COUPLE', payload: newRecord });
     }
@@ -154,13 +154,13 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
     // Subscribe to the channel
     channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        console.log(`✅ Realtime subscribed for couple: ${coupleId}`);
+
       } else if (status === 'CHANNEL_ERROR') {
         console.error('❌ Realtime subscription error');
       } else if (status === 'TIMED_OUT') {
-        console.warn('⏰ Realtime subscription timed out');
+
       } else if (status === 'CLOSED') {
-        console.log('🔌 Realtime subscription closed');
+
       }
     });
 
@@ -172,7 +172,7 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
       if (channelRef.current) {
         channelRef.current.unsubscribe();
         channelRef.current = null;
-        console.log(`🔌 Unsubscribed from realtime for couple: ${coupleId}`);
+
       }
     };
   }, [coupleId, userId, handleRuleChange, handleViolationChange, handleRewardChange, handleCoupleChange]);
@@ -202,15 +202,15 @@ export const usePresence = (coupleId?: string) => {
     // Track presence
     channel.on('presence', { event: 'sync' }, () => {
       const newState = channel.presenceState();
-      console.log('👥 Presence sync:', newState);
+
     });
 
     channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
-      console.log('👋 User joined:', key, newPresences);
+
     });
 
     channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-      console.log('👋 User left:', key, leftPresences);
+
     });
 
     channel.subscribe(async (status) => {
@@ -220,7 +220,7 @@ export const usePresence = (coupleId?: string) => {
           user_id: supabase.auth.getUser(),
           online_at: new Date().toISOString(),
         });
-        console.log('👤 Presence track status:', presenceTrackStatus);
+
       }
     });
 

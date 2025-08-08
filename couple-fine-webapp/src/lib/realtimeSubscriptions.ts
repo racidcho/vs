@@ -28,7 +28,7 @@ export class RealtimeSubscriptionManager {
   private setupConnectionListener() {
     // 연결 상태 모니터링
     this.isConnected = supabase.realtime.isConnected();
-    console.log('🔗 Realtime connection initialized:', this.isConnected);
+
   }
 
   // 채널 생성 또는 기존 채널 반환
@@ -187,9 +187,9 @@ export class RealtimeSubscriptionManager {
     // 구독 시작
     channel.subscribe((status, error) => {
       if (status === 'SUBSCRIBED') {
-        console.log(`✅ Subscribed to couple-${coupleId} updates`);
+
       } else if (status === 'CLOSED') {
-        console.log(`📴 Unsubscribed from couple-${coupleId} updates`);
+
       } else if (status === 'CHANNEL_ERROR') {
         console.error(`❌ Subscription error for couple-${coupleId}:`, error);
       }
@@ -203,7 +203,7 @@ export class RealtimeSubscriptionManager {
 
   // 특정 테이블 변경 구독
   subscribeToTable<T extends Record<string, any>>(
-    table: string, 
+    table: string,
     callback: RealtimeCallback<T>,
     filter?: string
   ): () => void {
@@ -252,8 +252,8 @@ export class RealtimeSubscriptionManager {
 
   // 브로드캐스트 메시지 수신
   subscribeToBroadcast(
-    channelName: string, 
-    event: string, 
+    channelName: string,
+    event: string,
     callback: (payload: any) => void
   ): () => void {
     const channel = this.getOrCreateChannel(channelName);
@@ -283,15 +283,15 @@ export class RealtimeSubscriptionManager {
 
     channel.on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState();
-      console.log('👥 Presence sync:', state);
+
     });
 
     channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
-      console.log('👋 User joined:', key, newPresences);
+
     });
 
     channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-      console.log('👋 User left:', key, leftPresences);
+
     });
 
     channel.subscribe();
@@ -308,7 +308,7 @@ export class RealtimeSubscriptionManager {
     if (channel) {
       channel.unsubscribe();
       this.channels.delete(channelName);
-      console.log(`📴 Unsubscribed from ${channelName}`);
+
     }
   }
 
@@ -316,7 +316,7 @@ export class RealtimeSubscriptionManager {
   unsubscribeAll(): void {
     this.channels.forEach((channel, channelName) => {
       channel.unsubscribe();
-      console.log(`📴 Unsubscribed from ${channelName}`);
+
     });
     this.channels.clear();
   }
@@ -348,7 +348,7 @@ export const subscribeToCouple = (
   }
 ) => {
   return realtimeManager.subscribeToCouple(coupleId, {
-    onRuleChange: callbacks.onRuleChange 
+    onRuleChange: callbacks.onRuleChange
       ? (event) => callbacks.onRuleChange!(event.new || event.old!, event.eventType)
       : undefined,
     onViolationChange: callbacks.onViolationChange
@@ -371,8 +371,8 @@ export const sendNotification = (coupleId: string, notification: {
   data?: any;
 }) => {
   return realtimeManager.broadcastMessage(
-    `couple-${coupleId}`, 
-    'notification', 
+    `couple-${coupleId}`,
+    'notification',
     notification
   );
 };

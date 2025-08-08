@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 
 interface RewardFormData {
   title: string;
-  target_amount: number;
+  target_amount: number | '';
   description?: string;
   category: string;
   icon_emoji: string;
@@ -20,7 +20,7 @@ export const Rewards: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<RewardFormData>({
     title: '',
-    target_amount: 10,
+    target_amount: '',
     description: '',
     category: 'general',
     icon_emoji: '🎁',
@@ -29,66 +29,62 @@ export const Rewards: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasError, setHasError] = useState(false);
-  
+
   // Calculate total penalties for progress calculation (user-specific)
   const totalPenalties = user ? getUserTotalFines(user.id) : 0;
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('🎁 REWARDS: 보상 추가 버튼 클릭됨!');
-    console.log('📝 REWARDS: 폼 데이터:', formData);
-    console.log('👤 REWARDS: 현재 사용자:', user);
-    
+
     e.preventDefault();
-    
+
     if (!formData.title.trim()) {
-      console.log('❌ REWARDS: 제목 없음');
-      toast.error('보상 제목을 입력해주세요');
+      toast.error('보상 이름을 입력해주세요 ✨');
       return;
     }
-    
-    if (formData.target_amount < 1 || formData.target_amount > 1000) {
-      console.log('❌ REWARDS: 금액 범위 초과');
-      toast.error('목표 금액은 1만원에서 1000만원 사이로 설정해주세요');
+
+    const targetAmount = Number(formData.target_amount);
+    if (!formData.target_amount || targetAmount < 1 || targetAmount > 1000) {
+      toast.error('목표 금액은 1만원에서 1000만원 사이로 설정해주세요 💰');
       return;
     }
 
     // **무한 로딩 방지**: 모든 경로에서 로딩 해제 보장 + 타임아웃 추가
-    console.log('⏳ REWARDS: 제출 시작, 로딩 상태 설정');
+
     setIsSubmitting(true);
     setHasError(false);
-    
+
     // **타임아웃 추가**: 10초 후 강제 로딩 해제
     const timeoutId = setTimeout(() => {
-      console.log('⏰ REWARDS: 타임아웃으로 로딩 해제');
       setIsSubmitting(false);
-      toast.error('요청 시간이 초과되었어요. 다시 시도해주세요.');
+      toast.error('요청 시간이 초과되었어요. 잠시 후 다시 시도해주세요 ⏰');
     }, 10000);
-    
+
     try {
-      console.log('🏗️ REWARDS: createReward 호출 시작');
-      // Create reward with timeout protection
-      const createPromise = createReward(formData);
+
+      // Create reward with timeout protection - ensure target_amount is a number
+      const rewardData = {
+        ...formData,
+        target_amount: Number(formData.target_amount)
+      };
+      
+      const createPromise = createReward(rewardData);
       const { error } = await Promise.race([
         createPromise,
-        new Promise<{error: string}>((_, reject) => 
+        new Promise<{error: string}>((_, reject) =>
           setTimeout(() => reject(new Error('Request timeout')), 9000)
         )
       ]);
-      
-      console.log('🔄 REWARDS: createReward 결과:', { error });
-      
+
       if (error) {
-        console.log('❌ REWARDS: 생성 실패:', error);
-        toast.error(`보상 생성 실패: ${error}`);
+        toast.error(`보상 생성에 실패했어요: ${error} 😢`);
       } else {
-        console.log('✅ REWARDS: 생성 성공');
-        toast.success('새 보상이 추가되었어요! 🎁');
+        toast.success('새로운 보상이 추가되었어요! 🎁✨');
         setShowForm(false);
         // Reset form on success
         setFormData({
           title: '',
-          target_amount: 10,
+          target_amount: '',
           description: '',
           category: 'general',
           icon_emoji: '🎁',
@@ -97,17 +93,17 @@ export const Rewards: React.FC = () => {
         });
       }
     } catch (error) {
-      console.log('💥 REWARDS: 예외 발생:', error);
+
       setHasError(true);
       if (error instanceof Error && error.message === 'Request timeout') {
-        toast.error('요청 시간이 초과되었어요. 다시 시도해주세요.');
+        toast.error('요청 시간이 초과되었어요. 잠시 후 다시 시도해주세요 ⏰');
       } else {
-        toast.error('오류가 발생했어요');
+        toast.error('오류가 발생했어요. 다시 시도해주세요 😅');
       }
     } finally {
       // **중요**: 타임아웃 클리어 및 모든 상황에서 로딩 상태를 false로 설정
       clearTimeout(timeoutId);
-      console.log('✅ REWARDS: 제출 완료, 로딩 해제');
+
       setIsSubmitting(false);
     }
   };
@@ -116,7 +112,7 @@ export const Rewards: React.FC = () => {
   const handleClaimReward = async (rewardId: string, rewardTitle: string) => {
     try {
       const { error } = await claimReward(rewardId);
-      
+
       if (error) {
         toast.error(`보상 획득 실패: ${error}`);
       } else {
@@ -132,10 +128,10 @@ export const Rewards: React.FC = () => {
     if (!window.confirm(`"${rewardTitle}" 보상을 정말 삭제하시겠어요?`)) {
       return;
     }
-    
+
     try {
       const { error } = await deleteReward(rewardId);
-      
+
       if (error) {
         toast.error(`보상 삭제 실패: ${error}`);
       } else {
@@ -173,10 +169,10 @@ export const Rewards: React.FC = () => {
               <Trophy className="w-5 h-5 text-yellow-400 animate-pulse" />
             </div>
             <p className="text-gray-600 text-sm">
-              목표를 달성하면 함께 즐길 수 있는 특별한 보상이 기다려요! 🎁
+              벌금을 모아서 함께 즐길 수 있는 달콤한 보상을 만들어요! 💕🎁
             </p>
           </div>
-          <button 
+          <button
             onClick={() => setShowForm(!showForm)}
             className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-4 py-2 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
           >
@@ -200,7 +196,7 @@ export const Rewards: React.FC = () => {
             <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               {totalPenalties}만원
             </p>
-            <p className="text-sm text-gray-600 mt-1">보상을 받을 수 있어요! 🎉</p>
+            <p className="text-sm text-gray-600 mt-1">이제 달콤한 보상을 받을 시간이에요! 🎉💕</p>
           </div>
         </div>
       </div>
@@ -211,7 +207,7 @@ export const Rewards: React.FC = () => {
           <h3 className="text-lg font-bold text-gray-900 mb-4">
             새 보상 만들기 ✨
           </h3>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Reward Title */}
             <div>
@@ -241,7 +237,11 @@ export const Rewards: React.FC = () => {
                   min="1"
                   max="1000"
                   value={formData.target_amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, target_amount: parseInt(e.target.value) || 1 }))}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    target_amount: e.target.value === '' ? '' : Number(e.target.value)
+                  }))}
+                  placeholder="예: 5만원, 10만원, 50만원"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   disabled={isSubmitting}
                 />
@@ -255,7 +255,7 @@ export const Rewards: React.FC = () => {
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                disabled={isSubmitting || !formData.title.trim() || hasError}
+                disabled={isSubmitting || !formData.title.trim() || !formData.target_amount || hasError}
                 className="flex-1 bg-gradient-to-r from-purple-400 to-pink-400 text-white py-3 px-4 rounded-xl font-medium shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
@@ -263,7 +263,7 @@ export const Rewards: React.FC = () => {
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                {isSubmitting ? '생성 중...' : '만들기'}
+                {isSubmitting ? '생성 중...' : '보상 만들기 ✨'}
               </button>
               <button
                 type="button"
@@ -285,7 +285,7 @@ export const Rewards: React.FC = () => {
             const progress = Math.min(totalPenalties / reward.target_amount, 1);
             const progressPercent = Math.round(progress * 100);
             const canClaim = totalPenalties >= reward.target_amount && !reward.is_achieved;
-            
+
             const emojis = ['🎁', '🎉', '🌟', '💝', '🏆'];
             const gradients = [
               'from-purple-400 to-pink-400',
@@ -318,7 +318,7 @@ export const Rewards: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col items-end gap-2">
                       {reward.is_achieved ? (
@@ -326,7 +326,7 @@ export const Rewards: React.FC = () => {
                           ✨ 달성 완료!
                         </span>
                       ) : canClaim ? (
-                        <button 
+                        <button
                           onClick={() => handleClaimReward(reward.id, reward.title)}
                           className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95"
                         >
@@ -338,7 +338,7 @@ export const Rewards: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleDeleteReward(reward.id, reward.title)}
                       className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="보상 삭제"
@@ -355,7 +355,7 @@ export const Rewards: React.FC = () => {
                     <span>목표: {reward.target_amount}만원</span>
                   </div>
                   <div className="w-full bg-gradient-to-r from-gray-100 to-gray-200 rounded-full h-3 p-0.5">
-                    <div 
+                    <div
                       className={`h-full rounded-full transition-all duration-500 bg-gradient-to-r ${
                         reward.is_achieved
                           ? 'from-green-400 to-teal-400'
@@ -381,7 +381,7 @@ export const Rewards: React.FC = () => {
             함께 이루고 싶은 목표를 정해보세요 🌈<br />
             벌금이 쌓이면 특별한 데이트를 즐길 수 있어요!
           </p>
-          <button 
+          <button
             onClick={() => setShowForm(true)}
             className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-6 py-3 rounded-xl font-medium shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2"
           >
@@ -416,7 +416,7 @@ export const Rewards: React.FC = () => {
               'from-orange-50 to-coral-50',
               'from-yellow-50 to-amber-50'
             ];
-            
+
             return (
               <button
                 key={index}

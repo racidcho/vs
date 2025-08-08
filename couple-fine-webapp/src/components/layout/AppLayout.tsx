@@ -2,13 +2,13 @@ import React from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApp } from '../../contexts/AppContext';
-import { 
-  Home, 
-  Heart, 
-  Plus, 
-  Gift, 
-  Calendar, 
-  Settings, 
+import {
+  Home,
+  Heart,
+  Plus,
+  Gift,
+  Calendar,
+  Settings,
   LogOut,
   Wifi,
   WifiOff,
@@ -33,7 +33,7 @@ export const AppLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isOnline = useOnlineStatus();
-  
+
   // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -96,7 +96,7 @@ export const AppLayout: React.FC = () => {
                     <p className="text-sm text-gray-600 truncate">{user?.email}</p>
                   </div>
                 </div>
-                
+
                 {state.couple && (
                   <div className="mt-3">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
@@ -112,7 +112,7 @@ export const AppLayout: React.FC = () => {
                   {navigation.map((item) => {
                     const Icon = item.icon;
                     const current = isCurrentPath(item.href);
-                    
+
                     return (
                       <li key={item.name}>
                         <Link
@@ -174,7 +174,7 @@ export const AppLayout: React.FC = () => {
           </main>
         </div>
       </div>
-      
+
       {/* Mobile Bottom Navigation */}
       <MobileNav />
     </div>

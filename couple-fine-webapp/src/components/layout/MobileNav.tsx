@@ -1,47 +1,47 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  Heart, 
-  PlusCircle, 
-  Gift, 
+import {
+  Home,
+  Heart,
+  PlusCircle,
+  Gift,
   User,
   Sparkles
 } from 'lucide-react';
 
 const navItems = [
-  { 
-    name: '홈', 
-    href: '/', 
+  {
+    name: '홈',
+    href: '/',
     icon: Home,
     emoji: '🏠',
     gradient: 'from-pink-400 to-rose-400'
   },
-  { 
-    name: '규칙', 
-    href: '/rules', 
+  {
+    name: '규칙',
+    href: '/rules',
     icon: Heart,
     emoji: '💝',
     gradient: 'from-purple-400 to-pink-400'
   },
-  { 
-    name: '기록', 
-    href: '/violations/new', 
+  {
+    name: '기록',
+    href: '/violations/new',
     icon: PlusCircle,
     emoji: '✍️',
     gradient: 'from-coral-400 to-orange-400',
     isCenter: true
   },
-  { 
-    name: '보상', 
-    href: '/rewards', 
+  {
+    name: '보상',
+    href: '/rewards',
     icon: Gift,
     emoji: '🎁',
     gradient: 'from-indigo-400 to-purple-400'
   },
-  { 
-    name: '내정보', 
-    href: '/settings', 
+  {
+    name: '내정보',
+    href: '/settings',
     icon: User,
     emoji: '👤',
     gradient: 'from-teal-400 to-cyan-400'
@@ -62,13 +62,13 @@ export const MobileNav: React.FC = () => {
     <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
       {/* 배경 블러 효과 */}
       <div className="absolute inset-0 bg-white/80 backdrop-blur-lg border-t border-pink-100"></div>
-      
+
       {/* 네비게이션 아이템들 */}
       <nav className="relative flex items-center justify-around px-2 py-2 safe-area-pb">
         {navItems.map((item) => {
           const Icon = item.icon;
           const current = isCurrentPath(item.href);
-          
+
           if (item.isCenter) {
             // 중앙 버튼 (기록 추가)
             return (
@@ -112,8 +112,8 @@ export const MobileNav: React.FC = () => {
                 relative flex items-center justify-center
                 w-10 h-10 rounded-xl
                 transition-all duration-300
-                ${current 
-                  ? `bg-gradient-to-br ${item.gradient} shadow-md scale-110` 
+                ${current
+                  ? `bg-gradient-to-br ${item.gradient} shadow-md scale-110`
                   : 'hover:bg-pink-50 active:scale-95'
                 }
               `}>

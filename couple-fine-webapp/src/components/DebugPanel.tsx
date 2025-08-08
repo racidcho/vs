@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, XCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
-import { supabase, getConnectionStatus, healthCheck } from '../lib/supabase';
+import { getConnectionStatus, healthCheck } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 
@@ -13,7 +13,7 @@ export const DebugPanel: React.FC = () => {
   }>({ database: false, realtime: false, auth: false });
   const [connectionStatus, setConnectionStatus] = useState<any>(null);
   const [isChecking, setIsChecking] = useState(false);
-  
+
   const { user, session } = useAuth();
   const { state } = useApp();
 

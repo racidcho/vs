@@ -9,25 +9,70 @@ export const NewViolation: React.FC = () => {
   const navigate = useNavigate();
   const { state, createViolation } = useApp();
   const { user } = useAuth();
-  
+
   const [selectedRuleId, setSelectedRuleId] = useState('');
   const [violationType, setViolationType] = useState<'add' | 'subtract'>('add');
+  const [selectedViolatorId, setSelectedViolatorId] = useState(user?.id || '');
   const [amount, setAmount] = useState(0);
   const [note, setNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const selectedRule = state.rules?.find(r => r.id === selectedRuleId);
+  
+  // Get partner options for violation
+  const getPartnerOptions = () => {
+    const options: Array<{ id: string; name: string; emoji: string }> = [];
+    const couple = state.couple as any;
+    
+    if (user) {
+      options.push({
+        id: user.id,
+        name: user.display_name || user.email?.split('@')[0] || '나',
+        emoji: '😅'
+      });
+    }
+    
+    if (couple) {
+      // Add partner 1 if not current user
+      if (couple.partner_1_id && couple.partner_1_id !== user?.id && couple.partner_1) {
+        options.push({
+          id: couple.partner_1_id,
+          name: couple.partner_1.display_name || couple.partner_1.email?.split('@')[0] || '파트너1',
+          emoji: '👩'
+        });
+      }
+      
+      // Add partner 2 if not current user
+      if (couple.partner_2_id && couple.partner_2_id !== user?.id && couple.partner_2) {
+        options.push({
+          id: couple.partner_2_id,
+          name: couple.partner_2.display_name || couple.partner_2.email?.split('@')[0] || '파트너2',
+          emoji: '👨'
+        });
+      }
+    }
+    
+    return options;
+  };
+  
+  const partnerOptions = getPartnerOptions();
+  const selectedViolator = partnerOptions.find(p => p.id === selectedViolatorId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast.error('사용자 정보를 찾을 수 없어요! 🔐');
       return;
     }
-    
+
     if (!selectedRuleId) {
       toast.error('규칙을 선택해주세요! 📝');
+      return;
+    }
+    
+    if (!selectedViolatorId) {
+      toast.error('누가 벌금을 받을지 선택해주세요! 👥');
       return;
     }
 
@@ -37,12 +82,12 @@ export const NewViolation: React.FC = () => {
     }
 
     setIsLoading(true);
-    
+
     try {
       const violationData = {
         rule_id: selectedRuleId,
         couple_id: user.couple_id!,
-        violator_user_id: user.id,
+        violator_user_id: selectedViolatorId,
         recorded_by_user_id: user.id,
         amount: violationType === 'add' ? amount : -amount,
         memo: note.trim() || undefined,
@@ -50,18 +95,19 @@ export const NewViolation: React.FC = () => {
       };
 
       const { error } = await createViolation(violationData);
-      
+
       if (error) {
         toast.error(`기록 저장 실패: ${error}`);
         return;
       }
 
+      const violatorName = selectedViolator?.name || '선택된 사람';
       if (violationType === 'add') {
-        toast.success(`😅 벌금 ${amount}만원이 추가되었어요!`);
+        toast.success(`😅 ${violatorName}님에게 벌금 ${amount}만원이 추가되었어요!`);
       } else {
-        toast.success(`😊 ${amount}만원이 차감되었어요!`);
+        toast.success(`😊 ${violatorName}님의 벌금 ${amount}만원이 차감되었어요!`);
       }
-      
+
       navigate('/', { replace: true });
     } catch (error) {
       console.error('Violation creation error:', error);
@@ -116,8 +162,8 @@ export const NewViolation: React.FC = () => {
               >
                 <div className="flex flex-col items-center gap-2">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    violationType === 'add' 
-                      ? 'bg-gradient-to-br from-pink-400 to-red-400 shadow-md' 
+                    violationType === 'add'
+                      ? 'bg-gradient-to-br from-pink-400 to-red-400 shadow-md'
                       : 'bg-pink-100'
                   }`}>
                     <span className="text-2xl">😅</span>
@@ -140,8 +186,8 @@ export const NewViolation: React.FC = () => {
               >
                 <div className="flex flex-col items-center gap-2">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    violationType === 'subtract' 
-                      ? 'bg-gradient-to-br from-green-400 to-teal-400 shadow-md' 
+                    violationType === 'subtract'
+                      ? 'bg-gradient-to-br from-green-400 to-teal-400 shadow-md'
                       : 'bg-green-100'
                   }`}>
                     <span className="text-2xl">😊</span>
@@ -152,6 +198,46 @@ export const NewViolation: React.FC = () => {
                   </div>
                 </div>
               </button>
+            </div>
+          </div>
+
+          {/* Violator Selection */}
+          <div>
+            <label htmlFor="violator" className="block text-sm font-bold text-gray-700 mb-2">
+              👥 누가 벌금을 받나요?
+            </label>
+            <div className="grid grid-cols-1 gap-2">
+              {partnerOptions.map((partner) => (
+                <button
+                  key={partner.id}
+                  type="button"
+                  onClick={() => setSelectedViolatorId(partner.id)}
+                  className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all hover:scale-105 active:scale-95 ${
+                    selectedViolatorId === partner.id
+                      ? 'border-pink-300 bg-gradient-to-r from-pink-50 to-purple-50 shadow-md'
+                      : 'border-gray-200 hover:border-pink-200 bg-white'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    selectedViolatorId === partner.id
+                      ? 'bg-gradient-to-br from-pink-400 to-purple-400 shadow-md'
+                      : 'bg-pink-100'
+                  }`}>
+                    <span className="text-xl">{partner.emoji}</span>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-bold text-gray-900">{partner.name}</p>
+                    <p className="text-xs text-gray-600">
+                      {partner.id === user?.id ? '본인이 받는 벌금' : '상대방이 받는 벌금'}
+                    </p>
+                  </div>
+                  {selectedViolatorId === partner.id && (
+                    <div className="w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -183,24 +269,44 @@ export const NewViolation: React.FC = () => {
             </select>
           </div>
 
-          {/* Selected Rule Info */}
-          {selectedRule && (
+          {/* Selected Rule & Violator Info */}
+          {(selectedRule || selectedViolator) && (
             <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Heart className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-900">{selectedRule.title}</h4>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
-                      💰 기본 벌금: {selectedRule.fine_amount}만원
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                      {selectedRule.category === 'word' ? '💬 말' : '🏃 행동'}
-                    </span>
+              <div className="space-y-3">
+                {selectedViolator && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-xl">{selectedViolator.emoji}</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900">
+                        {selectedViolator.name}님{violationType === 'add' ? '이 받을' : '이 차감할'} 벌금
+                      </h4>
+                      <p className="text-xs text-gray-600">
+                        {selectedViolator.id === user?.id ? '본인 기록' : '상대방 기록'}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
+                
+                {selectedRule && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Heart className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900">{selectedRule.title}</h4>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
+                          💰 기본 벌금: {selectedRule.fine_amount}만원
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                          {selectedRule.category === 'word' ? '💬 말' : '🏃 행동'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -251,10 +357,10 @@ export const NewViolation: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={isLoading || !selectedRuleId || amount <= 0}
+              disabled={isLoading || !selectedRuleId || !selectedViolatorId || amount <= 0}
               className={`flex-1 px-4 py-3 rounded-xl font-medium shadow-md transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2 ${
-                violationType === 'subtract' 
-                  ? 'bg-gradient-to-r from-green-400 to-teal-400 text-white hover:from-green-500 hover:to-teal-500' 
+                violationType === 'subtract'
+                  ? 'bg-gradient-to-r from-green-400 to-teal-400 text-white hover:from-green-500 hover:to-teal-500'
                   : 'bg-gradient-to-r from-pink-400 to-purple-400 text-white hover:from-pink-500 hover:to-purple-500'
               }`}
             >
@@ -266,7 +372,13 @@ export const NewViolation: React.FC = () => {
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  {violationType === 'add' ? `벌금 ${amount}만원 추가` : `${amount}만원 차감하기`}
+                  {selectedViolator ? 
+                    (violationType === 'add' ? 
+                      `${selectedViolator.name}님에게 ${amount}만원 추가` : 
+                      `${selectedViolator.name}님 ${amount}만원 차감하기`
+                    ) : 
+                    (violationType === 'add' ? `벌금 ${amount}만원 추가` : `${amount}만원 차감하기`)
+                  }
                 </>
               )}
             </button>
@@ -291,7 +403,7 @@ export const NewViolation: React.FC = () => {
                 'from-coral-50 to-pink-50',
                 'from-orange-50 to-coral-50'
               ];
-              
+
               return (
                 <button
                   key={rule.id}
@@ -301,8 +413,8 @@ export const NewViolation: React.FC = () => {
                     setAmount(rule.fine_amount);
                   }}
                   className={`flex items-center justify-between p-3 rounded-xl transition-all hover:shadow-md hover:scale-105 active:scale-95 ${
-                    selectedRuleId === rule.id 
-                      ? 'bg-gradient-to-r from-pink-100 to-purple-100 border border-pink-300' 
+                    selectedRuleId === rule.id
+                      ? 'bg-gradient-to-r from-pink-100 to-purple-100 border border-pink-300'
                       : `bg-gradient-to-r ${gradients[index % 5]} border border-gray-100`
                   }`}
                 >

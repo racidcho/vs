@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast';
 
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { AppProvider, useApp } from './contexts/AppContext';
+import { AppProvider } from './contexts/AppContext';
 
 // Components
 import { ProtectedRoute, RequireCouple } from './components/auth/ProtectedRoute';
@@ -28,23 +28,22 @@ import { Settings } from './pages/Settings';
 // Router content component that can use hooks
 const RouterContent: React.FC = () => {
   const { user } = useAuth();
-  const { state } = useApp();
   const { isLocked, hasPin, unlock } = useAppLock();
-  
+
   // Ensure light theme is always applied
   useEffect(() => {
     document.body.classList.add('light');
     document.body.classList.remove('dark');
   }, []);
-  
+
   // Show PIN lock screen if user is logged in, has PIN set, and app is locked
   if (user && hasPin && isLocked) {
     return <PinLockScreen onUnlock={unlock} />;
   }
-  
+
   return (
     <div className="App">
-      <Toaster 
+      <Toaster
         position="top-right"
         toastOptions={{
           duration: 4000,
@@ -68,14 +67,14 @@ const RouterContent: React.FC = () => {
           },
         }}
       />
-      
+
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-        
+
         {/* Protected routes that don't require couple setup */}
         <Route path="/couple-setup" element={<ProtectedRoute><CoupleSetupPage /></ProtectedRoute>} />
-        
+
         {/* Protected routes that require couple setup */}
         <Route path="/" element={<RequireCouple><AppLayout /></RequireCouple>}>
           <Route index element={<Dashboard />} />
@@ -85,7 +84,7 @@ const RouterContent: React.FC = () => {
           <Route path="calendar" element={<Calendar />} />
           <Route path="settings" element={<Settings />} />
         </Route>
-        
+
         {/* Catch all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -114,12 +113,12 @@ function App() {
 // Public route component - redirects to dashboard if already authenticated
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  
+
   // 로그인되어 있으면 대시보드로 리다이렉트
   if (user) {
     return <Navigate to="/" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
@@ -132,7 +131,7 @@ const LoginPage: React.FC = () => {
   );
 };
 
-// Couple setup page wrapper  
+// Couple setup page wrapper
 const CoupleSetupPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-coral-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">

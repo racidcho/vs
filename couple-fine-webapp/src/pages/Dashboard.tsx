@@ -4,12 +4,13 @@ import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getDashboardStats } from '../lib/supabaseApi';
 import { toast } from 'react-hot-toast';
-import { 
-  Heart, 
-  AlertTriangle, 
-  Gift, 
-  Plus, 
-  TrendingUp, 
+import { VersusWidget } from '../components/VersusWidget';
+import {
+  Heart,
+  AlertTriangle,
+  Gift,
+  Plus,
+  TrendingUp,
   Calendar,
   Clock,
   Sparkles,
@@ -38,48 +39,44 @@ export const Dashboard: React.FC = () => {
 
   // Load real dashboard data with cleanup and abort controller
   useEffect(() => {
-    console.log('📊 DASHBOARD: useEffect 트리거됨', { user_couple_id: user?.couple_id });
-    
+
     // Create AbortController for cleanup
     const abortController = new AbortController();
     let isMounted = true;
-    
+
     const loadDashboardData = async () => {
       // **무한 로딩 방지**: 이미 언마운트된 경우 조기 리턴
       if (!isMounted || abortController.signal.aborted) {
-        console.log('🚫 DASHBOARD: 컴포넌트 언마운트됨 또는 중단됨');
+
         return;
       }
-      
-      console.log('📊 DASHBOARD: 데이터 로딩 시작');
+
       setLoadError(false);
-      
+
       if (!user?.couple_id) {
-        console.log('❌ DASHBOARD: 커플 ID 없음');
+
         return;
       }
 
       try {
         // Check abort signal before making API call
         if (abortController.signal.aborted) {
-          console.log('🚫 DASHBOARD: 요청 중단됨');
+
           return;
         }
-        
-        console.log('🔄 DASHBOARD: getDashboardStats 호출');
+
         const stats = await getDashboardStats(user.couple_id);
-        
+
         // Check if still mounted and not aborted before updating state
         if (!isMounted || abortController.signal.aborted) {
-          console.log('🚫 DASHBOARD: 응답 후 컴포넌트 언마운트됨');
+
           return;
         }
-        
-        console.log('✅ DASHBOARD: 통계 데이터 로드 성공:', stats);
+
         setDashboardData(stats);
       } catch (error) {
         if (abortController.signal.aborted) {
-          console.log('🚫 DASHBOARD: 요청이 중단되었습니다');
+
           return;
         }
         console.error('💥 DASHBOARD: 데이터 로딩 실패:', error);
@@ -90,7 +87,7 @@ export const Dashboard: React.FC = () => {
       } finally {
         // **중요**: API 호출 완료 로깅
         if (isMounted) {
-          console.log('✅ DASHBOARD: API 호출 완료');
+
         }
       }
     };
@@ -99,10 +96,10 @@ export const Dashboard: React.FC = () => {
     if (user?.couple_id) {
       loadDashboardData();
     }
-    
+
     // Cleanup function
     return () => {
-      console.log('🧹 DASHBOARD: useEffect 정리 - 요청 중단');
+
       isMounted = false;
       abortController.abort();
     };
@@ -118,7 +115,7 @@ export const Dashboard: React.FC = () => {
   // Handle save edit
   const handleSaveEdit = async () => {
     if (!editingViolation) return;
-    
+
     try {
       const violation = state.violations.find(v => v.id === editingViolation);
       if (!violation) {
@@ -256,7 +253,7 @@ export const Dashboard: React.FC = () => {
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-xl font-bold text-gray-900">
-            {getGreeting()}, {user?.display_name || '사랑'}님! 
+            {getGreeting()}, {user?.display_name || '사랑'}님!
           </h1>
           <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
         </div>
@@ -269,18 +266,23 @@ export const Dashboard: React.FC = () => {
         </p>
       </div>
 
+      {/* 대결 위젯 - 커플이 둘 다 있을 때만 표시 */}
+      {state.couple && (state.couple as any).partner_1 && (state.couple as any).partner_2 && (
+        <VersusWidget />
+      )}
+
       {/* 통계 카드 - 2x2 그리드 모바일 최적화 */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         {statsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div 
+            <div
               key={index}
               className="relative bg-white rounded-2xl p-4 shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
             >
               {/* 배경 그라데이션 */}
               <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full -mr-8 -mt-8`}></div>
-              
+
               <div className="relative">
                 <div className="flex items-center justify-between mb-2">
                   <div className={`w-10 h-10 bg-gradient-to-br ${stat.gradient} rounded-xl flex items-center justify-center shadow-sm`}>
@@ -288,7 +290,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <span className="text-xl">{stat.emoji}</span>
                 </div>
-                
+
                 <p className="text-xs text-gray-500 mb-1">{stat.title}</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {stat.value}
@@ -307,7 +309,7 @@ export const Dashboard: React.FC = () => {
           <h2 className="text-base font-bold text-gray-900">빠른 기록</h2>
           <Zap className="w-4 h-4 text-yellow-500" />
         </div>
-        
+
         <div className="grid grid-cols-3 gap-3">
           <Link
             to="/violations/new"
@@ -348,19 +350,47 @@ export const Dashboard: React.FC = () => {
             <h2 className="text-base font-bold text-gray-900">최근 기록</h2>
             <Clock className="w-4 h-4 text-gray-400" />
           </div>
-          
+
           <div className="space-y-4">
             {recentActivity.map((violation: any) => {
               const rule = state.rules?.find(r => r.id === violation.rule_id);
               const isAdd = violation.amount > 0;
               
+              // Get violator name from relation or couple data
+              const getViolatorName = () => {
+                // First try from violation relation
+                if (violation.violator?.display_name) {
+                  return violation.violator.display_name;
+                }
+                if (violation.violator?.email) {
+                  return violation.violator.email.split('@')[0];
+                }
+                
+                // Fallback to couple data
+                const couple = state.couple as any;
+                if (couple) {
+                  if (violation.violator_user_id === couple.partner_1_id && couple.partner_1) {
+                    return couple.partner_1.display_name || couple.partner_1.email?.split('@')[0] || '파트너1';
+                  }
+                  if (violation.violator_user_id === couple.partner_2_id && couple.partner_2) {
+                    return couple.partner_2.display_name || couple.partner_2.email?.split('@')[0] || '파트너2';
+                  }
+                }
+                
+                // Final fallback
+                return violation.violator_user_id === user?.id ? '나' : '파트너';
+              };
+              
+              const violatorName = getViolatorName();
+              const violatorEmoji = violation.violator_user_id === (state.couple as any)?.partner_1_id ? '👩' : '👨';
+
               return (
-                <div 
+                <div
                   key={violation.id}
                   className="border border-gray-100 rounded-xl p-4 bg-gradient-to-r from-white to-gray-50 hover:shadow-md transition-all"
                 >
                   {editingViolation === violation.id ? (
-                    /* Edit Mode */
+
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -373,7 +403,7 @@ export const Dashboard: React.FC = () => {
                           <p className="text-xs text-gray-500">편집 중...</p>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">금액 (만원)</label>
@@ -397,7 +427,7 @@ export const Dashboard: React.FC = () => {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="flex gap-2 justify-end">
                         <button
                           onClick={handleCancelEdit}
@@ -415,7 +445,7 @@ export const Dashboard: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    /* View Mode */
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -424,28 +454,42 @@ export const Dashboard: React.FC = () => {
                           {isAdd ? '😅' : '😊'}
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
-                            {rule?.title || '알 수 없는 규칙'}
-                          </p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {rule?.title || '알 수 없는 규칙'}
+                            </p>
+                            <span className="text-xs">{violatorEmoji}</span>
+                          </div>
                           <p className="text-xs text-gray-500">
+                            <span className={`font-medium ${
+                              isAdd ? 'text-red-600' : 'text-green-600'
+                            }`}>
+                              {violatorName}님{isAdd ? '이 받은' : '이 차감한'} 벌금
+                            </span>
+                            <span className="mx-1">•</span>
                             {new Date(violation.created_at).toLocaleDateString('ko-KR', {
                               month: 'short',
                               day: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit'
                             })}
-                            {violation.memo && ` • ${violation.memo}`}
+                            {violation.memo && (
+                              <>
+                                <span className="mx-1">•</span>
+                                <span>{violation.memo}</span>
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         <span className={`text-sm font-bold ${
                           isAdd ? 'text-red-600' : 'text-green-600'
                         }`}>
                           {isAdd ? '+' : ''}{violation.amount}만원
                         </span>
-                        
+
                         <div className="flex gap-1 ml-2">
                           <button
                             onClick={() => handleEdit(violation)}

@@ -10,8 +10,8 @@ export const RealtimeStatus: React.FC = () => {
   return (
     <div className="fixed top-4 right-4 z-50">
       <div className={`flex items-center gap-2 px-2 py-1 rounded-full shadow-lg transition-all text-xs ${
-        isRealtimeConnected 
-          ? 'bg-green-500 text-white' 
+        isRealtimeConnected
+          ? 'bg-green-500 text-white'
           : 'bg-red-500 text-white'
       }`}>
         {isRealtimeConnected ? (

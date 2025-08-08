@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter, TrendingUp, TrendingDown, Clock, Edit, Trash2 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
 export const Calendar: React.FC = () => {
   const { state, updateViolation, deleteViolation } = useApp();
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filter, setFilter] = useState<'all' | 'add' | 'subtract'>('all');
   const [editingViolation, setEditingViolation] = useState<string | null>(null);
@@ -18,7 +20,7 @@ export const Calendar: React.FC = () => {
   // Filter violations by current month
   const monthlyViolations = state.violations?.filter(violation => {
     const violationDate = new Date(violation.created_at);
-    return violationDate.getMonth() === currentMonth && 
+    return violationDate.getMonth() === currentMonth &&
            violationDate.getFullYear() === currentYear &&
            (filter === 'all' || (filter === 'add' && violation.amount > 0) || (filter === 'subtract' && violation.amount < 0));
   }) || [];
@@ -58,7 +60,7 @@ export const Calendar: React.FC = () => {
   // Handle save edit
   const handleSaveEdit = async () => {
     if (!editingViolation) return;
-    
+
     try {
       const violation = state.violations.find(v => v.id === editingViolation);
       if (!violation) return;
@@ -121,17 +123,17 @@ export const Calendar: React.FC = () => {
     const startDayOfWeek = firstDay.getDay();
 
     const days = [];
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startDayOfWeek; i++) {
       days.push(null);
     }
-    
+
     // Add all days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day));
     }
-    
+
     return days;
   };
 
@@ -151,7 +153,7 @@ export const Calendar: React.FC = () => {
             Track your violations and reductions over time
           </p>
         </div>
-        
+
         {/* Filter */}
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-gray-500" />
@@ -259,8 +261,8 @@ export const Calendar: React.FC = () => {
               >
                 <div className="flex items-center justify-between">
                   <span className={`text-sm ${
-                    isToday(day) 
-                      ? 'font-bold text-primary-600' 
+                    isToday(day)
+                      ? 'font-bold text-primary-600'
                       : 'text-gray-900'
                   }`}>
                     {day.getDate()}
@@ -269,7 +271,7 @@ export const Calendar: React.FC = () => {
                     <div className="w-2 h-2 bg-primary-500 rounded-full" />
                   )}
                 </div>
-                
+
                 {dayViolations.length > 0 && (
                   <div className="space-y-1">
                     {penalties > 0 && (
@@ -298,7 +300,7 @@ export const Calendar: React.FC = () => {
           <Clock className="w-5 h-5 text-primary-600" />
           Recent Activity
         </h3>
-        
+
         {monthlyViolations.length > 0 ? (
           <div className="space-y-4">
             {monthlyViolations
@@ -306,10 +308,40 @@ export const Calendar: React.FC = () => {
               .slice(0, 10)
               .map((violation) => {
                 const rule = state.rules?.find(r => r.id === violation.rule_id);
+                
+                // Get violator name
+                const getViolatorName = () => {
+                  // First try from violation relation
+                  if (violation.violator?.display_name) {
+                    return violation.violator.display_name;
+                  }
+                  if (violation.violator?.email) {
+                    return violation.violator.email.split('@')[0];
+                  }
+                  
+                  // Fallback to couple data
+                  const couple = state.couple as any;
+                  if (couple) {
+                    if (violation.violator_user_id === couple.partner_1_id && couple.partner_1) {
+                      return couple.partner_1.display_name || couple.partner_1.email?.split('@')[0] || '파트너1';
+                    }
+                    if (violation.violator_user_id === couple.partner_2_id && couple.partner_2) {
+                      return couple.partner_2.display_name || couple.partner_2.email?.split('@')[0] || '파트너2';
+                    }
+                  }
+                  
+                  // Final fallback
+                  return violation.violator_user_id === user?.id ? '나' : '파트너';
+                };
+                
+                const violatorName = getViolatorName();
+                const violatorEmoji = violation.violator_user_id === (state.couple as any)?.partner_1_id ? '👩' : '👨';
+                const isAdd = violation.amount > 0;
+                
                 return (
                   <div key={violation.id} className="border border-gray-100 rounded-xl p-4 bg-gradient-to-r from-white to-gray-50 hover:shadow-md transition-all">
                     {editingViolation === violation.id ? (
-                      /* Edit Mode */
+
                       <div className="space-y-3">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -322,7 +354,7 @@ export const Calendar: React.FC = () => {
                             <p className="text-sm text-gray-500">편집 중...</p>
                           </div>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">금액 (만원)</label>
@@ -346,7 +378,7 @@ export const Calendar: React.FC = () => {
                             />
                           </div>
                         </div>
-                        
+
                         <div className="flex gap-2 justify-end">
                           <button
                             onClick={handleCancelEdit}
@@ -364,7 +396,7 @@ export const Calendar: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      /* View Mode */
+
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 flex-1">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -377,23 +409,37 @@ export const Calendar: React.FC = () => {
                             )}
                           </div>
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">
-                              {rule?.title || 'Unknown Rule'}
-                            </p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium text-gray-900">
+                                {rule?.title || 'Unknown Rule'}
+                              </p>
+                              <span className="text-sm">{violatorEmoji}</span>
+                            </div>
                             <p className="text-sm text-gray-600">
+                              <span className={`font-medium ${
+                                isAdd ? 'text-red-600' : 'text-green-600'
+                              }`}>
+                                {violatorName}님{isAdd ? '이 받은' : '이 차감한'} 벌금
+                              </span>
+                              <span className="mx-1">•</span>
                               {new Date(violation.created_at).toLocaleDateString('ko-KR')}
-                              {violation.memo && ` • ${violation.memo}`}
+                              {violation.memo && (
+                                <>
+                                  <span className="mx-1">•</span>
+                                  <span>{violation.memo}</span>
+                                </>
+                              )}
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           <span className={`font-semibold ${
                             violation.amount > 0 ? 'text-red-600' : 'text-green-600'
                           }`}>
                             {violation.amount > 0 ? '+' : ''}{violation.amount}만원
                           </span>
-                          
+
                           <div className="flex gap-1 ml-3">
                             <button
                               onClick={() => handleEdit(violation)}

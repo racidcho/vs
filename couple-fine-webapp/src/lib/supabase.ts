@@ -5,42 +5,40 @@ import type { Database } from '../types/database';
 const getSupabaseConfig = () => {
   const envUrl = import.meta.env.VITE_SUPABASE_URL;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
+
   // 폴백 값 (프로덕션용 - 보안상 좋지 않지만 임시 해결책)
   const fallbackUrl = 'https://ywocrwjzjheupewfxssu.supabase.co';
   const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b2Nyd2p6amhldXBld2Z4c3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NDkyNzIsImV4cCI6MjA3MDEyNTI3Mn0.zLalJ0ECNVKmXRtSe8gmbwOWDrqAxvOP0oIn9jOhT9U';
-  
+
   // 환경 변수가 없으면 폴백 사용
   if (!envUrl || !envKey) {
-    console.warn('⚠️ Supabase 환경 변수가 설정되지 않았습니다. 폴백 값 사용');
-    console.warn('⚠️ 이것은 임시 해결책입니다. Vercel에서 환경변수를 설정해주세요.');
-    return { 
-      url: fallbackUrl, 
-      key: fallbackKey, 
-      source: 'fallback' 
+
+    return {
+      url: fallbackUrl,
+      key: fallbackKey,
+      source: 'fallback'
     };
   }
-  
+
   // 환경 변수 검증
   if (!envUrl.includes('.supabase.co')) {
     console.error('⚠️ 잘못된 Supabase URL:', envUrl, '폴백 사용');
-    return { 
-      url: fallbackUrl, 
-      key: fallbackKey, 
-      source: 'fallback-invalid-url' 
+    return {
+      url: fallbackUrl,
+      key: fallbackKey,
+      source: 'fallback-invalid-url'
     };
   }
-  
+
   if (envKey.length < 100) {
     console.error('⚠️ 잘못된 Supabase Anon Key, 폴백 사용');
-    return { 
-      url: fallbackUrl, 
-      key: fallbackKey, 
-      source: 'fallback-invalid-key' 
+    return {
+      url: fallbackUrl,
+      key: fallbackKey,
+      source: 'fallback-invalid-key'
     };
   }
-  
-  console.log('✅ Supabase 환경 변수 로드 성공');
+
   return { url: envUrl, key: envKey, source: 'environment' };
 };
 
@@ -85,12 +83,10 @@ export const supabase = createClient<Database>(finalUrl, finalKey, {
   }
 });
 
-
-
 // Database table helpers with type safety
 export const Tables = {
   users: 'profiles', // Updated to match actual DB schema
-  couples: 'couples', 
+  couples: 'couples',
   rules: 'rules',
   violations: 'violations',
   rewards: 'rewards'
@@ -111,7 +107,7 @@ export const onConnectionChange = (callback: (connected: boolean) => void) => {
   const interval = setInterval(() => {
     callback(supabase.realtime.isConnected());
   }, 5000);
-  
+
   // Cleanup function
   return () => {
     clearInterval(interval);
@@ -135,7 +131,7 @@ export const healthCheck = async (): Promise<{
     const { error } = await supabase.from('profiles').select('id').limit(1);
     results.database = !error;
   } catch (error) {
-    console.warn('Database health check failed:', error);
+
   }
 
   try {
@@ -143,7 +139,7 @@ export const healthCheck = async (): Promise<{
     const { error } = await supabase.auth.getSession();
     results.auth = !error;
   } catch (error) {
-    console.warn('Auth health check failed:', error);
+
   }
 
   // Realtime health check
@@ -182,7 +178,7 @@ export const executeBatch = async <T>(operations: Promise<T>[]): Promise<{
   successCount: number;
 }> => {
   const settled = await Promise.allSettled(operations);
-  
+
   const results: (T | null)[] = [];
   const errors: (Error | null)[] = [];
   let successCount = 0;

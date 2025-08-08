@@ -20,10 +20,10 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    return { 
-      hasError: true, 
+    return {
+      hasError: true,
       error,
-      errorInfo: null 
+      errorInfo: null
     };
   }
 
@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
     // Clear any cached data
     localStorage.clear();
     sessionStorage.clear();
-    
+
     // Reload the page
     window.location.reload();
   };
@@ -53,13 +53,13 @@ export class ErrorBoundary extends Component<Props, State> {
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
                 <AlertTriangle className="w-8 h-8 text-red-600" />
               </div>
-              
+
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 앗! 문제가 발생했어요
               </h1>
-              
+
               <p className="text-gray-600 mb-6">
-                예상치 못한 오류가 발생했어요. 
+                예상치 못한 오류가 발생했어요.
                 새로고침하면 대부분 해결됩니다.
               </p>
 

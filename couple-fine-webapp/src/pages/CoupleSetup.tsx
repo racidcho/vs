@@ -11,7 +11,7 @@ export const CoupleSetup: React.FC = () => {
   const navigate = useNavigate();
   const { createCouple, joinCouple, updateCoupleName } = useApp();
   const { user, refreshUser } = useAuth();
-  
+
   const [step, setStep] = useState<Step>('choose');
   const [coupleCode, setCoupleCode] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
@@ -21,10 +21,10 @@ export const CoupleSetup: React.FC = () => {
 
   const handleCreateCouple = async () => {
     setIsLoading(true);
-    
+
     try {
       const result = await createCouple(coupleName);
-      
+
       if ('error' in result) {
         toast.error(result.error);
       } else {
@@ -36,7 +36,7 @@ export const CoupleSetup: React.FC = () => {
         } else {
           toast.success('커플이 성공적으로 생성되었어요! 💕');
         }
-        
+
         // Show couple name step if name is default
         if (coupleName === '우리') {
           setStep('name');
@@ -53,17 +53,17 @@ export const CoupleSetup: React.FC = () => {
 
   const handleJoinCouple = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!coupleCode.trim()) {
       toast.error('커플 코드를 입력해주세요! 📝');
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       const result = await joinCouple(coupleCode.toUpperCase());
-      
+
       if (result.error) {
         toast.error(result.error);
       } else {
@@ -185,7 +185,7 @@ export const CoupleSetup: React.FC = () => {
               >
                 건너뛰기
               </button>
-              
+
               <button
                 onClick={handleSaveCoupleName}
                 disabled={isLoading || !coupleName.trim()}
@@ -217,7 +217,7 @@ export const CoupleSetup: React.FC = () => {
               {generatedCode ? '커플 생성 완료! 🎉' : '커플 연결 완료! 💕'}
             </h2>
             <p className="text-gray-600">
-              {generatedCode 
+              {generatedCode
                 ? '아래 코드를 파트너에게 공유해주세요'
                 : '커플 연결이 성공적으로 완료되었어요'
               }
@@ -310,7 +310,7 @@ export const CoupleSetup: React.FC = () => {
               >
                 이전
               </button>
-              
+
               <button
                 onClick={handleCreateCouple}
                 disabled={isLoading}
@@ -368,7 +368,7 @@ export const CoupleSetup: React.FC = () => {
               >
                 이전
               </button>
-              
+
               <button
                 type="submit"
                 disabled={isLoading || !coupleCode.trim()}

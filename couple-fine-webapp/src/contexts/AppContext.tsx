@@ -37,8 +37,8 @@ const initialState: AppState = {
 const appReducer = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
     case 'SET_COUPLE':
-      return { 
-        ...state, 
+      return {
+        ...state,
         couple: action.payload
       };
     case 'SET_RULES':
@@ -155,33 +155,21 @@ interface AppProviderProps {
   children: React.ReactNode;
 }
 
-
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { user, isLoading, refreshUser } = useAuth();
-  
+
   // Realtime connection status (will be managed directly in this component)
   const isRealtimeConnected = true; // Placeholder for now
 
-
   // Load couple data when user changes with abort signal support
   const loadCoupleData = async (abortSignal?: AbortSignal) => {
-    console.log('🔄 APPCONTEXT: loadCoupleData 시작');
-    console.log('👤 APPCONTEXT: 현재 사용자 정보:', {
-      id: user?.id,
-      email: user?.email,
-      display_name: user?.display_name,
-      couple_id: user?.couple_id,
-      created_at: user?.created_at
-    });
 
     if (!user?.couple_id) {
-      console.log('❌ APPCONTEXT: 사용자에게 커플 ID가 없음 - 상태 리셋');
+
       dispatch({ type: 'RESET_STATE' });
       return;
     }
-
-    console.log('🏁 APPCONTEXT: 커플 데이터 로드 시작, 커플 ID:', user.couple_id);
 
     // 5초 타임아웃 설정
     const timeoutPromise = new Promise((_, reject) => {
@@ -189,11 +177,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     });
 
     try {
-      console.log('📊 APPCONTEXT: 커플 정보 쿼리 시작...');
-      
+
       // Check abort signal before making API call
       if (abortSignal?.aborted) {
-        console.log('🚫 APPCONTEXT: loadCoupleData 중단됨');
+
         return;
       }
 
@@ -211,20 +198,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         timeoutPromise
       ]).catch(err => ({ data: null, error: err })) as any;
 
-      console.log('💑 APPCONTEXT: 커플 데이터 쿼리 결과:', {
-        data: coupleData,
-        error: coupleError
-      });
-
       if (coupleError) {
-        console.log('❌ APPCONTEXT: 커플 데이터 로드 실패:', coupleError);
+
         return;
       }
 
       if (coupleData) {
-        console.log('📝 APPCONTEXT: 커플 데이터 변환 중...');
-        console.log('🔍 APPCONTEXT: 원본 커플 데이터:', coupleData);
-        
+
         // Transform the data to match existing Couple interface
         const transformedCouple = {
           id: coupleData.id,
@@ -236,14 +216,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           partner_1: coupleData.partner_1,
           partner_2: coupleData.partner_2
         };
-        
-        console.log('✅ APPCONTEXT: 변환된 커플 데이터:', transformedCouple);
-        console.log('📦 APPCONTEXT: 커플 상태 업데이트 중...');
-        dispatch({ type: 'SET_COUPLE', payload: transformedCouple as any });
-        console.log('✅ APPCONTEXT: 커플 상태 업데이트 완료');
-      }
 
-      console.log('📋 APPCONTEXT: 규칙 데이터 로드 시작...');
+        dispatch({ type: 'SET_COUPLE', payload: transformedCouple as any });
+
+      }
 
       // Load rules (with timeout)
       const { data: rulesData, error: rulesError } = await Promise.race([
@@ -256,21 +232,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         timeoutPromise
       ]).catch(err => ({ data: null, error: err })) as any;
 
-      console.log('📋 APPCONTEXT: 규칙 데이터 쿼리 결과:', {
-        count: rulesData?.length || 0,
-        data: rulesData,
-        error: rulesError
-      });
-
       if (rulesError) {
-        console.log('❌ APPCONTEXT: 규칙 데이터 로드 실패:', rulesError);
-      } else {
-        console.log('✅ APPCONTEXT: 규칙 상태 업데이트 중...');
-        dispatch({ type: 'SET_RULES', payload: rulesData || [] });
-        console.log('✅ APPCONTEXT: 규칙 상태 업데이트 완료');
-      }
 
-      console.log('⚠️ APPCONTEXT: 위반 기록 데이터 로드 시작...');
+      } else {
+
+        dispatch({ type: 'SET_RULES', payload: rulesData || [] });
+
+      }
 
       // Load violations with relations
       const { data: violationsData, error: violationsError } = await supabase
@@ -285,21 +253,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      console.log('⚠️ APPCONTEXT: 위반 기록 쿼리 결과:', {
-        count: violationsData?.length || 0,
-        data: violationsData,
-        error: violationsError
-      });
-
       if (violationsError) {
-        console.log('❌ APPCONTEXT: 위반 기록 로드 실패:', violationsError);
-      } else {
-        console.log('✅ APPCONTEXT: 위반 기록 상태 업데이트 중...');
-        dispatch({ type: 'SET_VIOLATIONS', payload: violationsData as any || [] });
-        console.log('✅ APPCONTEXT: 위반 기록 상태 업데이트 완료');
-      }
 
-      console.log('🎁 APPCONTEXT: 보상 데이터 로드 시작...');
+      } else {
+
+        dispatch({ type: 'SET_VIOLATIONS', payload: violationsData as any || [] });
+
+      }
 
       // Load rewards
       const { data: rewardsData, error: rewardsError } = await supabase
@@ -308,35 +268,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .eq('couple_id', user.couple_id)
         .order('created_at', { ascending: false });
 
-      console.log('🎁 APPCONTEXT: 보상 데이터 쿼리 결과:', {
-        count: rewardsData?.length || 0,
-        data: rewardsData,
-        error: rewardsError
-      });
-
       if (rewardsError) {
-        console.log('❌ APPCONTEXT: 보상 데이터 로드 실패:', rewardsError);
+
       } else {
-        console.log('✅ APPCONTEXT: 보상 상태 업데이트 중...');
+
         dispatch({ type: 'SET_REWARDS', payload: rewardsData || [] });
-        console.log('✅ APPCONTEXT: 보상 상태 업데이트 완료');
+
       }
 
-      console.log('🎉 APPCONTEXT: loadCoupleData 완료');
     } catch (error) {
-      console.log('💥 APPCONTEXT: loadCoupleData 예외 발생:', error);
+
     }
   };
 
   // Refresh all data with abort signal support
   const refreshData = async (abortSignal?: AbortSignal) => {
-    console.log('🔄 APPCONTEXT: refreshData 호출 - 모든 데이터 새로고침');
+
     try {
       await loadCoupleData(abortSignal);
-      console.log('✅ APPCONTEXT: refreshData 완료');
+
     } catch (error) {
       if (abortSignal?.aborted) {
-        console.log('🚫 APPCONTEXT: refreshData 중단됨');
+
       } else {
         console.error('💥 APPCONTEXT: refreshData 오류:', error);
       }
@@ -356,7 +309,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Generate unique couple code using DB function
       const { data: codeData, error: codeError } = await supabase
         .rpc('generate_couple_code');
-      
+
       if (codeError || !codeData) {
         return { error: 'Failed to generate couple code' };
       }
@@ -391,24 +344,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .select('id')
         .eq('couple_id', coupleData.id)
         .limit(1);
-      
+
       const { data: existingRewards } = await supabase
         .from('rewards')
         .select('id')
         .eq('couple_id', coupleData.id)
         .limit(1);
-      
+
       // Only create defaults if none exist
       if (!existingRules || existingRules.length === 0) {
-        console.log('📝 Creating default rules for new couple');
+
         await supabase.rpc('create_default_rules', {
           p_couple_id: coupleData.id,
           p_user_id: user.id
         });
       }
-      
+
       if (!existingRewards || existingRewards.length === 0) {
-        console.log('🎁 Creating default rewards for new couple');
+
         await supabase.rpc('create_default_rewards', {
           p_couple_id: coupleData.id,
           p_user_id: user.id
@@ -483,10 +436,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Leave couple (disconnect)
   const leaveCouple = async () => {
-    console.log('🔄 APPCONTEXT: leaveCouple 시작');
-    
+
     if (!user?.couple_id) {
-      console.log('❌ APPCONTEXT: 커플 ID 없음');
+
       return { error: 'No couple to leave' };
     }
 
@@ -498,8 +450,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     });
 
     try {
-      console.log('📊 APPCONTEXT: 커플 데이터 조회 중...');
-      
+
       // Wrap the main operation in Promise.race with timeout
       const mainOperation = async () => {
         // Get couple data to determine which partner is leaving
@@ -510,15 +461,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           .single();
 
         if (coupleError || !coupleData) {
-          console.log('❌ APPCONTEXT: 커플 데이터 조회 실패:', coupleError);
+
           return { error: 'Couple not found' };
         }
 
-        console.log('📝 APPCONTEXT: 커플 데이터 업데이트 중...');
-
         // If this user is partner_1 and there's a partner_2, make partner_2 the new partner_1
         if (coupleData.partner_1_id === user.id && coupleData.partner_2_id) {
-          console.log('👥 APPCONTEXT: partner_1이 떠남, partner_2를 partner_1로 변경');
+
           const { error: updateError } = await supabase
             .from('couples')
             .update({
@@ -526,40 +475,38 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
               partner_2_id: null
             })
             .eq('id', user.couple_id);
-          
+
           if (updateError) {
-            console.log('❌ APPCONTEXT: 커플 업데이트 실패:', updateError);
+
             return { error: updateError.message };
           }
         }
         // If this user is partner_2, just remove them
         else if (coupleData.partner_2_id === user.id) {
-          console.log('👤 APPCONTEXT: partner_2 제거');
+
           const { error: updateError } = await supabase
             .from('couples')
             .update({ partner_2_id: null })
             .eq('id', user.couple_id);
-          
+
           if (updateError) {
-            console.log('❌ APPCONTEXT: 커플 업데이트 실패:', updateError);
+
             return { error: updateError.message };
           }
         }
         // If this user is the only partner, deactivate the couple
         else {
-          console.log('🚫 APPCONTEXT: 유일한 파트너, 커플 비활성화');
+
           const { error: updateError } = await supabase
             .from('couples')
             .update({ is_active: false })
             .eq('id', user.couple_id);
-          
+
           if (updateError) {
-            console.log('❌ APPCONTEXT: 커플 비활성화 실패:', updateError);
+
             return { error: updateError.message };
           }
         }
-
-        console.log('👤 APPCONTEXT: 사용자 프로필 업데이트 중...');
 
         // Remove couple_id from user profile
         const { error: profileError } = await supabase
@@ -568,29 +515,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           .eq('id', user.id);
 
         if (profileError) {
-          console.log('❌ APPCONTEXT: 프로필 업데이트 실패:', profileError);
+
           return { error: profileError.message };
         }
 
-        console.log('🧹 APPCONTEXT: 로컬 상태 리셋');
-
         // Reset local state first
         dispatch({ type: 'RESET_STATE' });
-
-        console.log('🔄 APPCONTEXT: AuthContext 사용자 정보 새로고침');
 
         // Force refresh AuthContext user data to sync couple_id change
         if (refreshUser) {
           try {
             await refreshUser();
-            console.log('✅ APPCONTEXT: 사용자 정보 새로고침 성공');
+
           } catch (refreshError) {
             console.error('⚠️ APPCONTEXT: 사용자 정보 새로고침 실패 (비차단):', refreshError);
             // Don't fail the entire operation if refresh fails
           }
         }
 
-        console.log('🎉 APPCONTEXT: leaveCouple 성공');
         return { success: true };
       };
 
@@ -599,17 +541,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     } catch (error) {
       console.error('💥 APPCONTEXT: leaveCouple 예외:', error);
-      
+
       // Handle timeout specifically
       if (error instanceof Error && error.message.includes('timed out')) {
         return { error: '연결 해제 요청이 시간 초과되었어요. 다시 시도해주세요.' };
       }
-      
+
       // Handle network errors
       if (error instanceof Error && error.message.includes('network')) {
         return { error: '네트워크 오류로 연결 해제에 실패했어요. 인터넷 연결을 확인해주세요.' };
       }
-      
+
       // Generic error
       return { error: '연결 해제 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.' };
     }
@@ -635,8 +577,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       // Return the partner (the one who is not the current user)
-      const partner = coupleData.partner_1_id === user.id 
-        ? coupleData.partner_2 
+      const partner = coupleData.partner_1_id === user.id
+        ? coupleData.partner_2
         : coupleData.partner_1;
 
       return { partner };
@@ -645,7 +587,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       return { partner: null, error: 'Failed to get partner info' };
     }
   };
-
 
   // Update couple name
   const updateCoupleName = async (name: string) => {
@@ -661,9 +602,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       // Update local state
       if (state.couple) {
-        dispatch({ 
-          type: 'SET_COUPLE', 
-          payload: { ...state.couple, couple_name: name.trim() } as any 
+        dispatch({
+          type: 'SET_COUPLE',
+          payload: { ...state.couple, couple_name: name.trim() } as any
         });
       }
 
@@ -675,25 +616,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Create rule
   const createRule = async (rule: Omit<Rule, 'id' | 'couple_id' | 'created_at'>) => {
-    console.log('🏗️ APPCONTEXT: createRule 호출됨');
-    console.log('📝 APPCONTEXT: 입력된 rule 데이터:', rule);
-    console.log('👤 APPCONTEXT: 현재 사용자:', user);
-    console.log('💑 APPCONTEXT: 커플 ID:', user?.couple_id);
-    
+
     if (!user?.couple_id) {
-      console.log('❌ APPCONTEXT: 커플 정보 없음');
+
       return { error: 'No couple found' };
     }
 
     try {
-      console.log('🔐 APPCONTEXT: Supabase 연결 상태:', !!supabase);
-      console.log('📊 APPCONTEXT: 삽입할 데이터:', {
-        ...rule,
-        couple_id: user.couple_id,
-        created_by_user_id: user.id,
-        is_active: true
-      });
-      
+
       const { error, data } = await supabase
         .from('rules')
         .insert({
@@ -705,31 +635,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .select()
         .single();
 
-      console.log('🔄 APPCONTEXT: Supabase 응답:', { data, error });
-
       if (error) {
-        console.log('❌ APPCONTEXT: Supabase 에러:', error);
+
         return { error: error.message };
       }
 
-      console.log('✅ APPCONTEXT: 규칙 생성 성공, 로컬 상태 업데이트:', data);
-      
       // **중요**: 성공 시 로컬 상태 즉시 업데이트
       if (data) {
         dispatch({ type: 'ADD_RULE', payload: data });
       }
-      
+
       return {};
     } catch (error) {
-      console.log('💥 APPCONTEXT: 예외 발생:', error);
+
       return { error: error instanceof Error ? error.message : 'Failed to create rule' };
     }
   };
 
   // Update rule
   const updateRule = async (id: string, updates: Partial<Rule>) => {
-    console.log('✏️ APPCONTEXT: updateRule 호출됨, ID:', id, '업데이트:', updates);
-    
+
     try {
       const { error, data } = await supabase
         .from('rules')
@@ -738,15 +663,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .select()
         .single();
 
-      console.log('🔄 APPCONTEXT: updateRule 결과:', { data, error });
-
       if (error) {
-        console.log('❌ APPCONTEXT: 규칙 업데이트 실패:', error);
+
         return { error: error.message };
       }
 
-      console.log('✅ APPCONTEXT: 규칙 업데이트 성공, 로컬 상태 업데이트:', data);
-      
       // **중요**: 성공 시 로컬 상태 즉시 업데이트
       if (data) {
         dispatch({ type: 'UPDATE_RULE', payload: data as Rule });
@@ -754,7 +675,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       return {};
     } catch (error) {
-      console.log('💥 APPCONTEXT: updateRule 예외 발생:', error);
+
       return { error: error instanceof Error ? error.message : 'Failed to update rule' };
     }
   };
@@ -821,25 +742,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Create reward
   const createReward = async (reward: Omit<Reward, 'id' | 'couple_id' | 'created_at'>) => {
-    console.log('🎁 APPCONTEXT: createReward 호출됨');
-    console.log('📝 APPCONTEXT: 입력된 reward 데이터:', reward);
-    console.log('👤 APPCONTEXT: 현재 사용자:', user);
-    console.log('💑 APPCONTEXT: 커플 ID:', user?.couple_id);
-    
+
     if (!user?.couple_id) {
-      console.log('❌ APPCONTEXT: 커플 정보 없음');
+
       return { error: 'No couple found' };
     }
 
     try {
-      console.log('🔐 APPCONTEXT: Supabase 연결 상태:', !!supabase);
-      console.log('📊 APPCONTEXT: 삽입할 데이터:', {
-        ...reward,
-        couple_id: user.couple_id,
-        created_by_user_id: user.id,
-        is_achieved: false
-      });
-      
+
       const { error, data } = await supabase
         .from('rewards')
         .insert({
@@ -851,23 +761,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .select()
         .single();
 
-      console.log('🔄 APPCONTEXT: Supabase 응답:', { data, error });
-
       if (error) {
-        console.log('❌ APPCONTEXT: Supabase 에러:', error);
+
         return { error: error.message };
       }
 
-      console.log('✅ APPCONTEXT: 보상 생성 성공, 로컬 상태 업데이트:', data);
-      
       // **중요**: 성공 시 로컬 상태 즉시 업데이트
       if (data) {
         dispatch({ type: 'ADD_REWARD', payload: data as Reward });
       }
-      
+
       return {};
     } catch (error) {
-      console.log('💥 APPCONTEXT: 예외 발생:', error);
+
       return { error: error instanceof Error ? error.message : 'Failed to create reward' };
     }
   };
@@ -875,8 +781,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Claim reward
   const claimReward = async (id: string) => {
     try {
-      console.log('🎉 APPCONTEXT: claimReward 시작, ID:', id);
-      
+
       const { error, data } = await supabase
         .from('rewards')
         .update({ is_achieved: true })
@@ -885,11 +790,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .single();
 
       if (error) {
-        console.log('❌ APPCONTEXT: 보상 획득 실패:', error);
+
         return { error: error.message };
       }
 
-      console.log('✅ APPCONTEXT: 보상 획득 성공, 로컬 상태 업데이트:', data);
       // **중요**: 성공 시 로컬 상태 즉시 업데이트
       if (data) {
         dispatch({ type: 'UPDATE_REWARD', payload: data as Reward });
@@ -897,7 +801,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       return {};
     } catch (error) {
-      console.log('💥 APPCONTEXT: claimReward 예외 발생:', error);
+
       return { error: 'Failed to claim reward' };
     }
   };
@@ -905,25 +809,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Delete reward
   const deleteReward = async (id: string) => {
     try {
-      console.log('🗑️ APPCONTEXT: deleteReward 시작, ID:', id);
-      
+
       const { error } = await supabase
         .from('rewards')
         .delete()
         .eq('id', id);
 
       if (error) {
-        console.log('❌ APPCONTEXT: 보상 삭제 실패:', error);
+
         return { error: error.message };
       }
 
-      console.log('✅ APPCONTEXT: 보상 삭제 성공, 로컬 상태 업데이트');
       // **중요**: 성공 시 로컬 상태 즉시 업데이트
       dispatch({ type: 'DELETE_REWARD', payload: id });
 
       return {};
     } catch (error) {
-      console.log('💥 APPCONTEXT: deleteReward 예외 발생:', error);
+
       return { error: 'Failed to delete reward' };
     }
   };
@@ -933,8 +835,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return state.violations
       .filter(v => v.violator_user_id === userId)
       .reduce((total, violation) => {
-        return violation.amount > 0 
-          ? total + violation.amount 
+        return violation.amount > 0
+          ? total + violation.amount
           : total - violation.amount;
       }, 0);
   };
@@ -971,7 +873,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           if ((state.couple as any).couple_code !== dbCouple.couple_code) {
             errors.push('커플 코드가 서버와 일치하지 않습니다.');
           }
-          
+
           if ((state.couple as any)?.total_balance !== dbCouple.total_balance) {
             errors.push('벌금 총액이 서버와 일치하지 않습니다.');
           }
@@ -1011,53 +913,41 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Load data when user changes
   useEffect(() => {
-    console.log('🔧 APPCONTEXT: useEffect 트리거 - 사용자 변경 감지');
-    console.log('👤 APPCONTEXT: 사용자 상태:', {
-      user: user ? {
-        id: user.id,
-        email: user.email,
-        display_name: user.display_name,
-        couple_id: user.couple_id
-      } : null,
-      isLoading: isLoading
-    });
 
     if (user && !isLoading) {
-      console.log('✅ APPCONTEXT: 사용자 로드 완료, 커플 데이터 확인 중...');
+
       if (user.couple_id) {
-        console.log('🚀 APPCONTEXT: 커플 ID 존재 - loadCoupleData 호출');
+
         loadCoupleData();
       } else {
-        console.log('🧹 APPCONTEXT: 커플 ID 없음 - 상태 리셋');
+
         dispatch({ type: 'RESET_STATE' });
       }
     } else {
-      console.log('⏳ APPCONTEXT: 사용자 로딩 중이거나 사용자 없음 - 대기');
+
     }
   }, [user, isLoading]);
 
   // Real-time subscriptions
   useEffect(() => {
     if (!user?.couple_id) {
-      console.log('📡 APPCONTEXT: 커플 ID 없음, 실시간 구독 건너뜀');
+
       return;
     }
-
-    console.log('📡 APPCONTEXT: 실시간 구독 설정 시작:', user.couple_id);
 
     // Subscribe to couples changes
     const coupleChannel = supabase
       .channel(`couple-${user.couple_id}`)
       .on(
         'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
+        {
+          event: '*',
+          schema: 'public',
           table: 'couples',
           filter: `id=eq.${user.couple_id}`
         },
         (payload) => {
-          console.log('💑 APPCONTEXT: 커플 데이터 실시간 변경:', payload.eventType);
+
           if (payload.eventType === 'UPDATE' && payload.new) {
             const transformedCouple = {
               id: payload.new.id,
@@ -1077,14 +967,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .channel(`rules-${user.couple_id}`)
       .on(
         'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
+        {
+          event: '*',
+          schema: 'public',
           table: 'rules',
           filter: `couple_id=eq.${user.couple_id}`
         },
         (payload) => {
-          console.log('📋 APPCONTEXT: 규칙 실시간 변경:', payload.eventType);
+
           // **무한 재실행 방지**: refreshData 대신 직접 상태 업데이트
           if (payload.eventType === 'INSERT' && payload.new) {
             dispatch({ type: 'ADD_RULE', payload: payload.new as Rule });
@@ -1107,21 +997,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .channel(`violations-${user.couple_id}`)
       .on(
         'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
+        {
+          event: '*',
+          schema: 'public',
           table: 'violations',
           filter: `couple_id=eq.${user.couple_id}`
         },
         (payload) => {
-          console.log('⚠️ APPCONTEXT: 위반 기록 실시간 변경:', payload.eventType);
+
           // For violations, we still need to reload due to complex relations
           // But with throttling to prevent excessive calls and avoid memory leaks
           setTimeout(() => {
             try {
               refreshData();
             } catch (error) {
-              console.warn('⚠️ APPCONTEXT: 위반 기록 실시간 업데이트 오류:', error);
+
             }
           }, 1000);
         }
@@ -1133,23 +1023,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .channel(`rewards-${user.couple_id}`)
       .on(
         'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
+        {
+          event: '*',
+          schema: 'public',
           table: 'rewards',
           filter: `couple_id=eq.${user.couple_id}`
         },
         (payload) => {
-          console.log('🎁 APPCONTEXT: 보상 실시간 변경:', payload.eventType, payload);
+
           // **무한 재실행 방지**: 직접 상태 업데이트
           if (payload.eventType === 'INSERT' && payload.new) {
-            console.log('➕ APPCONTEXT: 보상 INSERT 실시간 이벤트:', payload.new);
+
             dispatch({ type: 'ADD_REWARD', payload: payload.new as Reward });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            console.log('📝 APPCONTEXT: 보상 UPDATE 실시간 이벤트:', payload.new);
+
             dispatch({ type: 'UPDATE_REWARD', payload: payload.new as Reward });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            console.log('🗑️ APPCONTEXT: 보상 DELETE 실시간 이벤트:', payload.old.id);
+
             dispatch({ type: 'DELETE_REWARD', payload: payload.old.id });
           }
         }
@@ -1157,7 +1047,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .subscribe();
 
     return () => {
-      console.log('🧹 APPCONTEXT: 실시간 구독 정리');
+
       supabase.removeChannel(coupleChannel);
       supabase.removeChannel(rulesChannel);
       supabase.removeChannel(violationsChannel);
@@ -1182,7 +1072,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       window.removeEventListener('offline', updateOnlineStatus);
     };
   }, []);
-
 
   const value: AppContextType = {
     state: { ...state, user },

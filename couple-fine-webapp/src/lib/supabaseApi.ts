@@ -6,7 +6,7 @@ import type { User, Couple, Rule, Violation, Reward, PaginatedResponse } from '.
 const SCHEMA_MAP = {
   tables: {
     users: 'profiles',
-    couples: 'couples', 
+    couples: 'couples',
     rules: 'rules',
     violations: 'violations',
     rewards: 'rewards',
@@ -17,7 +17,7 @@ const SCHEMA_MAP = {
     id: 'id',
     created_at: 'created_at',
     updated_at: 'updated_at',
-    
+
     // Users/Profiles 테이블
     user_id: 'id',
     email: 'email',
@@ -25,15 +25,15 @@ const SCHEMA_MAP = {
     couple_id: 'couple_id',
     avatar_url: 'avatar_url',
     pin_hash: 'pin_hash',
-    
+
     // Couples 테이블
     couple_code: 'couple_code',
-    couple_name: 'couple_name', 
+    couple_name: 'couple_name',
     partner_1_id: 'partner_1_id',
     partner_2_id: 'partner_2_id',
     total_balance: 'total_balance',
     is_active: 'is_active',
-    
+
     // Rules 테이블
     title: 'title',
     description: 'description',
@@ -41,15 +41,15 @@ const SCHEMA_MAP = {
     category: 'category',
     icon_emoji: 'icon_emoji',
     created_by_user_id: 'created_by_user_id',
-    
+
     // Violations 테이블
     rule_id: 'rule_id',
     violator_user_id: 'violator_user_id',
-    recorded_by_user_id: 'recorded_by_user_id', 
+    recorded_by_user_id: 'recorded_by_user_id',
     amount: 'amount',
     memo: 'memo',
     violation_date: 'violation_date',
-    
+
     // Rewards 테이블
     target_amount: 'target_amount',
     is_achieved: 'is_achieved',
@@ -79,7 +79,7 @@ const createApiError = (error: any, context: string): ApiError => {
 const handleSupabaseError = (error: any, context: string = 'Database'): never => {
   console.error(`Supabase API Error (${context}):`, error);
   const apiError = createApiError(error, context);
-  
+
   // 사용자 친화적 메시지 매핑
   const friendlyMessages: Record<string, string> = {
     'PGRST116': '데이터를 찾을 수 없습니다',
@@ -88,7 +88,7 @@ const handleSupabaseError = (error: any, context: string = 'Database'): never =>
     '42P01': '데이터베이스 구조가 변경되었습니다. 관리자에게 문의하세요',
     '42703': '데이터베이스 필드가 변경되었습니다. 앱을 새로고침해주세요'
   };
-  
+
   const userMessage = friendlyMessages[error?.code] || apiError.message;
   throw new Error(userMessage);
 };
@@ -100,7 +100,7 @@ const handleSupabaseError = (error: any, context: string = 'Database'): never =>
 //       .from(tableName)
 //       .select(columnName)
 //       .limit(1);
-//     
+//
 //     // 컬럼이 존재하지 않으면 42703 에러가 발생
 //     return !error || error.code !== '42703';
 //   } catch {
@@ -112,7 +112,7 @@ const handleSupabaseError = (error: any, context: string = 'Database'): never =>
 // const buildSelectQuery = (baseColumns: string[], optionalColumns: Record<string, string> = {}) => {
 //   return async (tableName: string) => {
 //     const availableColumns = [...baseColumns];
-//     
+//
 //     // 선택적 컬럼 존재 여부 확인
 //     for (const [alias, column] of Object.entries(optionalColumns)) {
 //       const exists = await checkColumnExists(tableName, column);
@@ -120,7 +120,7 @@ const handleSupabaseError = (error: any, context: string = 'Database'): never =>
 //         availableColumns.push(`${column}:${alias}`);
 //       }
 //     }
-//     
+//
 //     return availableColumns.join(', ');
 //   };
 // };
@@ -128,7 +128,7 @@ const handleSupabaseError = (error: any, context: string = 'Database'): never =>
 // 🛡️ 안전한 데이터 변환 헬퍼
 const safeDataTransform = <T>(data: any, defaultValue: T): T => {
   if (!data) return defaultValue;
-  
+
   try {
     // 예상치 못한 컬럼이 있어도 안전하게 처리
     return { ...defaultValue, ...data };
@@ -140,7 +140,7 @@ const safeDataTransform = <T>(data: any, defaultValue: T): T => {
 // === User Profile Management ===
 export const createProfile = async (userId: string, email: string, displayName: string): Promise<User> => {
   const tableName = SCHEMA_MAP.tables.users;
-  
+
   try {
     const { data, error } = await supabase
       .from(tableName)
@@ -153,7 +153,7 @@ export const createProfile = async (userId: string, email: string, displayName: 
       .single();
 
     if (error) handleSupabaseError(error, '프로필 생성');
-    
+
     return safeDataTransform(data, {
       id: userId,
       email,
@@ -165,7 +165,7 @@ export const createProfile = async (userId: string, email: string, displayName: 
   } catch (error: any) {
     if (error.message?.includes('데이터베이스 구조')) {
       // 스키마 변경 시 대체 방법 시도
-      console.warn('스키마 변경으로 인한 대체 방법 사용');
+
       return {
         id: userId,
         email,
@@ -181,18 +181,18 @@ export const createProfile = async (userId: string, email: string, displayName: 
 
 export const updateProfile = async (userId: string, updates: Partial<Pick<User, 'display_name' | 'couple_id'>>): Promise<User> => {
   const tableName = SCHEMA_MAP.tables.users;
-  
+
   try {
     // 스키마 변경 대응을 위한 안전한 updates 객체 생성
     const safeUpdates: Record<string, any> = {};
-    
+
     if (updates.display_name !== undefined) {
       safeUpdates[SCHEMA_MAP.columns.display_name] = updates.display_name;
     }
     if (updates.couple_id !== undefined) {
       safeUpdates[SCHEMA_MAP.columns.couple_id] = updates.couple_id;
     }
-    
+
     const { data, error } = await supabase
       .from(tableName)
       .update(safeUpdates)
@@ -201,7 +201,7 @@ export const updateProfile = async (userId: string, updates: Partial<Pick<User, 
       .single();
 
     if (error) handleSupabaseError(error, '프로필 업데이트');
-    
+
     return safeDataTransform(data, {
       id: userId,
       email: '',
@@ -220,7 +220,7 @@ export const updateProfile = async (userId: string, updates: Partial<Pick<User, 
 
 export const getProfile = async (userId: string): Promise<User | null> => {
   const tableName = SCHEMA_MAP.tables.users;
-  
+
   try {
     const { data, error } = await supabase
       .from(tableName)
@@ -231,10 +231,10 @@ export const getProfile = async (userId: string): Promise<User | null> => {
     if (error && error.code !== 'PGRST116') {
       handleSupabaseError(error, '프로필 조회');
     }
-    
+
     return data ? safeDataTransform(data, null) : null;
   } catch (error: any) {
-    console.warn('프로필 조회 중 오류:', error.message);
+
     return null;
   }
 };
@@ -242,14 +242,14 @@ export const getProfile = async (userId: string): Promise<User | null> => {
 // === Couple Management ===
 export const createCouple = async (coupleName: string = '우리'): Promise<Couple> => {
   const tableName = SCHEMA_MAP.tables.couples;
-  
+
   try {
     // 현재 로그인한 사용자 가져오기
     const user = await getCurrentUser();
     if (!user) {
       throw new Error('로그인이 필요합니다');
     }
-    
+
     // 고유한 6자리 커플 코드 생성
     const coupleCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
@@ -266,7 +266,7 @@ export const createCouple = async (coupleName: string = '우리'): Promise<Coupl
       .single();
 
     if (error) handleSupabaseError(error, '커플 생성');
-    
+
     return safeDataTransform(data, {
       id: '',
       couple_code: coupleCode,
@@ -288,7 +288,7 @@ export const createCouple = async (coupleName: string = '우리'): Promise<Coupl
 export const connectCouple = async (userId: string, coupleCode: string): Promise<Couple> => {
   const tableName = SCHEMA_MAP.tables.couples;
   const usersTable = SCHEMA_MAP.tables.users;
-  
+
   try {
     // 1. 커플 코드 검증
     const { data: couple, error: coupleError } = await supabase
@@ -327,7 +327,7 @@ export const connectCouple = async (userId: string, coupleCode: string): Promise
 
 export const getCouple = async (coupleId: string): Promise<Couple | null> => {
   const tableName = SCHEMA_MAP.tables.couples;
-  
+
   try {
     const { data, error } = await supabase
       .from(tableName)
@@ -338,17 +338,17 @@ export const getCouple = async (coupleId: string): Promise<Couple | null> => {
     if (error && error.code !== 'PGRST116') {
       handleSupabaseError(error, '커플 정보 조회');
     }
-    
+
     return data ? safeDataTransform(data, null) : null;
   } catch (error: any) {
-    console.warn('커플 정보 조회 중 오류:', error.message);
+
     return null;
   }
 };
 
 export const getCoupleMembers = async (coupleId: string): Promise<User[]> => {
   const tableName = SCHEMA_MAP.tables.users;
-  
+
   try {
     const { data, error } = await supabase
       .from(tableName)
@@ -356,7 +356,7 @@ export const getCoupleMembers = async (coupleId: string): Promise<User[]> => {
       .eq(SCHEMA_MAP.columns.couple_id, coupleId);
 
     if (error) handleSupabaseError(error, '커플 멤버 조회');
-    
+
     return (data || []).map(user => safeDataTransform(user, {
       id: '',
       email: '',
@@ -366,7 +366,7 @@ export const getCoupleMembers = async (coupleId: string): Promise<User[]> => {
       created_at: new Date().toISOString()
     } as User));
   } catch (error: any) {
-    console.warn('커플 멤버 조회 중 오류:', error.message);
+
     return [];
   }
 };
@@ -374,7 +374,7 @@ export const getCoupleMembers = async (coupleId: string): Promise<User[]> => {
 // === Rules Management ===
 export const addRule = async (rule: Omit<Rule, 'id' | 'created_at'>): Promise<Rule> => {
   const tableName = SCHEMA_MAP.tables.rules;
-  
+
   try {
     // 스키마 변경 대응을 위한 안전한 insert 객체 생성
     const safeRule: Record<string, any> = {
@@ -383,7 +383,7 @@ export const addRule = async (rule: Omit<Rule, 'id' | 'created_at'>): Promise<Ru
       [SCHEMA_MAP.columns.fine_amount]: rule.fine_amount,
       [SCHEMA_MAP.columns.is_active]: true
     };
-    
+
     // 선택적 필드 추가
     if (rule.description) safeRule[SCHEMA_MAP.columns.description] = rule.description;
     if (rule.category) safeRule[SCHEMA_MAP.columns.category] = rule.category;
@@ -397,7 +397,7 @@ export const addRule = async (rule: Omit<Rule, 'id' | 'created_at'>): Promise<Ru
       .single();
 
     if (error) handleSupabaseError(error, '규칙 생성');
-    
+
     return safeDataTransform(data, {
       id: '',
       couple_id: rule.couple_id,
@@ -441,7 +441,7 @@ export const deleteRule = async (ruleId: string): Promise<void> => {
 
 export const getRules = async (coupleId: string, activeOnly: boolean = true): Promise<Rule[]> => {
   const tableName = SCHEMA_MAP.tables.rules;
-  
+
   try {
     let query = supabase
       .from(tableName)
@@ -455,7 +455,7 @@ export const getRules = async (coupleId: string, activeOnly: boolean = true): Pr
     const { data, error } = await query.order(SCHEMA_MAP.columns.created_at, { ascending: false });
 
     if (error) handleSupabaseError(error, '규칙 목록 조회');
-    
+
     return (data || []).map(rule => safeDataTransform(rule, {
       id: '',
       couple_id: coupleId,
@@ -469,7 +469,7 @@ export const getRules = async (coupleId: string, activeOnly: boolean = true): Pr
       created_at: new Date().toISOString()
     } as Rule));
   } catch (error: any) {
-    console.warn('규칙 목록 조회 중 오류:', error.message);
+
     return [];
   }
 };
@@ -477,7 +477,7 @@ export const getRules = async (coupleId: string, activeOnly: boolean = true): Pr
 // === Violations Management ===
 export const addViolation = async (violation: Omit<Violation, 'id' | 'created_at'>): Promise<Violation> => {
   const tableName = SCHEMA_MAP.tables.violations;
-  
+
   try {
     // 스키마 변경 대응을 위한 안전한 insert 객체
     const safeViolation: Record<string, any> = {
@@ -487,7 +487,7 @@ export const addViolation = async (violation: Omit<Violation, 'id' | 'created_at
       [SCHEMA_MAP.columns.recorded_by_user_id]: violation.recorded_by_user_id,
       [SCHEMA_MAP.columns.amount]: violation.amount
     };
-    
+
     // 선택적 필드
     if (violation.memo) safeViolation[SCHEMA_MAP.columns.memo] = violation.memo;
     if (violation.violation_date) safeViolation[SCHEMA_MAP.columns.violation_date] = violation.violation_date;
@@ -499,7 +499,7 @@ export const addViolation = async (violation: Omit<Violation, 'id' | 'created_at
       .single();
 
     if (error) handleSupabaseError(error, '벨금 기록 생성');
-    
+
     return safeDataTransform(data, {
       id: '',
       couple_id: violation.couple_id,
@@ -520,7 +520,7 @@ export const addViolation = async (violation: Omit<Violation, 'id' | 'created_at
 };
 
 export const getViolations = async (
-  coupleId: string, 
+  coupleId: string,
   options?: {
     limit?: number;
     offset?: number;
@@ -529,7 +529,7 @@ export const getViolations = async (
   }
 ): Promise<PaginatedResponse<Violation>> => {
   const tableName = SCHEMA_MAP.tables.violations;
-  
+
   try {
     let query = supabase
       .from(tableName)
@@ -540,7 +540,7 @@ export const getViolations = async (
     if (options?.userId) {
       query = query.eq(SCHEMA_MAP.columns.violator_user_id, options.userId);
     }
-    
+
     if (options?.ruleId) {
       query = query.eq(SCHEMA_MAP.columns.rule_id, options.ruleId);
     }
@@ -549,7 +549,7 @@ export const getViolations = async (
     if (options?.limit) {
       query = query.limit(options.limit);
     }
-    
+
     if (options?.offset) {
       query = query.range(options.offset, (options.offset + (options.limit || 10)) - 1);
     }
@@ -577,7 +577,7 @@ export const getViolations = async (
       has_more: (data?.length || 0) === (options?.limit || 10)
     };
   } catch (error: any) {
-    console.warn('벨금 기록 조회 중 오류:', error.message);
+
     return {
       data: [],
       count: 0,
@@ -615,7 +615,7 @@ export const deleteViolation = async (violationId: string): Promise<void> => {
 // === Rewards Management ===
 export const addReward = async (reward: Omit<Reward, 'id' | 'created_at'>): Promise<Reward> => {
   const tableName = SCHEMA_MAP.tables.rewards;
-  
+
   try {
     const safeReward: Record<string, any> = {
       [SCHEMA_MAP.columns.couple_id]: reward.couple_id,
@@ -623,7 +623,7 @@ export const addReward = async (reward: Omit<Reward, 'id' | 'created_at'>): Prom
       [SCHEMA_MAP.columns.target_amount]: reward.target_amount,
       [SCHEMA_MAP.columns.is_achieved]: false
     };
-    
+
     // 선택적 필드
     if (reward.description) safeReward[SCHEMA_MAP.columns.description] = reward.description;
     if (reward.category) safeReward[SCHEMA_MAP.columns.category] = reward.category;
@@ -638,7 +638,7 @@ export const addReward = async (reward: Omit<Reward, 'id' | 'created_at'>): Prom
       .single();
 
     if (error) handleSupabaseError(error, '보상 생성');
-    
+
     return safeDataTransform(data, {
       id: '',
       couple_id: reward.couple_id,
@@ -688,7 +688,7 @@ export const achieveReward = async (rewardId: string): Promise<Reward> => {
 
 export const getRewards = async (coupleId: string, includesAchieved: boolean = true): Promise<Reward[]> => {
   const tableName = SCHEMA_MAP.tables.rewards;
-  
+
   try {
     let query = supabase
       .from(tableName)
@@ -702,7 +702,7 @@ export const getRewards = async (coupleId: string, includesAchieved: boolean = t
     const { data, error } = await query.order(SCHEMA_MAP.columns.created_at, { ascending: false });
 
     if (error) handleSupabaseError(error, '보상 목록 조회');
-    
+
     return (data || []).map(reward => safeDataTransform(reward, {
       id: '',
       couple_id: coupleId,
@@ -719,7 +719,7 @@ export const getRewards = async (coupleId: string, includesAchieved: boolean = t
       created_at: new Date().toISOString()
     } as Reward));
   } catch (error: any) {
-    console.warn('보상 목록 조회 중 오류:', error.message);
+
     return [];
   }
 };
@@ -735,7 +735,7 @@ export const deleteReward = async (rewardId: string): Promise<void> => {
 
 // === Activity Logs & Dashboard ===
 export const getActivityLogs = async (
-  coupleId: string, 
+  coupleId: string,
   options?: { limit?: number; offset?: number }
 ): Promise<PaginatedResponse<Violation>> => {
   // 활동 로그는 위반 기록을 최신순으로 가져옴
@@ -757,7 +757,7 @@ export const getDashboardStats = async (coupleId: string): Promise<{
     const rulesTable = SCHEMA_MAP.tables.rules;
     const violationsTable = SCHEMA_MAP.tables.violations;
     const rewardsTable = SCHEMA_MAP.tables.rewards;
-    
+
     // 1. 활성 규칙 수 (안전한 카운팅)
     let activeRulesCount = 0;
     try {
@@ -768,27 +768,37 @@ export const getDashboardStats = async (coupleId: string): Promise<{
         .eq(SCHEMA_MAP.columns.is_active, true);
       activeRulesCount = count || 0;
     } catch (error: any) {
-      console.warn('활성 규칙 수 조회 오류:', error.message);
+
     }
 
     // 2. 이번 달 위반 수와 총 잔고 (안전한 계산)
     let thisMonthCount = 0;
     let totalBalance = 0;
-    
+
     try {
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      // 이번 달 위반 수
-      const { count } = await supabase
+      // 이번 달 위반 수 - amount 기준으로 계산
+      const { data: thisMonthViolationsData } = await supabase
         .from(violationsTable)
-        .select('*', { count: 'exact', head: true })
+        .select(SCHEMA_MAP.columns.amount)
         .eq(SCHEMA_MAP.columns.couple_id, coupleId)
         .gte(SCHEMA_MAP.columns.created_at, startOfMonth.toISOString());
-      thisMonthCount = count || 0;
 
-      // 총 잔고 계산 (벨금의 경우 amount가 양수이면 추가, 음수이면 차감)
+      // amount 값에 따라 위반 수 계산: 양수는 증가, 음수는 감소 (최소값 0 보장)
+      thisMonthCount = (thisMonthViolationsData || []).reduce((count, violation) => {
+        const amount = violation[SCHEMA_MAP.columns.amount] || 0;
+        if (amount > 0) {
+          return count + 1; // 위반 추가
+        } else if (amount < 0) {
+          return Math.max(0, count - 1); // 위반 감소 (0 미만 방지)
+        }
+        return count; // amount가 0인 경우 변화 없음
+      }, 0);
+
+      // 총 잔고 계산 (벌금의 경우 amount가 양수이면 추가, 음수이면 차감)
       const { data: allViolationsData } = await supabase
         .from(violationsTable)
         .select(SCHEMA_MAP.columns.amount)
@@ -799,7 +809,7 @@ export const getDashboardStats = async (coupleId: string): Promise<{
         return sum + amount; // amount 값에 따라 자동으로 추가/차감
       }, 0);
     } catch (error: any) {
-      console.warn('위반 데이터 조회 오류:', error.message);
+
     }
 
     // 3. 사용 가능한 보상 수
@@ -812,7 +822,7 @@ export const getDashboardStats = async (coupleId: string): Promise<{
         .eq(SCHEMA_MAP.columns.is_achieved, false);
       availableRewardsCount = count || 0;
     } catch (error: any) {
-      console.warn('보상 데이터 조회 오류:', error.message);
+
     }
 
     // 4. 최근 활동 (최근 5개) - 실패해도 빈 배열 반환
@@ -821,7 +831,7 @@ export const getDashboardStats = async (coupleId: string): Promise<{
       const violationsResponse = await getViolations(coupleId, { limit: 5 });
       recentActivity = violationsResponse.data;
     } catch (error: any) {
-      console.warn('최근 활동 조회 오류:', error.message);
+
     }
 
     return {
@@ -849,12 +859,12 @@ export const getDashboardStats = async (coupleId: string): Promise<{
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
-    
+
     if (error || !user) return null;
 
     return await getProfile(user.id);
   } catch (error: any) {
-    console.warn('현재 사용자 조회 오류:', error.message);
+
     return null;
   }
 };
@@ -883,7 +893,7 @@ export const signOut = async (): Promise<void> => {
     if (error) handleSupabaseError(error, '로그아웃');
   } catch (error: any) {
     // 로그아웃은 실패해도 사용자에게 심각한 문제가 아님
-    console.warn('로그아웃 오류:', error.message);
+
   }
 };
 
@@ -910,6 +920,6 @@ export const getAvatarUrl = (path: string): string => {
   const { data } = supabase.storage
     .from('avatars')
     .getPublicUrl(path);
-  
+
   return data.publicUrl;
 };
