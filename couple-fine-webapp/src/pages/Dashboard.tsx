@@ -47,18 +47,12 @@ export const Dashboard: React.FC = () => {
         
         // 커플이 존재하고 두 파트너 모두 이름이 설정되어 있는지 확인
         const couple = state.couple as any;
-        const bothPartnersHaveNames = 
-          couple?.partner_1_id && couple?.partner_2_id && // 두 파트너 모두 존재
-          (
-            // 커플 데이터에서 파트너 정보 확인
-            (couple?.partner_1?.display_name || couple?.partner_2?.display_name) ||
-            // 또는 현재 사용자와 파트너 모두 이름 설정됨
-            (user?.display_name && couple?.partner_1_id && couple?.partner_2_id)
-          );
+        // 단순하게 커플이 완성되었는지만 체크 (두 파트너 모두 존재)
+        const coupleIsComplete = couple?.partner_1_id && couple?.partner_2_id;
         
         console.log('🎉 DASHBOARD: 축하 페이지 체크:', {
           hasCelebrated: !!hasCelebrated,
-          bothPartnersHaveNames,
+          coupleIsComplete,
           partner1Id: couple?.partner_1_id,
           partner2Id: couple?.partner_2_id,
           partner1Name: couple?.partner_1?.display_name,
@@ -66,7 +60,7 @@ export const Dashboard: React.FC = () => {
           currentUserName: user?.display_name
         });
         
-        if (bothPartnersHaveNames && !hasCelebrated) {
+        if (coupleIsComplete && !hasCelebrated) {
           // 두 파트너 모두 있고 축하 페이지를 안 봤으면 리다이렉트
           console.log('🎉 DASHBOARD: 축하 페이지로 리다이렉트');
           navigate('/couple-complete');
