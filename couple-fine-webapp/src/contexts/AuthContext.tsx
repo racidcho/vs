@@ -405,40 +405,107 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     );
 
-    // 세션 자동 갱신 - 10분마다 세션 확인 및 갱신
-    // 세션 자동 갱신 (더 안정적으로)
+    // 세션 자동 갱신 - 매우 자주 체크하고 갱신
     const sessionRefreshInterval = setInterval(async () => {
       try {
+        console.log('🔍 세션 상태 확인 중...');
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
         if (error) {
           console.log('🔄 세션 확인 오류:', error.message);
+          // 오류 시에도 refreshSession 시도
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (!refreshError && refreshData.session) {
+            console.log('✅ 오류 후 세션 복구 성공');
+            setSession(refreshData.session);
+          }
           return;
         }
         
         if (currentSession) {
-          // 세션 만료 시간 확인 (5분 전에 갱신)
-          const expiresAt = currentSession.expires_at;
-          const now = Math.floor(Date.now() / 1000);
-          const timeUntilExpiry = expiresAt ? (expiresAt - now) : 0;
-          
-          if (timeUntilExpiry < 300) { // 5분 미만 남았으면 갱신
-            console.log('🔄 세션 자동 갱신 중...');
-            const { data, error: refreshError } = await supabase.auth.refreshSession();
-            if (refreshError) {
-              console.error('❌ 세션 갱신 실패:', refreshError.message);
-            } else {
-              console.log('✅ 세션 갱신 성공');
+          // 세션이 있으면 무조건 갱신 (더 공격적으로)
+          console.log('🔄 세션 강제 갱신 시도...');
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.error('❌ 세션 갱신 실패:', refreshError.message);
+            // 실패해도 현재 세션 유지
+            if (currentSession) {
+              setSession(currentSession);
+            }
+          } else if (refreshData.session) {
+            console.log('✅ 세션 갱신 성공');
+            setSession(refreshData.session);
+            // localStorage에도 백업
+            localStorage.setItem('lastValidSession', JSON.stringify({
+              userId: refreshData.session.user.id,
+              email: refreshData.session.user.email,
+              timestamp: Date.now()
+            }));
+          }
+        } else {
+          // 세션이 없으면 localStorage에서 복구 시도
+          console.log('⚠️ 세션 없음 - 복구 시도');
+          const lastSession = localStorage.getItem('lastValidSession');
+          if (lastSession) {
+            const sessionData = JSON.parse(lastSession);
+            // 24시간 이내의 세션만 복구 시도
+            if (Date.now() - sessionData.timestamp < 24 * 60 * 60 * 1000) {
+              console.log('📦 localStorage에서 세션 복구 시도');
+              const { data: refreshData } = await supabase.auth.refreshSession();
+              if (refreshData?.session) {
+                console.log('✅ 세션 복구 성공');
+                setSession(refreshData.session);
+              }
             }
           }
         }
       } catch (err) {
         console.error('💥 세션 관리 오류:', err);
       }
-    }, 5 * 60 * 1000); // 5분마다 실행 (더 자주 체크)
+    }, 1 * 60 * 1000); // 1분마다 실행 (매우 자주 체크)
+
+    // 브라우저 탭이 포커스를 받을 때마다 세션 확인
+    const handleFocus = async () => {
+      console.log('👀 탭 포커스 - 세션 확인');
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (!currentSession) {
+          console.log('⚠️ 포커스 시 세션 없음 - 복구 시도');
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          if (refreshData?.session) {
+            console.log('✅ 포커스 시 세션 복구 성공');
+            setSession(refreshData.session);
+            await refreshUser();
+          }
+        } else {
+          // 세션이 있어도 갱신
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          if (refreshData?.session) {
+            console.log('✅ 포커스 시 세션 갱신');
+            setSession(refreshData.session);
+          }
+        }
+      } catch (error) {
+        console.error('💥 포커스 시 세션 확인 오류:', error);
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    // 페이지가 보이게 될 때도 확인
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        handleFocus();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       subscription.unsubscribe();
       clearInterval(sessionRefreshInterval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
