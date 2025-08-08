@@ -12,6 +12,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { LoginForm } from './components/auth/LoginForm';
 import { PinLockScreen } from './components/auth/PinLockScreen';
 import { RealtimeStatus } from './components/RealtimeStatus';
+import { MagicLinkHandler } from './components/auth/MagicLinkHandler';
 import { useAppLock } from './hooks/useAppLock';
 
 // Pages (placeholders for now)
@@ -27,6 +28,16 @@ import { Settings } from './pages/Settings';
 const RouterContent: React.FC = () => {
   const { user } = useAuth();
   const { isLocked, hasPin } = useAppLock();
+  
+  // Check if URL has magic link tokens
+  const hasMagicLink = window.location.hash && 
+    (window.location.hash.includes('access_token') || 
+     window.location.hash.includes('error'));
+  
+  // Handle magic link before anything else
+  if (hasMagicLink) {
+    return <MagicLinkHandler />;
+  }
   
   // Show PIN lock screen if user is logged in, has PIN set, and app is locked
   if (user && hasPin && isLocked) {
