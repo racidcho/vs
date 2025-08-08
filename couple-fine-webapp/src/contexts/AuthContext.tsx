@@ -33,17 +33,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = async () => {
-    if (!session?.user) {
+    // Get current session from Supabase
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    
+    if (!currentSession?.user) {
       setUser(null);
       return;
     }
-
-    // CRITICAL: Only refresh user if email is confirmed
-    if (!session.user.email_confirmed_at) {
-      setUser(null);
-      setSession(null);
-      return;
-    }
+    
+    // Update session state
+    setSession(currentSession);
 
     try {
       // First try to get existing user
@@ -147,20 +146,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session and handle magic link
     const getInitialSession = async () => {
       try {
+        // Let Supabase handle the magic link automatically
         const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
         if (error) {
+          console.error('Auth error:', error);
           setSession(null);
           setUser(null);
           setIsLoading(false);
           return;
         }
         
-        // Only accept valid sessions with confirmed emails
-        if (initialSession && initialSession.access_token && initialSession.user?.email_confirmed_at) {
+        // Check if session is valid
+        if (initialSession && initialSession.access_token) {
+          console.log('Session found:', initialSession.user?.email);
           setSession(initialSession);
           await refreshUser();
         } else {
@@ -168,6 +170,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(null);
         }
       } catch (error) {
+        console.error('Session error:', error);
         setSession(null);
         setUser(null);
       } finally {
@@ -177,18 +180,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     getInitialSession();
 
-    // Listen for auth changes
+    // Listen for auth changes (including magic link)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth event:', event, session?.user?.email);
         
-        // Only accept valid sessions with proper authentication
-        if (session && session.access_token && session.user?.email_confirmed_at) {
+        if (event === 'SIGNED_IN' && session) {
+          // User just signed in (including via magic link)
           setSession(session);
           await refreshUser();
-        } else if (session && !session.user?.email_confirmed_at) {
+        } else if (event === 'SIGNED_OUT') {
+          // User signed out
           setSession(null);
           setUser(null);
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          // Token was refreshed
+          setSession(session);
+        } else if (session && session.access_token) {
+          // Valid session exists
+          setSession(session);
+          await refreshUser();
         } else {
+          // No valid session
           setSession(null);
           setUser(null);
         }
