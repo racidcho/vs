@@ -92,11 +92,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     try {
       
+      const redirectUrl = import.meta.env.PROD 
+        ? 'https://joanddo.com'
+        : window.location.origin;
+      
       const { data, error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: redirectUrl
         }
       });
       
