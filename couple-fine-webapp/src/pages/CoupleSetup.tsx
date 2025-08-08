@@ -91,7 +91,7 @@ export const CoupleSetup: React.FC = () => {
   };
 
   const handleContinue = () => {
-    navigate('/');
+    navigate('/name-setup');
   };
 
   const handleSaveCoupleName = async () => {
@@ -218,8 +218,8 @@ export const CoupleSetup: React.FC = () => {
             </h2>
             <p className="text-gray-600">
               {generatedCode
-                ? '아래 코드를 파트너에게 공유해주세요'
-                : '커플 연결이 성공적으로 완료되었어요'
+                ? '아래 코드를 파트너에게 공유하고 서로의 이름을 설정해보세요'
+                : '이제 서로를 부를 이름을 설정해보세요'
               }
             </p>
           </div>
@@ -249,9 +249,9 @@ export const CoupleSetup: React.FC = () => {
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-xs text-blue-800 font-medium mb-1">🎯 다음 단계:</p>
                 <ul className="text-xs text-blue-700 space-y-1">
+                  <li>• 서로를 부를 애칭을 설정해보세요</li>
                   <li>• 기본 규칙과 보상이 자동으로 생성되었어요</li>
                   <li>• 파트너가 연결되면 함께 벌금을 관리할 수 있어요</li>
-                  <li>• 설정에서 언제든 규칙과 보상을 수정할 수 있어요</li>
                 </ul>
               </div>
             </div>
@@ -261,9 +261,9 @@ export const CoupleSetup: React.FC = () => {
             <div className="mb-4 p-3 bg-green-50 rounded-lg">
               <p className="text-xs text-green-800 font-medium mb-1">🎉 연결 완료!</p>
               <ul className="text-xs text-green-700 space-y-1">
+                <li>• 이제 서로를 부를 애칭을 설정해보세요</li>
                 <li>• 파트너와 함께 벌금 시스템을 사용할 수 있어요</li>
                 <li>• 규칙 위반시 서로 벌금을 기록해보세요</li>
-                <li>• 목표 달성시 보상을 받을 수 있어요</li>
               </ul>
             </div>
           )}
@@ -273,7 +273,7 @@ export const CoupleSetup: React.FC = () => {
             className="btn-primary w-full flex items-center justify-center gap-2"
           >
             <ArrowRight className="w-4 h-4" />
-            대시보드로 이동
+            이름 설정하기
           </button>
         </div>
       </div>

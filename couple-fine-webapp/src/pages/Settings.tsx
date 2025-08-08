@@ -320,6 +320,169 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 🌟 FEATURED: 우리들의 이름 섹션 - TOP PRIORITY */}
+      {state.couple && (
+        <div className="bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 rounded-3xl p-8 shadow-lg border-2 border-pink-200 relative overflow-hidden">
+          {/* Animated Background Elements */}
+          <div className="absolute top-4 right-4 text-2xl animate-bounce">💑</div>
+          <div className="absolute bottom-4 left-4 text-xl animate-pulse">💕</div>
+          <div className="absolute top-6 left-6 text-lg animate-ping">✨</div>
+          
+          {/* Header with Bouncing Icon */}
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-extrabold text-gray-900 mb-2 flex items-center justify-center gap-3">
+              <span className="animate-bounce">💑</span>
+              우리들의 이름
+              <span className="animate-bounce" style={{ animationDelay: '0.5s' }}>💑</span>
+            </h1>
+            <p className="text-gray-700 text-base font-medium">
+              서로를 부르는 애칭을 설정해보세요!
+            </p>
+            <div className="flex justify-center mt-2">
+              <div className="flex items-center gap-1">
+                <Heart className="w-4 h-4 text-pink-500 animate-pulse" />
+                <Heart className="w-3 h-3 text-purple-500 animate-pulse" style={{ animationDelay: '0.3s' }} />
+                <Heart className="w-4 h-4 text-pink-500 animate-pulse" style={{ animationDelay: '0.6s' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Names Display - Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* My Name Card */}
+            <div className="bg-white rounded-2xl p-6 shadow-md border-2 border-pink-200 transform hover:scale-105 transition-all duration-300">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-pink-400 to-purple-400 rounded-2xl flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold text-2xl">
+                    {user?.display_name?.charAt(0) || '👩'}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    내 이름 👩
+                  </h3>
+                  <p className="text-gray-600 text-sm">나를 부를 이름이에요</p>
+                </div>
+              </div>
+
+              {isEditingProfile ? (
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="w-full px-4 py-4 bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-300 rounded-xl focus:border-pink-400 focus:ring-4 focus:ring-pink-100 transition-all text-center text-xl font-bold placeholder-gray-400"
+                    placeholder="예: 지원이, 자기야 💕"
+                    maxLength={20}
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleUpdateProfile}
+                      disabled={isLoading}
+                      className="flex-1 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-bold text-base shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isLoading ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <span className="text-lg">💝</span>
+                      )}
+                      이름 저장하기
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingProfile(false);
+                        setDisplayName(user?.display_name || '');
+                      }}
+                      className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold text-base hover:bg-gray-200 transition-all flex items-center gap-2"
+                    >
+                      <X className="w-4 h-4" />
+                      취소
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl font-extrabold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                      {user?.display_name || '이름을 설정해주세요'}
+                    </span>
+                    <button
+                      onClick={() => setIsEditingProfile(true)}
+                      className="px-4 py-2 bg-pink-100 text-pink-600 hover:bg-pink-200 text-sm font-bold rounded-xl transition-all hover:scale-105 flex items-center gap-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                      수정
+                    </button>
+                  </div>
+                  <p className="text-gray-500 text-sm">{user?.email}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Partner Name Card */}
+            {partner && (
+              <div className="bg-white rounded-2xl p-6 shadow-md border-2 border-indigo-200 transform hover:scale-105 transition-all duration-300">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-indigo-400 to-blue-400 rounded-2xl flex items-center justify-center shadow-lg">
+                    <span className="text-white font-bold text-2xl">
+                      {partner.display_name?.charAt(0) || '👨'}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                      파트너 이름 👨
+                    </h3>
+                    <p className="text-gray-600 text-sm">소중한 사람의 이름이에요</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-extrabold bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent">
+                    {partner.display_name || '이름을 설정해달라고 말해보세요'}
+                  </span>
+                  <div className="flex items-center gap-2 text-indigo-600">
+                    <Heart className="w-4 h-4 animate-pulse" />
+                    <span className="text-sm font-bold">파트너</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show empty partner card when no partner */}
+            {!partner && (
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 shadow-md border-2 border-dashed border-gray-300">
+                <div className="text-center">
+                  <div className="w-14 h-14 bg-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <span className="text-gray-500 text-2xl">👨</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-500 mb-2">파트너 이름 👨</h3>
+                  <p className="text-gray-400 text-sm mb-4">아직 파트너가 없어요</p>
+                  <div className="text-gray-400 text-lg">커플 코드를 공유해보세요 💕</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Cute Helpful Message */}
+          <div className="bg-gradient-to-r from-yellow-100 to-pink-100 rounded-2xl p-4 border-2 border-yellow-300 shadow-md">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl animate-bounce">💡</span>
+              <div className="flex-1">
+                <p className="text-gray-800 font-bold text-base mb-1">
+                  💕 예쁜 이름으로 서로를 불러보세요! 💕
+                </p>
+                <p className="text-gray-600 text-sm">
+                  예시: 지원이, 정훈이, 자기야, 여보, 내사랑, 허니, 베이비 등 ✨
+                </p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Heart className="w-5 h-5 text-pink-500 animate-pulse" />
+                <Heart className="w-4 h-4 text-purple-500 animate-pulse" style={{ animationDelay: '0.5s' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
         <div className="flex items-center gap-2 mb-2">
@@ -332,132 +495,6 @@ export const Settings: React.FC = () => {
           프로필과 앱 설정을 관리해보세요 ⚙️
         </p>
       </div>
-
-      {/* Couple Names Section */}
-      {state.couple && (
-        <div className="bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 rounded-2xl p-6 shadow-sm border border-pink-200">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-400 rounded-lg flex items-center justify-center animate-pulse">
-              <Heart className="w-4 h-4 text-white" />
-            </div>
-            우리들의 이름 💑
-          </h2>
-          <p className="text-gray-600 text-sm mb-4">
-            서로를 부를 예쁜 이름을 설정해보세요 ✨
-          </p>
-
-          <div className="space-y-4">
-            {/* My Name */}
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-pink-100">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">
-                    {user?.display_name?.charAt(0) || '💖'}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">내 이름</h3>
-                  <p className="text-gray-500 text-xs">나를 부를 이름이에요</p>
-                </div>
-              </div>
-
-              {isEditingProfile ? (
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-xl focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all text-center text-lg font-medium placeholder-gray-400"
-                    placeholder="예: 이지원, 정훈이 💕"
-                    maxLength={20}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleUpdateProfile}
-                      disabled={isLoading}
-                      className="flex-1 py-2 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1 disabled:opacity-50"
-                    >
-                      {isLoading ? (
-                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <Save className="w-3 h-3" />
-                      )}
-                      저장하기 💝
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsEditingProfile(false);
-                        setDisplayName(user?.display_name || '');
-                      }}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium text-sm hover:bg-gray-200 transition-all flex items-center gap-1"
-                    >
-                      <X className="w-3 h-3" />
-                      취소
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
-                      {user?.display_name || '이름을 설정해주세요'}
-                    </span>
-                    <button
-                      onClick={() => setIsEditingProfile(true)}
-                      className="px-3 py-1 bg-pink-100 text-pink-600 hover:bg-pink-200 text-xs font-medium rounded-lg transition-all hover:scale-105 flex items-center gap-1"
-                    >
-                      <Edit className="w-3 h-3" />
-                      수정
-                    </button>
-                  </div>
-                  <p className="text-gray-500 text-xs mt-1">{user?.email}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Partner Name */}
-            {partner && (
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-blue-400 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">
-                      {partner.display_name?.charAt(0) || '💙'}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900">파트너 이름</h3>
-                    <p className="text-gray-500 text-xs">내 소중한 사람의 이름이에요</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xl font-bold bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent">
-                    {partner.display_name || '이름을 설정해달라고 말해보세요'}
-                  </span>
-                  <div className="flex items-center gap-1 text-indigo-600">
-                    <Heart className="w-3 h-3 animate-pulse" />
-                    <span className="text-xs">파트너</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Cute Message */}
-            <div className="bg-gradient-to-r from-yellow-50 to-pink-50 rounded-xl p-3 border border-yellow-200">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">💡</span>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-700 font-medium">
-                    예쁜 이름으로 서로를 불러보세요!
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    예: 지원이, 정훈이, 자기야, 여보, 내사랑 등 💕
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Profile Section */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">

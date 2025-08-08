@@ -19,6 +19,7 @@ import { DebugPanel } from './components/DebugPanel';
 // Pages (placeholders for now)
 import { Dashboard } from './pages/Dashboard';
 import { CoupleSetup } from './pages/CoupleSetup';
+import { NameSetup } from './pages/NameSetup';
 import { Rules } from './pages/Rules';
 import { NewViolation } from './pages/NewViolation';
 import { Rewards } from './pages/Rewards';
@@ -74,6 +75,9 @@ const RouterContent: React.FC = () => {
 
         {/* Protected routes that don't require couple setup */}
         <Route path="/couple-setup" element={<ProtectedRoute><CoupleSetupPage /></ProtectedRoute>} />
+        
+        {/* Protected routes that require couple setup but allow incomplete profiles */}
+        <Route path="/name-setup" element={<ProtectedRoute requireCouple><NameSetupPage /></ProtectedRoute>} />
 
         {/* Protected routes that require couple setup */}
         <Route path="/" element={<RequireCouple><AppLayout /></RequireCouple>}>
@@ -138,6 +142,11 @@ const CoupleSetupPage: React.FC = () => {
       <CoupleSetup />
     </div>
   );
+};
+
+// Name setup page wrapper (the page already has its own styling)
+const NameSetupPage: React.FC = () => {
+  return <NameSetup />;
 };
 
 export default App;

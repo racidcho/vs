@@ -230,313 +230,345 @@ export const Dashboard: React.FC = () => {
   const showInlineError = loadError;
 
   return (
-    <div className="space-y-6">
-      {/* 인라인 오류 메시지 (페이지 차단하지 않음) */}
-      {showInlineError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <WifiOff className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm text-red-800">데이터를 불러오지 못했어요</p>
-            <p className="text-xs text-red-600">기본값으로 표시됩니다</p>
-          </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
-            title="새로고침"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 p-4 space-y-6">
+      {/* Floating Hearts Animation */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute animate-bounce" style={{ top: '10%', left: '10%', animationDelay: '0s' }}>
+          💖
         </div>
-      )}
-
-      {/* 환영 메시지 - 모바일 최적화 */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-xl font-bold text-gray-900">
-            {getGreeting()}, {user?.display_name || '사랑'}님!
-          </h1>
-          <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
+        <div className="absolute animate-pulse" style={{ top: '20%', right: '20%', animationDelay: '1s' }}>
+          💕
         </div>
-        <p className="text-sm text-gray-600">
-          {state.couple ? (
-            <>우리 커플 코드: <span className="font-medium text-pink-600">💑 {state.couple.couple_code}</span></>
-          ) : (
-            '커플 연결을 기다리고 있어요'
-          )}
-        </p>
+        <div className="absolute animate-bounce" style={{ top: '60%', left: '15%', animationDelay: '2s' }}>
+          💗
+        </div>
+        <div className="absolute animate-pulse" style={{ bottom: '20%', right: '15%', animationDelay: '3s' }}>
+          ✨
+        </div>
+        <div className="absolute animate-bounce" style={{ top: '30%', left: '80%', animationDelay: '0.5s' }}>
+          🌟
+        </div>
+        <div className="absolute animate-pulse" style={{ top: '70%', right: '30%', animationDelay: '1.5s' }}>
+          ⭐
+        </div>
       </div>
 
-      {/* 대결 위젯 - 커플이 둘 다 있을 때만 표시 */}
-      {state.couple && (state.couple as any).partner_1 && (state.couple as any).partner_2 && (
-        <VersusWidget />
-      )}
-
-      {/* 통계 카드 - 2x2 그리드 모바일 최적화 */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        {statsCards.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={index}
-              className="relative bg-white rounded-2xl p-4 shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
-            >
-              {/* 배경 그라데이션 */}
-              <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full -mr-8 -mt-8`}></div>
-
-              <div className="relative">
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`w-10 h-10 bg-gradient-to-br ${stat.gradient} rounded-xl flex items-center justify-center shadow-sm`}>
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-xl">{stat.emoji}</span>
-                </div>
-
-                <p className="text-xs text-gray-500 mb-1">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stat.value}
-                  <span className="text-sm font-normal text-gray-600 ml-1">{stat.unit}</span>
-                </p>
-                <p className="text-xs text-gray-400 mt-1">{stat.description}</p>
-              </div>
+      <div className="relative z-10 space-y-6">
+        {/* 인라인 오류 메시지 */}
+        {showInlineError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 animate-pulse">
+            <WifiOff className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm text-red-800">데이터를 불러오지 못했어요 😢</p>
+              <p className="text-xs text-red-600">기본값으로 표시됩니다</p>
             </div>
-          );
-        })}
-      </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
+              title="새로고침"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
-      {/* 빠른 액션 버튼들 - 모바일 최적화 */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-pink-100">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-gray-900">빠른 기록</h2>
-          <Zap className="w-4 h-4 text-yellow-500" />
+        {/* 작은 인사말 - 1줄로 간단하게 */}
+        <div className="text-center">
+          <h1 className="text-lg font-bold text-gray-800 flex items-center justify-center gap-2">
+            {getGreeting()}, {user?.display_name || '사랑'}님! 
+            <Sparkles className="w-5 h-5 text-yellow-500 animate-spin" />
+          </h1>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        {/* 대결 위젯 - 크고 눈에 띄게! */}
+        {state.couple && (state.couple as any).partner_1 && (state.couple as any).partner_2 ? (
+          <div className="transform hover:scale-105 transition-all duration-300">
+            <VersusWidget />
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100 rounded-3xl p-8 text-center shadow-lg animate-pulse">
+            <div className="text-6xl mb-4">🥰💕</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">벌금 대결 준비중! 💖</h2>
+            <p className="text-gray-600">커플 연결을 기다리고 있어요 😊</p>
+            {state.couple && (
+              <p className="text-sm text-pink-600 mt-2 font-medium">
+                커플 코드: 💑 {state.couple.couple_code}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 최근 벌금 기록 - 오늘 누가 벌금 받았나요? */}
+        {recentActivity.length > 0 && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-pink-200">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 text-center">
+                오늘 누가 벌금 받았나요? 👀
+              </h2>
+            </div>
+
+            <div className="space-y-4">
+              {recentActivity.slice(0, 3).map((violation: any) => {
+                const rule = state.rules?.find(r => r.id === violation.rule_id);
+                const isAdd = violation.amount > 0;
+                
+                // Get violator name from relation or couple data
+                const getViolatorName = () => {
+                  // First try from violation relation
+                  if (violation.violator?.display_name) {
+                    return violation.violator.display_name;
+                  }
+                  if (violation.violator?.email) {
+                    return violation.violator.email.split('@')[0];
+                  }
+                  
+                  // Fallback to couple data
+                  const couple = state.couple as any;
+                  if (couple) {
+                    if (violation.violator_user_id === couple.partner_1_id && couple.partner_1) {
+                      return couple.partner_1.display_name || couple.partner_1.email?.split('@')[0] || '파트너1';
+                    }
+                    if (violation.violator_user_id === couple.partner_2_id && couple.partner_2) {
+                      return couple.partner_2.display_name || couple.partner_2.email?.split('@')[0] || '파트너2';
+                    }
+                  }
+                  
+                  // Final fallback
+                  return violation.violator_user_id === user?.id ? '나' : '파트너';
+                };
+                
+                const violatorName = getViolatorName();
+                const isPartner1 = violation.violator_user_id === (state.couple as any)?.partner_1_id;
+                const cardBg = isPartner1 ? 'from-pink-100 to-pink-200' : 'from-blue-100 to-blue-200';
+                const textColor = isPartner1 ? 'text-pink-800' : 'text-blue-800';
+
+                return (
+                  <div
+                    key={violation.id}
+                    className={`bg-gradient-to-r ${cardBg} rounded-2xl p-5 shadow-md hover:shadow-lg transition-all transform hover:scale-102`}
+                  >
+                    {editingViolation === violation.id ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            isAdd ? 'bg-red-100' : 'bg-green-100'
+                          }`}>
+                            <Edit className="w-5 h-5 text-gray-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-lg font-bold text-gray-900">{rule?.title || '알 수 없는 규칙'}</p>
+                            <p className="text-sm text-gray-500">편집 중... ✏️</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">금액 (만원)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={editAmount || ''}
+                              onChange={(e) => setEditAmount(parseInt(e.target.value) || 0)}
+                              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-lg"
+                              placeholder="금액"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">메모</label>
+                            <input
+                              type="text"
+                              value={editMemo}
+                              onChange={(e) => setEditMemo(e.target.value)}
+                              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-lg"
+                              placeholder="메모 (선택사항)"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 justify-end">
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-white/50 rounded-xl transition-all font-medium"
+                          >
+                            취소 😊
+                          </button>
+                          <button
+                            onClick={handleSaveEdit}
+                            disabled={editAmount <= 0}
+                            className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl hover:from-pink-600 hover:to-purple-600 disabled:opacity-50 transition-all font-medium"
+                          >
+                            저장 ✨
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="text-4xl">
+                            {isAdd ? '😅' : '😊'}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <p className="text-xl font-bold text-gray-900">
+                                {rule?.title || '알 수 없는 규칙'}
+                              </p>
+                              <span className="text-2xl">{isPartner1 ? '👩' : '👨'}</span>
+                            </div>
+                            <p className={`text-lg font-bold ${textColor} mb-1`}>
+                              {violatorName}님{isAdd ? '이 벌금을 받았어요! 💸' : '이 벌금을 차감했어요! 🎉'}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {new Date(violation.created_at).toLocaleDateString('ko-KR', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                              {violation.memo && (
+                                <>
+                                  <span className="mx-2">•</span>
+                                  <span className="font-medium">{violation.memo}</span>
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className={`text-2xl font-bold ${
+                            isAdd ? 'text-red-600' : 'text-green-600'
+                          }`}>
+                            {isAdd ? '+' : ''}{violation.amount}만원
+                          </span>
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEdit(violation)}
+                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white/50 rounded-xl transition-all"
+                              title="편집"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(violation.id, (rule?.title || 'Unknown') + ' (' + violation.amount + '만원)')}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-white/50 rounded-xl transition-all"
+                              title="삭제"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <Link
+              to="/calendar"
+              className="mt-6 flex items-center justify-center gap-2 py-4 text-lg font-medium text-gray-600 hover:text-gray-900 transition-colors bg-white/50 rounded-2xl hover:bg-white/80"
+            >
+              <Calendar className="w-5 h-5" />
+              전체 기록 보기 📅
+            </Link>
+          </div>
+        )}
+
+        {/* 빠른 액션 버튼들 - 크고 눈에 띄게! */}
+        <div className="space-y-4">
           <Link
             to="/violations/new"
-            className="flex flex-col items-center gap-2 p-3 bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-100 hover:shadow-md transition-all hover:scale-105 active:scale-95"
+            className="block bg-gradient-to-r from-red-400 via-pink-400 to-purple-400 hover:from-red-500 hover:via-pink-500 hover:to-purple-500 text-white rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 active:scale-95"
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-pink-400 rounded-full flex items-center justify-center">
-              <Plus className="w-5 h-5 text-white" />
+            <div className="flex items-center justify-center gap-4">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                <Plus className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold mb-1">벌금 기록하기 💰</p>
+                <p className="text-white/80">누가 규칙을 어겼나요? 😏</p>
+              </div>
             </div>
-            <span className="text-xs font-medium text-gray-700">벌금 추가</span>
           </Link>
 
-          <Link
-            to="/rules"
-            className="flex flex-col items-center gap-2 p-3 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-100 hover:shadow-md transition-all hover:scale-105 active:scale-95"
-          >
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-indigo-400 rounded-full flex items-center justify-center">
-              <Heart className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xs font-medium text-gray-700">규칙 보기</span>
-          </Link>
+          <div className="grid grid-cols-2 gap-4">
+            <Link
+              to="/rules"
+              className="flex flex-col items-center gap-3 p-5 bg-gradient-to-br from-purple-100 to-indigo-200 hover:from-purple-200 hover:to-indigo-300 rounded-2xl border-2 border-purple-200 hover:border-purple-300 hover:shadow-lg transition-all transform hover:scale-105 active:scale-95"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-indigo-400 rounded-full flex items-center justify-center">
+                <Heart className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-center">
+                <span className="text-lg font-bold text-purple-800">규칙 추가 📝</span>
+                <p className="text-sm text-purple-600 mt-1">새로운 약속 만들기</p>
+              </div>
+            </Link>
 
-          <Link
-            to="/rewards"
-            className="flex flex-col items-center gap-2 p-3 bg-gradient-to-br from-green-50 to-teal-50 rounded-xl border border-green-100 hover:shadow-md transition-all hover:scale-105 active:scale-95"
-          >
-            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-teal-400 rounded-full flex items-center justify-center">
-              <Gift className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xs font-medium text-gray-700">보상 확인</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* 최근 활동 - 모바일 최적화 */}
-      {recentActivity.length > 0 && (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-pink-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-gray-900">최근 기록</h2>
-            <Clock className="w-4 h-4 text-gray-400" />
+            <Link
+              to="/rewards"
+              className="flex flex-col items-center gap-3 p-5 bg-gradient-to-br from-green-100 to-teal-200 hover:from-green-200 hover:to-teal-300 rounded-2xl border-2 border-green-200 hover:border-green-300 hover:shadow-lg transition-all transform hover:scale-105 active:scale-95"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-teal-400 rounded-full flex items-center justify-center">
+                <Gift className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-center">
+                <span className="text-lg font-bold text-green-800">보상 확인 🎁</span>
+                <p className="text-sm text-green-600 mt-1">뭘로 보상받을까?</p>
+              </div>
+            </Link>
           </div>
+        </div>
 
-          <div className="space-y-4">
-            {recentActivity.map((violation: any) => {
-              const rule = state.rules?.find(r => r.id === violation.rule_id);
-              const isAdd = violation.amount > 0;
-              
-              // Get violator name from relation or couple data
-              const getViolatorName = () => {
-                // First try from violation relation
-                if (violation.violator?.display_name) {
-                  return violation.violator.display_name;
-                }
-                if (violation.violator?.email) {
-                  return violation.violator.email.split('@')[0];
-                }
-                
-                // Fallback to couple data
-                const couple = state.couple as any;
-                if (couple) {
-                  if (violation.violator_user_id === couple.partner_1_id && couple.partner_1) {
-                    return couple.partner_1.display_name || couple.partner_1.email?.split('@')[0] || '파트너1';
-                  }
-                  if (violation.violator_user_id === couple.partner_2_id && couple.partner_2) {
-                    return couple.partner_2.display_name || couple.partner_2.email?.split('@')[0] || '파트너2';
-                  }
-                }
-                
-                // Final fallback
-                return violation.violator_user_id === user?.id ? '나' : '파트너';
-              };
-              
-              const violatorName = getViolatorName();
-              const violatorEmoji = violation.violator_user_id === (state.couple as any)?.partner_1_id ? '👩' : '👨';
+        {/* 통계 카드 - 작게 만들어서 하단으로 이동 */}
+        <div className="grid grid-cols-2 gap-3">
+          {statsCards.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={index}
+                className="relative bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-white/50 overflow-hidden hover:shadow-md transition-all transform hover:scale-105"
+              >
+                {/* 배경 그라데이션 */}
+                <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${stat.gradient} opacity-15 rounded-full -mr-6 -mt-6`}></div>
 
-              return (
-                <div
-                  key={violation.id}
-                  className="border border-gray-100 rounded-xl p-4 bg-gradient-to-r from-white to-gray-50 hover:shadow-md transition-all"
-                >
-                  {editingViolation === violation.id ? (
-
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          isAdd ? 'bg-red-100' : 'bg-green-100'
-                        }`}>
-                          <Edit className="w-4 h-4 text-gray-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{rule?.title || '알 수 없는 규칙'}</p>
-                          <p className="text-xs text-gray-500">편집 중...</p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">금액 (만원)</label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={editAmount || ''}
-                            onChange={(e) => setEditAmount(parseInt(e.target.value) || 0)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-sm"
-                            placeholder="금액"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">메모</label>
-                          <input
-                            type="text"
-                            value={editMemo}
-                            onChange={(e) => setEditMemo(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-sm"
-                            placeholder="메모 (선택사항)"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={handleCancelEdit}
-                          className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          취소
-                        </button>
-                        <button
-                          onClick={handleSaveEdit}
-                          disabled={editAmount <= 0}
-                          className="px-3 py-2 text-sm bg-pink-500 text-white rounded-lg hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          저장
-                        </button>
-                      </div>
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`w-8 h-8 bg-gradient-to-br ${stat.gradient} rounded-lg flex items-center justify-center shadow-sm`}>
+                      <Icon className="w-4 h-4 text-white" />
                     </div>
-                  ) : (
+                    <span className="text-lg">{stat.emoji}</span>
+                  </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          isAdd ? 'bg-red-100' : 'bg-green-100'
-                        }`}>
-                          {isAdd ? '😅' : '😊'}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="text-sm font-medium text-gray-900">
-                              {rule?.title || '알 수 없는 규칙'}
-                            </p>
-                            <span className="text-xs">{violatorEmoji}</span>
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            <span className={`font-medium ${
-                              isAdd ? 'text-red-600' : 'text-green-600'
-                            }`}>
-                              {violatorName}님{isAdd ? '이 받은' : '이 차감한'} 벌금
-                            </span>
-                            <span className="mx-1">•</span>
-                            {new Date(violation.created_at).toLocaleDateString('ko-KR', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                            {violation.memo && (
-                              <>
-                                <span className="mx-1">•</span>
-                                <span>{violation.memo}</span>
-                              </>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold ${
-                          isAdd ? 'text-red-600' : 'text-green-600'
-                        }`}>
-                          {isAdd ? '+' : ''}{violation.amount}만원
-                        </span>
-
-                        <div className="flex gap-1 ml-2">
-                          <button
-                            onClick={() => handleEdit(violation)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="편집"
-                          >
-                            <Edit className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(violation.id, (rule?.title || 'Unknown') + ' (' + violation.amount + '만원)')}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="삭제"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <p className="text-xs text-gray-500 mb-1">{stat.title}</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {stat.value}
+                    <span className="text-sm font-normal text-gray-600 ml-1">{stat.unit}</span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">{stat.description}</p>
                 </div>
-              );
-            })}
-          </div>
-
-          <Link
-            to="/calendar"
-            className="mt-4 flex items-center justify-center gap-2 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <Calendar className="w-4 h-4" />
-            전체 기록 보기
-          </Link>
+              </div>
+            );
+          })}
         </div>
-      )}
 
-      {/* 오늘의 한마디 - 모바일용 추가 */}
-      <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-start gap-3">
-          <Trophy className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-purple-900 mb-1">오늘의 한마디</p>
-            <p className="text-xs text-purple-700">
-              "작은 약속도 소중히, 우리의 사랑은 더욱 단단해져요! 💪"
-            </p>
+        {/* 오늘의 한마디 - 더 귀엽게! */}
+        <div className="bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 rounded-3xl p-6 shadow-lg border-2 border-pink-200 animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="text-4xl animate-bounce">🏆</div>
+            <div className="flex-1">
+              <p className="text-lg font-bold text-purple-900 mb-2 flex items-center gap-2">
+                오늘의 한마디 💝
+                <Sparkles className="w-5 h-5 text-yellow-500 animate-spin" />
+              </p>
+              <p className="text-base text-purple-800 font-medium">
+                "작은 약속도 소중히, 우리의 사랑은 더욱 단단해져요! 💪✨"
+              </p>
+            </div>
           </div>
         </div>
       </div>
-
     </div>
   );
 };

@@ -337,36 +337,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       if (profileError) return { error: profileError.message };
 
-      // Create default rules and rewards ONLY for new couples
-      // Check if rules/rewards already exist first
-      const { data: existingRules } = await supabase
-        .from('rules')
-        .select('id')
-        .eq('couple_id', coupleData.id)
-        .limit(1);
-
-      const { data: existingRewards } = await supabase
-        .from('rewards')
-        .select('id')
-        .eq('couple_id', coupleData.id)
-        .limit(1);
-
-      // Only create defaults if none exist
-      if (!existingRules || existingRules.length === 0) {
-
-        await supabase.rpc('create_default_rules', {
-          p_couple_id: coupleData.id,
-          p_user_id: user.id
-        });
-      }
-
-      if (!existingRewards || existingRewards.length === 0) {
-
-        await supabase.rpc('create_default_rewards', {
-          p_couple_id: coupleData.id,
-          p_user_id: user.id
-        });
-      }
 
       return { code: coupleData.couple_code, isNewCouple: true };
     } catch (error) {
