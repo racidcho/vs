@@ -292,6 +292,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('✅ 로그인/토큰갱신 이벤트 처리');
           setSession(session);
           if (session) {
+            // 세션 정보를 localStorage에 백업 (복구용)
+            localStorage.setItem('lastValidSession', JSON.stringify({
+              userId: session.user.id,
+              email: session.user.email,
+              timestamp: Date.now()
+            }));
+            
             try {
               await refreshUser();
             } catch (refreshError) {
@@ -311,13 +318,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
         
-        // 기타 이벤트에서 세션이 null인 경우 재확인
+        // 기타 이벤트에서 세션이 null인 경우 재확인 (더 강력하게)
         if (!session) {
-          console.log('⚠️ 예상치 못한 null 세션 - 재확인 중...');
+          console.log('⚠️ 예상치 못한 null 세션 - 이벤트:', event);
+          
+          // USER_UPDATED 이벤트는 종종 일시적으로 null 세션을 보냄
+          if (event === 'USER_UPDATED') {
+            console.log('📝 USER_UPDATED 이벤트 - 세션 유지');
+            return; // 아무것도 하지 않음
+          }
+          
+          // 재확인 전에 잠시 대기 (네트워크 지연 고려)
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
           try {
             const { data: { session: reconfirmSession }, error } = await supabase.auth.getSession();
             if (error) {
               console.error('❌ 세션 재확인 중 오류:', error);
+              // 오류가 있어도 바로 로그아웃하지 않고 한 번 더 시도
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              const { data: { session: retrySession } } = await supabase.auth.getSession();
+              if (retrySession) {
+                console.log('✅ 재시도 성공 - 세션 유지');
+                setSession(retrySession);
+                await refreshUser();
+                return;
+              }
+              // 재시도도 실패하면 로그아웃
               setSession(null);
               setUser(null);
               return;
@@ -328,7 +355,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setSession(reconfirmSession);
               await refreshUser();
             } else {
-              console.log('❌ 세션 재확인 실패 - 실제 로그아웃');
+              console.log('⚠️ 세션이 없지만 현재 사용자 상태 확인');
+              // 현재 사용자 상태도 한 번 더 확인
+              if (user) {
+                console.log('👤 사용자 정보 있음 - 세션 복구 시도');
+                const { data: { session: recoverySession } } = await supabase.auth.refreshSession();
+                if (recoverySession) {
+                  console.log('✅ 세션 복구 성공');
+                  setSession(recoverySession);
+                  return;
+                }
+              }
+              console.log('❌ 세션 재확인 완전 실패 - 실제 로그아웃');
               setSession(null);
               setUser(null);
             }
