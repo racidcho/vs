@@ -452,60 +452,104 @@ export const Settings: React.FC = () => {
             </div>
 
             {/* Partner Name Card */}
-            {partner ? (
-              <div className="bg-white rounded-2xl p-6 shadow-md border-2 border-indigo-200 transform hover:scale-105 transition-all duration-300">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-indigo-400 to-blue-400 rounded-2xl flex items-center justify-center shadow-lg">
-                    <span className="text-white font-bold text-2xl">
-                      {partner.display_name?.charAt(0) || '👨'}
+            {(() => {
+              const couple = state.couple as any;
+              const isPartner1 = user?.id === couple?.partner_1_id;
+              const partnerId = isPartner1 ? couple?.partner_2_id : couple?.partner_1_id;
+              const partnerDataFromCouple = isPartner1 ? couple?.partner_2 : couple?.partner_1;
+              
+              // Use partner from state or couple data as fallback
+              const finalPartner = partner || partnerDataFromCouple;
+              
+              // Determine partner display info with comprehensive fallbacks
+              let partnerName = '파트너';
+              let partnerIcon = '👨';
+              let partnerStatus = '아직 파트너가 없어요';
+              let cardColor = 'from-gray-50 to-gray-100';
+              let borderColor = 'border-gray-300';
+              let iconBg = 'bg-gray-300';
+              let iconTextColor = 'text-gray-500';
+              let titleColor = 'text-gray-500';
+              let statusColor = 'text-gray-400';
+              
+              if (partnerLoading) {
+                partnerName = '로딩 중...';
+                partnerIcon = '🔄';
+                partnerStatus = '파트너 정보를 불러오고 있어요';
+                cardColor = 'from-yellow-50 to-orange-100';
+                borderColor = 'border-yellow-300';
+                iconBg = 'bg-yellow-300';
+                iconTextColor = 'text-yellow-700';
+                titleColor = 'text-yellow-800';
+                statusColor = 'text-yellow-600';
+              } else if (finalPartner) {
+                if (finalPartner.display_name) {
+                  partnerName = finalPartner.display_name;
+                  partnerIcon = finalPartner.display_name.charAt(0);
+                  partnerStatus = '연결된 소중한 사람이에요';
+                } else if (finalPartner.email) {
+                  partnerName = finalPartner.email.split('@')[0];
+                  partnerIcon = finalPartner.email.charAt(0).toUpperCase();
+                  partnerStatus = '이름을 설정해달라고 말해보세요';
+                } else {
+                  partnerName = '파트너';
+                  partnerIcon = '👨';
+                  partnerStatus = '파트너 정보를 불러올 수 없어요';
+                }
+                cardColor = 'from-white to-white';
+                borderColor = 'border-indigo-200';
+                iconBg = 'bg-gradient-to-br from-indigo-400 to-blue-400';
+                iconTextColor = 'text-white font-bold text-2xl';
+                titleColor = 'text-gray-900';
+                statusColor = 'text-gray-600';
+              } else if (partnerId) {
+                partnerName = '파트너';
+                partnerIcon = '👨';
+                partnerStatus = '파트너가 연결되어 있어요';
+                cardColor = 'from-blue-50 to-indigo-100';
+                borderColor = 'border-blue-300';
+                iconBg = 'bg-blue-300';
+                iconTextColor = 'text-blue-700';
+                titleColor = 'text-blue-800';
+                statusColor = 'text-blue-600';
+              }
+              
+              return (
+                <div className={`bg-gradient-to-br ${cardColor} rounded-2xl p-6 shadow-md border-2 border-dashed ${borderColor} transform hover:scale-105 transition-all duration-300`}>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center shadow-lg`}>
+                      <span className={iconTextColor}>
+                        {partnerIcon}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className={`text-xl font-bold ${titleColor} flex items-center gap-2`}>
+                        파트너 이름 👨
+                      </h3>
+                      <p className={`${statusColor} text-sm`}>소중한 사람의 이름이에요</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-2xl font-extrabold ${finalPartner ? 'bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent' : titleColor}`}>
+                      {partnerName}
                     </span>
+                    <div className="flex items-center gap-2 text-indigo-600">
+                      <Heart className="w-4 h-4 animate-pulse" />
+                      <span className="text-sm font-bold">파트너</span>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                      파트너 이름 👨
-                    </h3>
-                    <p className="text-gray-600 text-sm">소중한 사람의 이름이에요</p>
-                  </div>
+                  <p className={`text-xs ${statusColor} mt-2`}>
+                    {partnerStatus}
+                  </p>
+                  {/* Debug info for troubleshooting - remove after fix confirmed */}
+                  {process.env.NODE_ENV === 'development' && (finalPartner || partnerId) && (
+                    <div className="mt-2 text-xs text-gray-400 bg-gray-50 p-2 rounded">
+                      🐛 Debug: Partner={!!partner}, PartnerFromCouple={!!partnerDataFromCouple}, PartnerId={partnerId}, Name="{finalPartner?.display_name || 'NULL'}", Email="{finalPartner?.email || 'NULL'}"
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-extrabold bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent">
-                    {partner.display_name || '이름을 설정해달라고 말해보세요'}
-                  </span>
-                  <div className="flex items-center gap-2 text-indigo-600">
-                    <Heart className="w-4 h-4 animate-pulse" />
-                    <span className="text-sm font-bold">파트너</span>
-                  </div>
-                </div>
-                {/* Debug info for troubleshooting - remove after fix confirmed */}
-                {process.env.NODE_ENV === 'development' && partner && (
-                  <div className="mt-2 text-xs text-gray-400 bg-gray-50 p-2 rounded">
-                    🐛 Debug: ID={partner.id}, Email={partner.email}, Name="{partner.display_name || 'NULL'}"
-                  </div>
-                )}
-              </div>
-            ) : partnerLoading || (state.couple?.partner_2_id && !partner) ? (
-              <div className="bg-gradient-to-br from-yellow-50 to-orange-100 rounded-2xl p-6 shadow-md border-2 border-dashed border-yellow-300">
-                <div className="text-center">
-                  <div className="w-14 h-14 bg-yellow-300 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span className="text-yellow-700 text-2xl animate-spin">🔄</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-yellow-800 mb-2">파트너 정보 로딩 중...</h3>
-                  <p className="text-yellow-600 text-sm mb-4">잠시만 기다려주세요</p>
-                  <div className="text-yellow-600 text-lg animate-pulse">💕</div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 shadow-md border-2 border-dashed border-gray-300">
-                <div className="text-center">
-                  <div className="w-14 h-14 bg-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span className="text-gray-500 text-2xl">👨</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-500 mb-2">파트너 이름 👨</h3>
-                  <p className="text-gray-400 text-sm mb-4">아직 파트너가 없어요</p>
-                  <div className="text-gray-400 text-lg">커플 코드를 공유해보세요 💕</div>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Cute Helpful Message */}
@@ -648,34 +692,54 @@ export const Settings: React.FC = () => {
               </span>
             </div>
 
-            {partner ? (
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl">
-                <span className="text-gray-700 font-medium flex items-center gap-2">
-                  <span>👫</span> 파트너
-                </span>
-                <span className="text-gray-900 font-medium">
-                  {partner.display_name || '(이름 없음)'}
-                </span>
-              </div>
-            ) : partnerLoading || (state.couple?.partner_2_id && !partner) ? (
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
-                <span className="text-gray-700 font-medium flex items-center gap-2">
-                  <span>👫</span> 파트너
-                </span>
-                <span className="text-gray-600 font-medium animate-pulse">
-                  로딩 중...
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl">
-                <span className="text-gray-500 font-medium flex items-center gap-2">
-                  <span>👫</span> 파트너
-                </span>
-                <span className="text-gray-500 font-medium">
-                  연결된 파트너 없음
-                </span>
-              </div>
-            )}
+            {(() => {
+              const couple = state.couple as any;
+              const isPartner1 = user?.id === couple?.partner_1_id;
+              const partnerId = isPartner1 ? couple?.partner_2_id : couple?.partner_1_id;
+              const partnerDataFromCouple = isPartner1 ? couple?.partner_2 : couple?.partner_1;
+              
+              // Use partner from state or couple data as fallback
+              const finalPartner = partner || partnerDataFromCouple;
+              
+              let partnerDisplayName = '연결된 파트너 없음';
+              let bgColor = 'from-gray-50 to-gray-100';
+              let textColor = 'text-gray-500';
+              let valueColor = 'text-gray-500';
+              
+              if (partnerLoading) {
+                partnerDisplayName = '로딩 중...';
+                bgColor = 'from-yellow-50 to-orange-50';
+                textColor = 'text-gray-700';
+                valueColor = 'text-gray-600 animate-pulse';
+              } else if (finalPartner) {
+                if (finalPartner.display_name) {
+                  partnerDisplayName = finalPartner.display_name;
+                } else if (finalPartner.email) {
+                  partnerDisplayName = finalPartner.email.split('@')[0] + ' (이름 미설정)';
+                } else {
+                  partnerDisplayName = '파트너 (정보 불완전)';
+                }
+                bgColor = 'from-green-50 to-teal-50';
+                textColor = 'text-gray-700';
+                valueColor = 'text-gray-900';
+              } else if (partnerId) {
+                partnerDisplayName = '파트너 연결됨 (정보 로딩 중)';
+                bgColor = 'from-blue-50 to-indigo-50';
+                textColor = 'text-gray-700';
+                valueColor = 'text-gray-800';
+              }
+              
+              return (
+                <div className={`flex items-center justify-between p-3 bg-gradient-to-r ${bgColor} rounded-xl`}>
+                  <span className={`${textColor} font-medium flex items-center gap-2`}>
+                    <span>👫</span> 파트너
+                  </span>
+                  <span className={`${valueColor} font-medium`}>
+                    {partnerDisplayName}
+                  </span>
+                </div>
+              );
+            })()}
 
             <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl">
               <span className="text-gray-700 font-medium flex items-center gap-2">

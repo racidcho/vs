@@ -24,7 +24,7 @@ import {
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { state, updateViolation, deleteViolation, getPartnerInfo } = useApp();
+  const { state, updateViolation, deleteViolation } = useApp();
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState({
     totalBalance: 0,
@@ -40,26 +40,42 @@ export const Dashboard: React.FC = () => {
 
   // 축하 페이지 본 적 있는지 체크 및 리다이렉트
   useEffect(() => {
-    const checkCelebration = async () => {
+    const checkCelebration = () => {
       if (user && state.couple) {
         const celebrationKey = `couple_celebrated_${user.id}_${state.couple.id}`;
         const hasCelebrated = localStorage.getItem(celebrationKey);
         
-        // 파트너가 있는지 확인
-        try {
-          const partnerInfo = await getPartnerInfo();
-          if (partnerInfo && partnerInfo.partner && !hasCelebrated) {
-            // 파트너가 있고 축하 페이지를 안 봤으면 리다이렉트
-            navigate('/couple-complete');
-          }
-        } catch (error) {
-          // 파트너 정보 로딩 실패는 무시
+        // 커플이 존재하고 두 파트너 모두 이름이 설정되어 있는지 확인
+        const couple = state.couple as any;
+        const bothPartnersHaveNames = 
+          couple?.partner_1_id && couple?.partner_2_id && // 두 파트너 모두 존재
+          (
+            // 커플 데이터에서 파트너 정보 확인
+            (couple?.partner_1?.display_name || couple?.partner_2?.display_name) ||
+            // 또는 현재 사용자와 파트너 모두 이름 설정됨
+            (user?.display_name && couple?.partner_1_id && couple?.partner_2_id)
+          );
+        
+        console.log('🎉 DASHBOARD: 축하 페이지 체크:', {
+          hasCelebrated: !!hasCelebrated,
+          bothPartnersHaveNames,
+          partner1Id: couple?.partner_1_id,
+          partner2Id: couple?.partner_2_id,
+          partner1Name: couple?.partner_1?.display_name,
+          partner2Name: couple?.partner_2?.display_name,
+          currentUserName: user?.display_name
+        });
+        
+        if (bothPartnersHaveNames && !hasCelebrated) {
+          // 두 파트너 모두 있고 축하 페이지를 안 봤으면 리다이렉트
+          console.log('🎉 DASHBOARD: 축하 페이지로 리다이렉트');
+          navigate('/couple-complete');
         }
       }
     };
 
     checkCelebration();
-  }, [user, state.couple, navigate, getPartnerInfo]);
+  }, [user, state.couple, navigate]);
 
   // Load real dashboard data with cleanup and abort controller
   useEffect(() => {
@@ -334,20 +350,40 @@ export const Dashboard: React.FC = () => {
                   {(() => {
                     const couple = state.couple as any;
                     const isPartner1 = user?.id === couple?.partner_1_id;
+                    const partnerId = isPartner1 ? couple?.partner_2_id : couple?.partner_1_id;
                     const partnerData = isPartner1 ? couple?.partner_2 : couple?.partner_1;
+                    
+                    // Determine partner name with fallbacks
+                    let partnerName = '파트너';
+                    let partnerStatus = '연결 대기 중';
+                    let partnerIcon = '👨';
+                    
+                    if (partnerData?.display_name) {
+                      partnerName = partnerData.display_name;
+                      partnerStatus = '연결됨';
+                      partnerIcon = partnerData.display_name.charAt(0);
+                    } else if (partnerData?.email) {
+                      partnerName = partnerData.email.split('@')[0];
+                      partnerStatus = '이름 설정 대기';
+                      partnerIcon = partnerData.email.charAt(0).toUpperCase();
+                    } else if (partnerId) {
+                      partnerName = '파트너';
+                      partnerStatus = '정보 로딩 중...';
+                      partnerIcon = '👨';
+                    }
                     
                     return (
                       <>
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-400 rounded-full flex items-center justify-center mx-auto mb-2">
                           <span className="text-white font-bold text-lg">
-                            {partnerData?.display_name?.charAt(0) || '👨'}
+                            {partnerIcon}
                           </span>
                         </div>
                         <p className="font-bold text-gray-900">
-                          {partnerData?.display_name || '파트너'}
+                          {partnerName}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {partnerData ? '연결됨' : '연결 대기 중'}
+                          {partnerStatus}
                         </p>
                       </>
                     );
@@ -365,17 +401,34 @@ export const Dashboard: React.FC = () => {
             </div>
             
             {/* 대결 위젯 */}
-            {(state.couple as any).partner_1 && (state.couple as any).partner_2 ? (
-              <div className="transform hover:scale-105 transition-all duration-300">
-                <VersusWidget />
-              </div>
-            ) : (
-              <div className="bg-gradient-to-r from-yellow-100 via-orange-100 to-pink-100 rounded-3xl p-6 text-center shadow-lg">
-                <div className="text-4xl mb-3">⏳💕</div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">파트너 연결 대기중</h3>
-                <p className="text-gray-600 text-sm">파트너가 커플 코드를 입력하면 대결이 시작돼요!</p>
-              </div>
-            )}
+            {(() => {
+              const couple = state.couple as any;
+              const hasBothPartners = couple?.partner_1_id && couple?.partner_2_id;
+              
+              if (hasBothPartners) {
+                return (
+                  <div className="transform hover:scale-105 transition-all duration-300">
+                    <VersusWidget />
+                  </div>
+                );
+              } else {
+                return (
+                  <div className="bg-gradient-to-r from-yellow-100 via-orange-100 to-pink-100 rounded-3xl p-6 text-center shadow-lg">
+                    <div className="text-4xl mb-3">⏳💕</div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">파트너 연결 대기중</h3>
+                    <p className="text-gray-600 text-sm">파트너가 커플 코드를 입력하면 대결이 시작돼요!</p>
+                    {couple?.couple_code && (
+                      <div className="mt-4 p-3 bg-white/70 rounded-xl">
+                        <p className="text-xs text-gray-500 mb-1">커플 코드를 공유하세요</p>
+                        <p className="font-mono font-bold text-lg text-pink-600">
+                          {couple.couple_code}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+            })()}
           </div>
         ) : (
           <div className="bg-gradient-to-r from-gray-100 to-gray-200 rounded-3xl p-8 text-center shadow-lg">

@@ -33,23 +33,46 @@ const initialState: AppState = {
   isOnline: true
 };
 
-// Reducer
+// Reducer with enhanced logging
 const appReducer = (state: AppState, action: AppAction): AppState => {
+  const payloadInfo = 'payload' in action ? 
+    (action.type.includes('SET_') ? 
+      { count: Array.isArray(action.payload) ? action.payload.length : 1 } :
+      { id: (action.payload as any)?.id || action.payload }) :
+    null;
+    
+  console.log('🎯 APPCONTEXT REDUCER:', {
+    action: action.type,
+    timestamp: new Date().toISOString(),
+    payload: payloadInfo
+  });
+
   switch (action.type) {
     case 'SET_COUPLE':
+      console.log('💑 Setting couple data:', action.payload ? {
+        id: action.payload.id,
+        couple_name: action.payload.couple_name,
+        partner_1_id: action.payload.partner_1_id,
+        partner_2_id: action.payload.partner_2_id,
+        total_balance: action.payload.total_balance
+      } : null);
       return {
         ...state,
         couple: action.payload
       };
     case 'SET_RULES':
+      console.log('📋 Setting rules data:', { count: action.payload.length });
       return { ...state, rules: action.payload };
     case 'ADD_RULE':
       // Check if rule already exists to avoid duplicates
       if (state.rules.some(rule => rule.id === action.payload.id)) {
+        console.log('⚠️ Rule already exists, skipping add:', action.payload.id);
         return state;
       }
+      console.log('➕ Adding new rule:', action.payload.id);
       return { ...state, rules: [...state.rules, action.payload] };
     case 'UPDATE_RULE':
+      console.log('✏️ Updating rule:', action.payload.id);
       return {
         ...state,
         rules: state.rules.map(rule =>
@@ -57,19 +80,24 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         )
       };
     case 'DELETE_RULE':
+      console.log('🗑️ Deleting rule:', action.payload);
       return {
         ...state,
         rules: state.rules.filter(rule => rule.id !== action.payload)
       };
     case 'SET_VIOLATIONS':
+      console.log('⚖️ Setting violations data:', { count: action.payload.length });
       return { ...state, violations: action.payload };
     case 'ADD_VIOLATION':
       // Check if violation already exists to avoid duplicates
       if (state.violations.some(violation => violation.id === action.payload.id)) {
+        console.log('⚠️ Violation already exists, skipping add:', action.payload.id);
         return state;
       }
+      console.log('➕ Adding new violation:', action.payload.id);
       return { ...state, violations: [action.payload, ...state.violations] };
     case 'UPDATE_VIOLATION':
+      console.log('✏️ Updating violation:', action.payload.id);
       return {
         ...state,
         violations: state.violations.map(violation =>
@@ -77,19 +105,24 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         )
       };
     case 'DELETE_VIOLATION':
+      console.log('🗑️ Deleting violation:', action.payload);
       return {
         ...state,
         violations: state.violations.filter(violation => violation.id !== action.payload)
       };
     case 'SET_REWARDS':
+      console.log('🎁 Setting rewards data:', { count: action.payload.length });
       return { ...state, rewards: action.payload };
     case 'ADD_REWARD':
       // Check if reward already exists to avoid duplicates
       if (state.rewards.some(reward => reward.id === action.payload.id)) {
+        console.log('⚠️ Reward already exists, skipping add:', action.payload.id);
         return state;
       }
+      console.log('➕ Adding new reward:', action.payload.id);
       return { ...state, rewards: [...state.rewards, action.payload] };
     case 'UPDATE_REWARD':
+      console.log('✏️ Updating reward:', action.payload.id);
       return {
         ...state,
         rewards: state.rewards.map(reward =>
@@ -97,6 +130,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         )
       };
     case 'DELETE_REWARD':
+      console.log('🗑️ Deleting reward:', action.payload);
       return {
         ...state,
         rewards: state.rewards.filter(reward => reward.id !== action.payload)
@@ -560,81 +594,96 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // Get partner information
+  // Get partner information with improved reliability
   const getPartnerInfo = async (): Promise<{ partner: any; error?: string } | null> => {
     console.log('🔍 APPCONTEXT: getPartnerInfo 호출', { 
       userId: user?.id, 
-      coupleId: user?.couple_id 
+      coupleId: user?.couple_id,
+      hasStateCouple: !!state.couple 
     });
 
-    if (!user?.couple_id) {
-      console.log('❌ APPCONTEXT: 커플 ID 없음');
+    if (!user?.couple_id && !state.couple) {
+      console.log('❌ APPCONTEXT: 커플 정보 없음');
       return null;
     }
 
     try {
-      // First, get the couple information
-      const { data: coupleData, error: coupleError } = await supabase
-        .from('couples')
-        .select('*')
-        .eq('id', user.couple_id)
-        .single();
+      // First try to use existing state.couple data if available
+      let coupleData = state.couple;
+      
+      // If we don't have couple data in state, fetch it
+      if (!coupleData) {
+        console.log('📡 APPCONTEXT: 상태에 커플 데이터 없음, DB에서 조회');
+        const { data: fetchedCoupleData, error: coupleError } = await supabase
+          .from('couples')
+          .select(`
+            *,
+            partner_1:profiles!couples_partner_1_id_fkey(*),
+            partner_2:profiles!couples_partner_2_id_fkey(*)
+          `)
+          .eq('id', user.couple_id)
+          .single();
 
-      console.log('📊 APPCONTEXT: 커플 데이터 조회 결과:', {
-        error: coupleError,
-        hasData: !!coupleData,
-        partner1Id: coupleData?.partner_1_id,
-        partner2Id: coupleData?.partner_2_id,
-      });
-
-      if (coupleError || !coupleData) {
-        console.log('❌ APPCONTEXT: 커플 데이터 없음:', coupleError?.message);
-        return { partner: null, error: 'Couple not found' };
+        if (coupleError || !fetchedCoupleData) {
+          console.log('❌ APPCONTEXT: 커플 데이터 조회 실패:', coupleError?.message);
+          return { partner: null, error: 'Couple not found' };
+        }
+        
+        coupleData = fetchedCoupleData;
       }
 
-      // Determine which partner to fetch (the one who is not the current user)
+      console.log('📊 APPCONTEXT: 커플 데이터 확인:', {
+        coupleId: coupleData.id,
+        partner1Id: coupleData.partner_1_id,
+        partner2Id: coupleData.partner_2_id,
+        hasPartner1Data: !!(coupleData as any).partner_1,
+        hasPartner2Data: !!(coupleData as any).partner_2
+      });
+
+      // Determine which partner is the "other" partner
+      let partner = null;
       let partnerId = null;
+      
       if (coupleData.partner_1_id === user.id) {
+        // Current user is partner_1, so partner_2 is the other partner
         partnerId = coupleData.partner_2_id;
-        console.log('👫 APPCONTEXT: 현재 사용자는 partner_1, partner_2_id로 파트너 조회:', partnerId);
+        partner = (coupleData as any).partner_2;
+        console.log('👫 APPCONTEXT: 현재 사용자는 partner_1, partner_2가 파트너');
       } else if (coupleData.partner_2_id === user.id) {
+        // Current user is partner_2, so partner_1 is the other partner
         partnerId = coupleData.partner_1_id;
-        console.log('👫 APPCONTEXT: 현재 사용자는 partner_2, partner_1_id로 파트너 조회:', partnerId);
+        partner = (coupleData as any).partner_1;
+        console.log('👫 APPCONTEXT: 현재 사용자는 partner_2, partner_1이 파트너');
       } else {
         console.log('⚠️ APPCONTEXT: 현재 사용자가 이 커플의 멤버가 아님');
         return { partner: null, error: 'User is not a member of this couple' };
       }
 
-      // Fetch partner profile directly
-      let partner = null;
-      if (partnerId) {
+      // If we don't have partner data from the relation, fetch it separately
+      if (!partner && partnerId) {
+        console.log('📡 APPCONTEXT: 파트너 데이터 없음, 직접 조회:', partnerId);
         const { data: partnerData, error: partnerError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', partnerId)
           .single();
 
-        console.log('👤 APPCONTEXT: 파트너 프로필 조회 결과:', {
-          error: partnerError,
-          hasData: !!partnerData,
-          partnerId,
-          partnerName: partnerData?.display_name,
-          partnerEmail: partnerData?.email
-        });
-
         if (!partnerError && partnerData) {
           partner = partnerData;
+          console.log('✅ APPCONTEXT: 파트너 데이터 조회 성공');
+        } else {
+          console.log('⚠️ APPCONTEXT: 파트너 프로필 조회 실패 또는 없음');
         }
       }
 
       console.log('✅ APPCONTEXT: 파트너 정보 반환:', {
-        partnerId: partner?.id,
+        partnerId,
         partnerName: partner?.display_name,
         partnerEmail: partner?.email,
-        isNull: partner === null
+        hasPartner: !!partner
       });
 
-      return { partner };
+      return { partner: partner || null };
     } catch (error) {
       console.error('💥 APPCONTEXT: getPartnerInfo 예외:', error);
       return { partner: null, error: 'Failed to get partner info' };
@@ -972,12 +1021,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [user, isLoading]);
 
-  // Real-time subscriptions
+  // Real-time subscriptions (Legacy - will be replaced by useRealtime)
   useEffect(() => {
     if (!user?.couple_id) {
-
+      console.log('🚫 APPCONTEXT REALTIME: No couple_id, skipping legacy subscriptions');
       return;
     }
+
+    console.log('🔗 APPCONTEXT REALTIME: Setting up legacy subscriptions for couple:', user.couple_id);
 
     // Subscribe to couples changes
     const coupleChannel = supabase
@@ -991,6 +1042,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           filter: `id=eq.${user.couple_id}`
         },
         (payload) => {
+          console.log('🔄 APPCONTEXT REALTIME [COUPLES]:', payload.eventType, payload);
 
           if (payload.eventType === 'UPDATE' && payload.new) {
             const transformedCouple: Couple = {
@@ -1003,11 +1055,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
               is_active: payload.new.is_active,
               created_at: payload.new.created_at
             };
+            console.log('💑 APPCONTEXT REALTIME: Updating couple via legacy subscription');
             dispatch({ type: 'SET_COUPLE', payload: transformedCouple });
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔌 APPCONTEXT REALTIME [COUPLES]: Channel status:', status);
+      });
 
     // Subscribe to rules changes
     const rulesChannel = supabase
@@ -1021,22 +1076,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           filter: `couple_id=eq.${user.couple_id}`
         },
         (payload) => {
+          console.log('🔄 APPCONTEXT REALTIME [RULES]:', payload.eventType, payload);
 
           if (payload.eventType === 'INSERT' && payload.new) {
+            console.log('📋 APPCONTEXT REALTIME: Adding rule via legacy subscription');
             dispatch({ type: 'ADD_RULE', payload: payload.new as Rule });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             // Handle rule deactivation (is_active = false) as deletion
             if (payload.new.is_active === false) {
+              console.log('📋 APPCONTEXT REALTIME: Deactivating rule via legacy subscription');
               dispatch({ type: 'DELETE_RULE', payload: payload.new.id });
             } else {
+              console.log('📋 APPCONTEXT REALTIME: Updating rule via legacy subscription');
               dispatch({ type: 'UPDATE_RULE', payload: payload.new as Rule });
             }
           } else if (payload.eventType === 'DELETE' && payload.old) {
+            console.log('📋 APPCONTEXT REALTIME: Deleting rule via legacy subscription');
             dispatch({ type: 'DELETE_RULE', payload: payload.old.id });
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔌 APPCONTEXT REALTIME [RULES]: Channel status:', status);
+      });
 
     // Subscribe to violations changes
     const violationsChannel = supabase
@@ -1050,19 +1112,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           filter: `couple_id=eq.${user.couple_id}`
         },
         (payload) => {
+          console.log('🔄 APPCONTEXT REALTIME [VIOLATIONS]:', payload.eventType, payload);
 
           // For violations, we still need to reload due to complex relations
           // But with throttling to prevent excessive calls and avoid memory leaks
+          console.log('⚖️ APPCONTEXT REALTIME: Refreshing data due to violation change (throttled)');
           setTimeout(() => {
             try {
               refreshData();
             } catch (error) {
-
+              console.error('💥 APPCONTEXT REALTIME: Error refreshing data after violation change:', error);
             }
           }, 1000);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔌 APPCONTEXT REALTIME [VIOLATIONS]: Channel status:', status);
+      });
 
     // Subscribe to rewards changes
     const rewardsChannel = supabase
@@ -1076,23 +1142,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           filter: `couple_id=eq.${user.couple_id}`
         },
         (payload) => {
+          console.log('🔄 APPCONTEXT REALTIME [REWARDS]:', payload.eventType, payload);
 
           if (payload.eventType === 'INSERT' && payload.new) {
-
+            console.log('🎁 APPCONTEXT REALTIME: Adding reward via legacy subscription');
             dispatch({ type: 'ADD_REWARD', payload: payload.new as Reward });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-
+            console.log('🎁 APPCONTEXT REALTIME: Updating reward via legacy subscription');
             dispatch({ type: 'UPDATE_REWARD', payload: payload.new as Reward });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-
+            console.log('🎁 APPCONTEXT REALTIME: Deleting reward via legacy subscription');
             dispatch({ type: 'DELETE_REWARD', payload: payload.old.id });
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔌 APPCONTEXT REALTIME [REWARDS]: Channel status:', status);
+      });
 
     return () => {
-
+      console.log('🧹 APPCONTEXT REALTIME: Cleaning up legacy subscriptions');
       supabase.removeChannel(coupleChannel);
       supabase.removeChannel(rulesChannel);
       supabase.removeChannel(violationsChannel);
