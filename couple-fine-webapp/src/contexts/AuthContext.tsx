@@ -229,13 +229,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Initialize auth state
     setIsLoading(true);
     
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Get initial session with error handling
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       console.log('📍 Initial session check:', session?.user?.email || 'No session');
+      
+      if (error) {
+        console.error('❌ Session check error:', error);
+        setSession(null);
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+      
       setSession(session);
       if (session) {
-        await refreshUser();
+        try {
+          await refreshUser();
+        } catch (refreshError) {
+          console.error('❌ RefreshUser error during initialization:', refreshError);
+          // Even if refresh fails, we have a session so set basic user
+          if (session.user) {
+            const fallbackUser: User = {
+              id: session.user.id,
+              email: session.user.email || '',
+              display_name: session.user.email?.split('@')[0] || 'User',
+              created_at: new Date().toISOString()
+            };
+            setUser(fallbackUser);
+          }
+        }
       }
+      setIsLoading(false);
+    }).catch((error) => {
+      console.error('❌ Critical error during session initialization:', error);
+      setSession(null);
+      setUser(null);
       setIsLoading(false);
     });
 
@@ -245,7 +273,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('🔔 Auth state changed:', _event, session?.user?.email || 'No session');
         setSession(session);
         if (session) {
-          await refreshUser();
+          try {
+            await refreshUser();
+          } catch (refreshError) {
+            console.error('❌ RefreshUser error during auth change:', refreshError);
+            // Fallback user creation
+            if (session.user) {
+              const fallbackUser: User = {
+                id: session.user.id,
+                email: session.user.email || '',
+                display_name: session.user.email?.split('@')[0] || 'User',
+                created_at: new Date().toISOString()
+              };
+              setUser(fallbackUser);
+            }
+          }
         } else {
           setUser(null);
         }
