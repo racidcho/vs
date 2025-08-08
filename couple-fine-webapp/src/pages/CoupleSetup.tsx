@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart, Users, ArrowRight, Loader2, Copy, CheckCircle } from 'lucide-react';
+import { Heart, Users, ArrowRight, Loader2, Copy, CheckCircle, ArrowLeft, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type Step = 'choose' | 'create' | 'join' | 'success' | 'name';
@@ -10,7 +10,7 @@ type Step = 'choose' | 'create' | 'join' | 'success' | 'name';
 export const CoupleSetup: React.FC = () => {
   const navigate = useNavigate();
   const { createCouple, joinCouple, updateCoupleName } = useApp();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, signOut } = useAuth();
 
   const [step, setStep] = useState<Step>('choose');
   const [coupleCode, setCoupleCode] = useState('');
@@ -92,6 +92,11 @@ export const CoupleSetup: React.FC = () => {
 
   const handleContinue = () => {
     navigate('/name-setup');
+  };
+
+  const handleChangeEmail = async () => {
+    await signOut();
+    navigate('/login');
   };
 
   const handleSaveCoupleName = async () => {
@@ -392,45 +397,88 @@ export const CoupleSetup: React.FC = () => {
     <div className="max-w-md mx-auto">
       <div className="card">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary-400 to-coral-400 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Heart className="w-8 h-8 text-white" />
+          <div className="w-20 h-20 bg-gradient-to-br from-pink-400 via-purple-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse shadow-lg">
+            <Heart className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{user?.display_name}님, 환영해요!</h1>
-          <p className="text-gray-600">커플 계정을 설정하고 함께 벌금 관리를 시작해보세요</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent mb-3">
+            {user?.display_name || '사랑하는 당신'}님, 환영해요! 💕
+          </h1>
+          <p className="text-gray-600 mb-2">커플 계정을 설정하고 함께 벌금 관리를 시작해보세요</p>
+          
+          {/* Current logged in email */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-full text-sm text-gray-600 mt-2">
+            <Mail className="w-4 h-4" />
+            <span>{user?.email}</span>
+          </div>
         </div>
 
         <div className="space-y-4">
           <button
             onClick={() => setStep('create')}
-            className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-colors text-left group"
+            className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-pink-300 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 transition-all text-left group transform hover:scale-[1.02] hover:shadow-md"
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary-100 group-hover:bg-primary-200 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary-600" />
+              <div className="w-12 h-12 bg-gradient-to-br from-pink-100 to-purple-100 group-hover:from-pink-200 group-hover:to-purple-200 rounded-xl flex items-center justify-center shadow-sm">
+                <Users className="w-6 h-6 text-pink-600" />
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">새 커플 생성</h3>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900">새 커플 생성 ✨</h3>
                 <p className="text-sm text-gray-600">새로 시작하고 파트너를 초대하세요</p>
               </div>
-              <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
+              <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-pink-500 transition-colors" />
             </div>
           </button>
 
           <button
             onClick={() => setStep('join')}
-            className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-colors text-left group"
+            className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-purple-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all text-left group transform hover:scale-[1.02] hover:shadow-md"
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-coral-100 group-hover:bg-coral-200 rounded-lg flex items-center justify-center">
-                <ArrowRight className="w-6 h-6 text-coral-600" />
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 group-hover:from-purple-200 group-hover:to-pink-200 rounded-xl flex items-center justify-center shadow-sm">
+                <Heart className="w-6 h-6 text-purple-600" />
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">기존 커플 참여</h3>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900">기존 커플 참여 💝</h3>
                 <p className="text-sm text-gray-600">파트너의 커플 코드를 입력하세요</p>
               </div>
-              <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
+              <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
             </div>
           </button>
+
+          {/* Divider */}
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-3 bg-white text-xs text-gray-500">또는</span>
+            </div>
+          </div>
+
+          {/* Change Email Button */}
+          <button
+            onClick={handleChangeEmail}
+            className="w-full p-3 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all text-center group"
+          >
+            <div className="flex items-center justify-center gap-2 text-gray-600 group-hover:text-gray-800">
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-medium">다른 이메일로 로그인하기</span>
+            </div>
+          </button>
+        </div>
+
+        {/* Cute tip */}
+        <div className="mt-6 p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl">
+          <div className="flex items-start gap-3">
+            <span className="text-xl">💡</span>
+            <div>
+              <p className="text-sm font-medium text-purple-900 mb-1">처음이신가요?</p>
+              <p className="text-xs text-purple-700">
+                '새 커플 생성'을 선택하고 생성된 코드를 파트너에게 공유하면 돼요!
+                서로의 애칭을 설정하고 재미있는 벌금 관리를 시작해보세요 🎉
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
