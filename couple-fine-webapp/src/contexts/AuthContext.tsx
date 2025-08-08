@@ -146,67 +146,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    // Get initial session and handle magic link
-    const getInitialSession = async () => {
-      try {
-        // Let Supabase handle the magic link automatically
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Auth error:', error);
-          setSession(null);
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Check if session is valid
-        if (initialSession && initialSession.access_token) {
-          console.log('Session found:', initialSession.user?.email);
-          setSession(initialSession);
-          await refreshUser();
-        } else {
-          setSession(null);
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Session error:', error);
-        setSession(null);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
+    // Initialize auth state
+    setIsLoading(true);
+    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.email);
+      setSession(session);
+      if (session) {
+        refreshUser();
       }
-    };
+      setIsLoading(false);
+    });
 
-    getInitialSession();
-
-    // Listen for auth changes (including magic link)
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth event:', event, session?.user?.email);
-        
-        if (event === 'SIGNED_IN' && session) {
-          // User just signed in (including via magic link)
-          setSession(session);
-          await refreshUser();
-        } else if (event === 'SIGNED_OUT') {
-          // User signed out
-          setSession(null);
-          setUser(null);
-        } else if (event === 'TOKEN_REFRESHED' && session) {
-          // Token was refreshed
-          setSession(session);
-        } else if (session && session.access_token) {
-          // Valid session exists
-          setSession(session);
-          await refreshUser();
+      (_event, session) => {
+        console.log('Auth state changed:', _event, session?.user?.email);
+        setSession(session);
+        if (session) {
+          refreshUser();
         } else {
-          // No valid session
-          setSession(null);
           setUser(null);
         }
-        
-        setIsLoading(false);
       }
     );
 

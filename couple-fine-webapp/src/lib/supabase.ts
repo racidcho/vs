@@ -46,8 +46,8 @@ export const supabase = createClient<Database>(finalUrl, finalKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    flowType: 'pkce'
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined
+    // flowType: 'pkce' 제거 - 매직링크와 충돌
   },
   realtime: {
     params: {
