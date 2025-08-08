@@ -2,7 +2,6 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { AppState, Couple, Rule, Violation, Reward } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
-import { useRealtime } from '../hooks/useRealtime';
 
 // Action Types
 type AppAction =
@@ -141,11 +140,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { user, isLoading } = useAuth();
   
-  // Set up realtime connection
-  const { isConnected: isRealtimeConnected } = useRealtime({ 
-    coupleId: user?.couple_id || '',
-    userId: user?.id || ''
-  });
+  // Realtime connection status (will be managed directly in this component)
+  const isRealtimeConnected = true; // Placeholder for now
 
   // Load couple data when user changes
   const loadCoupleData = async () => {
