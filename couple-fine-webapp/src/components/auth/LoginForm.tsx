@@ -25,16 +25,23 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
     }
 
     setIsLoading(true);
+    console.log('📧 Requesting OTP for:', email);
     
     try {
-      const { error } = await signIn(email);
+      const result = await signIn(email);
+      console.log('📬 SignIn result:', result);
       
-      if (error) {
-        toast.error(error);
-      } else {
+      if (result.error) {
+        console.error('❌ SignIn error:', result.error);
+        toast.error(result.error);
+      } else if (result.success) {
         // OTP 전송 성공 - OTP 입력 화면 표시
+        console.log('✅ OTP sent successfully, switching to OTP input screen');
         setOtpSent(true);
         toast.success('📧 인증 코드를 보냈어요! 이메일을 확인해주세요');
+      } else {
+        console.error('⚠️ Unexpected signIn result:', result);
+        toast.error('알 수 없는 오류가 발생했습니다.');
       }
     } catch (error) {
       toast.error('문제가 발생했어요. 다시 시도해주세요.');
@@ -52,20 +59,28 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
     }
 
     setIsLoading(true);
+    console.log('📝 Submitting OTP for:', email);
     
     try {
-      const { error } = await verifyOtp(email, otp);
+      const { error, success } = await verifyOtp(email, otp);
       
       if (error) {
+        console.error('❌ OTP verification failed:', error);
         toast.error(error);
-      } else {
+      } else if (success) {
+        console.log('✅ OTP verification successful, redirecting...');
         toast.success('🎉 로그인 성공!');
         // 로그인 성공 후 명시적으로 리디렉션
+        // 약간의 딜레이를 주어 상태 업데이트가 완료되도록 함
         setTimeout(() => {
+          console.log('🚀 Navigating to home...');
           navigate('/');
-        }, 500);
+          // 추가적으로 페이지 리로드를 강제할 수도 있음
+          // window.location.href = '/';
+        }, 1000);
       }
     } catch (error) {
+      console.error('❌ Unexpected error:', error);
       toast.error('인증 코드가 올바르지 않아요. 다시 확인해주세요.');
     } finally {
       setIsLoading(false);

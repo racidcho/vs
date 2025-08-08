@@ -34,19 +34,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = async () => {
+    console.log('🔄 refreshUser called');
+    
     // Get current session from Supabase
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     
     if (!currentSession?.user) {
+      console.log('❌ No session found, setting user to null');
       setUser(null);
       return;
     }
     
+    console.log('✅ Session found:', currentSession.user.email);
     // Update session state
     setSession(currentSession);
 
     try {
       // First try to get existing user
+      console.log('🔍 Checking if user exists in users table...');
       const { data: userData, error } = await supabase
         .from('users')
         .select('*')
@@ -54,8 +59,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .single();
       
       if (userData && !error) {
+        console.log('✅ User found in database:', userData);
         setUser(userData);
       } else if (error?.code === 'PGRST116') {
+        console.log('⚠️ User not found in database, creating new user...');
         // User doesn't exist in our users table, create them
         // For OTP login, email is automatically confirmed
         const newUser: Omit<User, 'id'> = {
@@ -65,6 +72,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           created_at: new Date().toISOString()
         };
 
+        console.log('📝 Creating user with data:', newUser);
         const { data: createdUser, error: createError } = await supabase
           .from('users')
           .insert({ ...newUser, id: currentSession.user.id })
@@ -72,20 +80,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .single();
 
         if (createdUser && !createError) {
+          console.log('✅ User created successfully:', createdUser);
           setUser(createdUser);
         } else {
-            }
-      } else {
+          console.error('❌ Failed to create user:', createError);
+          // Even if database creation fails, set a minimal user object
+          // This prevents the login loop
+          const fallbackUser: User = {
+            id: currentSession.user.id,
+            email: currentSession.user.email || '',
+            display_name: currentSession.user.email?.split('@')[0] || 'User',
+            created_at: new Date().toISOString()
+          };
+          console.log('⚠️ Using fallback user object:', fallbackUser);
+          setUser(fallbackUser);
         }
+      } else {
+        console.error('❌ Unexpected database error:', error);
+        // Set fallback user to prevent login loop
+        const fallbackUser: User = {
+          id: currentSession.user.id,
+          email: currentSession.user.email || '',
+          display_name: currentSession.user.email?.split('@')[0] || 'User',
+          created_at: new Date().toISOString()
+        };
+        console.log('⚠️ Using fallback user object due to error:', fallbackUser);
+        setUser(fallbackUser);
+      }
     } catch (error) {
-      setUser(null);
+      console.error('❌ Critical error in refreshUser:', error);
+      // Even on error, if we have a session, set a minimal user
+      if (currentSession?.user) {
+        const fallbackUser: User = {
+          id: currentSession.user.id,
+          email: currentSession.user.email || '',
+          display_name: currentSession.user.email?.split('@')[0] || 'User',
+          created_at: new Date().toISOString()
+        };
+        console.log('⚠️ Using fallback user object after error:', fallbackUser);
+        setUser(fallbackUser);
+      } else {
+        setUser(null);
+      }
     }
   };
 
   const signIn = async (email: string) => {
+    console.log('🔑 signIn called with email:', email);
     setIsLoading(true);
     
     try {
+      console.log('📤 Calling Supabase signInWithOtp...');
       const { data, error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
@@ -93,12 +138,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       });
       
+      console.log('📥 Supabase response - data:', data, 'error:', error);
+      
       if (error) {
+        console.error('❌ Supabase OTP error:', error);
         return { error: error.message };
       }
       
+      console.log('✅ OTP request successful');
       return { success: true, message: 'OTP sent! Check your email.' };
     } catch (error) {
+      console.error('❌ Unexpected error in signIn:', error);
       return { error: 'An unexpected error occurred' };
     } finally {
       setIsLoading(false);
@@ -106,6 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const verifyOtp = async (email: string, token: string) => {
+    console.log('🔐 Starting OTP verification for:', email);
     setIsLoading(true);
     
     try {
@@ -116,21 +167,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (error) {
-        console.error('OTP verification error:', error);
+        console.error('❌ OTP verification error:', error);
         return { error: error.message };
       }
       
       if (data.session) {
-        console.log('OTP verified, session created:', data.session.user.email);
+        console.log('✅ OTP verified, session created:', data.session.user.email);
         setSession(data.session);
         
         // Force refresh user data
         await refreshUser();
         
+        // Wait a bit for state to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Double check user was set
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (currentSession) {
-          console.log('Session confirmed, user should be logged in');
+          console.log('✅ Session confirmed, user should be logged in');
+          console.log('📊 Current user state after verification:', user);
         }
         
         return { success: true };
@@ -138,7 +193,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       return { error: 'Failed to verify OTP' };
     } catch (error) {
-      console.error('Unexpected error during OTP verification:', error);
+      console.error('❌ Unexpected error during OTP verification:', error);
       return { error: 'An unexpected error occurred' };
     } finally {
       setIsLoading(false);
@@ -170,26 +225,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
+    console.log('🚀 AuthContext initializing...');
     // Initialize auth state
     setIsLoading(true);
     
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session?.user?.email);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('📍 Initial session check:', session?.user?.email || 'No session');
       setSession(session);
       if (session) {
-        refreshUser();
+        await refreshUser();
       }
       setIsLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        console.log('Auth state changed:', _event, session?.user?.email);
+      async (_event, session) => {
+        console.log('🔔 Auth state changed:', _event, session?.user?.email || 'No session');
         setSession(session);
         if (session) {
-          refreshUser();
+          await refreshUser();
         } else {
           setUser(null);
         }
