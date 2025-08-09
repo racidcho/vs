@@ -547,11 +547,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setUser(null);
             }
           } else if (mounted) {
-            // 세션이 있으면 불필요한 갱신 방지 - 유효한 세션은 유지만
-            console.log('✅ USER_UPDATED: 세션 유지 (갱신 스킵으로 충돌 방지)');
-            // 세션이 유효하므로 refreshUser() 호출 생략하여 충돌 방지
+            // 세션이 있으면 조건부 갱신 - 토큰 갱신 중이 아닐 때만
+            console.log('✅ USER_UPDATED: 세션 유지하며 조건부 갱신');
             setSession(session);
-            // await refreshUser(); // 주석 처리로 불필요한 갱신 방지
+            if (!isRefreshingSession) {
+              console.log('🔄 USER_UPDATED: 사용자 정보 갱신 (토큰 갱신 중 아님)');
+              await refreshUser();
+            } else {
+              console.log('⏳ USER_UPDATED: 토큰 갱신 중이므로 사용자 갱신 스킵');
+            }
           }
           return;
         }
@@ -572,6 +576,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (mounted) {
             setSession(session);
             if (session) {
+              // SIGNED_IN 이벤트에서 사용자 정보 새로고침 추가
+              await refreshUser();
               // 세션 토큰을 localStorage에 저장 (페이지 이동 시 복구용)
               localStorage.setItem('sb-auth-token', JSON.stringify({
                 access_token: session.access_token,
