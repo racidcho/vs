@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '../types';
 import { supabase } from '../lib/supabase';
 import type { AuthSession } from '@supabase/supabase-js';
+import { isTestMode, getTestUser } from '../utils/testHelper';
 
 interface AuthContextType {
   user: User | null;
@@ -26,12 +27,7 @@ export const useAuth = () => {
   return context;
 };
 
-// 디버그 모드 감지 함수
-const isDebugModeActive = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('debug') === 'testmode';
-};
+// 테스트 모드 감지 - testHelper.ts의 isTestMode 사용
 
 // 테스트 계정 정보 - 실제 존재하는 사용자 ID 사용 (Foreign Key 제약조건 해결)
 const TEST_ACCOUNTS = {
@@ -60,7 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDebugMode] = useState(() => isDebugModeActive());
+  const [isDebugMode] = useState(() => isTestMode());
 
   const refreshUser = async () => {
 
@@ -169,13 +165,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
 
     try {
-      // 디버그 모드에서는 테스트 계정 확인
-      if (isDebugMode) {
-        const testAccount = Object.values(TEST_ACCOUNTS).find(account => account.email === email.trim());
-        if (testAccount) {
-          console.log('🔧 DEBUG: 테스트 계정 이메일 감지, OTP 우회');
-          return { success: true, message: 'DEBUG MODE: OTP 우회됨. 임의 코드로 진행하세요.' };
-        }
+      // 테스트 모드에서는 OTP 전송 우회
+      if (isTestMode()) {
+        console.log('🧪 TEST MODE: OTP 전송 우회');
+        return { success: true, message: 'TEST MODE: OTP 우회됨. 임의 코드로 진행하세요.' };
       }
 
       const { data, error } = await supabase.auth.signInWithOtp({
@@ -201,23 +194,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
 
     try {
-      // 디버그 모드에서 테스트 계정 OTP 우회
-      if (isDebugMode) {
-        const testAccountEntry = Object.entries(TEST_ACCOUNTS).find(
-          ([_, account]) => account.email === email.trim()
-        );
+      // 테스트 모드에서 OTP 우회하고 바로 로그인
+      if (isTestMode()) {
+        console.log('🧪 TEST MODE: OTP 검증 우회, 자동 로그인');
         
-        if (testAccountEntry) {
-          const [accountNumber] = testAccountEntry;
-          console.log('🔧 DEBUG: 테스트 계정 OTP 우회, 자동 로그인 진행');
+        const testUser = getTestUser();
+        if (testUser) {
+          // 테스트 사용자 정보로 바로 로그인
+          const mockUser: User = {
+            id: testUser.id,
+            email: testUser.email,
+            display_name: testUser.display_name,
+            created_at: new Date().toISOString(),
+            couple_id: testUser.couple_id || null
+          };
+
+          setUser(mockUser);
+          setSession({
+            access_token: 'test-token',
+            refresh_token: 'test-refresh-token',
+            expires_in: 3600,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+            token_type: 'bearer',
+            user: {
+              id: testUser.id,
+              email: testUser.email,
+              aud: 'authenticated',
+              role: 'authenticated',
+              app_metadata: {},
+              user_metadata: { display_name: testUser.display_name },
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          });
           
-          const result = await debugLogin(Number(accountNumber) as 1 | 2);
-          if (result.success) {
-            return { success: true };
-          } else {
-            return { error: 'Debug login failed' };
-          }
+          console.log('✅ 테스트 모드 로그인 성공');
+          return { success: true };
         }
+        
+        return { error: 'Test user not found' };
       }
 
       const { data, error } = await supabase.auth.verifyOtp({
@@ -401,25 +416,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }, 30000);
 
-    // 디버그 모드 자동 로그인 시도 (비동기, 일반 인증과 병행)
-    const tryDebugLogin = async () => {
-      if (isDebugMode && mounted) {
-        console.log('🔧 DEBUG MODE: 자동 로그인 시도...');
+    // 테스트 모드 자동 로그인 시도 (비동기, 일반 인증과 병행)
+    const tryTestModeLogin = async () => {
+      if (isTestMode() && mounted) {
+        console.log('🧪 TEST MODE: 자동 로그인 시도...');
         
-        // URL에서 테스트 계정 번호 확인 (기본값: 1)
-        const urlParams = new URLSearchParams(window.location.search);
-        const testAccountParam = urlParams.get('account');
-        const accountNumber = testAccountParam === '2' ? 2 : 1;
-        
-        const result = await debugLogin(accountNumber);
-        if (result.success && mounted) {
-          console.log('🔧 DEBUG: 자동 로그인 완료');
+        const testUser = getTestUser();
+        if (testUser) {
+          // 테스트 사용자로 자동 로그인
+          const mockUser: User = {
+            id: testUser.id,
+            email: testUser.email,
+            display_name: testUser.display_name,
+            created_at: new Date().toISOString(),
+            couple_id: testUser.couple_id || null
+          };
+
+          setUser(mockUser);
+          setSession({
+            access_token: 'test-token',
+            refresh_token: 'test-refresh-token',
+            expires_in: 3600,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+            token_type: 'bearer',
+            user: {
+              id: testUser.id,
+              email: testUser.email,
+              aud: 'authenticated',
+              role: 'authenticated',
+              app_metadata: {},
+              user_metadata: { display_name: testUser.display_name },
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          });
+          
+          console.log('✅ 테스트 모드 자동 로그인 성공');
           setIsLoading(false);
           clearTimeout(initTimeout);
-          return true; // 성공
-        } else {
-          console.warn('🔧 DEBUG: 자동 로그인 실패, 일반 인증 플로우 진행');
-          return false; // 실패
+          return true;
         }
       }
       return false;
@@ -435,8 +470,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
       
-      // 디버그 로그인 시도 (백그라운드에서 실행)
-      tryDebugLogin();
+      // 테스트 모드 로그인 시도 (백그라운드에서 실행)
+      tryTestModeLogin();
 
       // Get initial session with error handling
       supabase.auth.getSession().then(async ({ data: { session }, error }) => {
