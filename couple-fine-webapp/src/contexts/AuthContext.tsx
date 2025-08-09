@@ -323,7 +323,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: testAccount.email,
         display_name: testAccount.display_name,
         created_at: new Date().toISOString(),
-        couple_id: testAccountNumber === 1 ? 'test-couple-1' : 'test-couple-1' // 같은 커플로 연결
+        couple_id: 'test-couple-1' // 모든 테스트 계정은 같은 커플로 연결
       };
 
       setUser(testUser);
@@ -349,36 +349,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Initialize auth state
     setIsLoading(true);
 
-    // 디버그 모드 자동 로그인 체크
-    if (isDebugMode && mounted) {
-      console.log('🔧 DEBUG MODE: 자동 로그인 시도...');
-      
-      // URL에서 테스트 계정 번호 확인 (기본값: 1)
-      const urlParams = new URLSearchParams(window.location.search);
-      const testAccountParam = urlParams.get('account');
-      const accountNumber = testAccountParam === '2' ? 2 : 1;
-      
-      debugLogin(accountNumber).then(result => {
-        if (result.success && mounted) {
-          console.log('🔧 DEBUG: 자동 로그인 완료');
-          setIsLoading(false);
-        } else {
-          console.warn('🔧 DEBUG: 자동 로그인 실패, 일반 모드로 진행');
-          // 실패 시 일반 인증 플로우로 진행
-        }
-      });
-      
-      return () => {
-        mounted = false;
-      };
-    }
-
     // 30초 타임아웃으로 초기화 보호 (네트워크 지연 고려)
     const initTimeout = setTimeout(() => {
       if (mounted) {
         setIsLoading(false);
       }
     }, 30000);
+
+    // 디버그 모드 자동 로그인 시도 (비동기, 일반 인증과 병행)
+    const tryDebugLogin = async () => {
+      if (isDebugMode && mounted) {
+        console.log('🔧 DEBUG MODE: 자동 로그인 시도...');
+        
+        // URL에서 테스트 계정 번호 확인 (기본값: 1)
+        const urlParams = new URLSearchParams(window.location.search);
+        const testAccountParam = urlParams.get('account');
+        const accountNumber = testAccountParam === '2' ? 2 : 1;
+        
+        const result = await debugLogin(accountNumber);
+        if (result.success && mounted) {
+          console.log('🔧 DEBUG: 자동 로그인 완료');
+          setIsLoading(false);
+          clearTimeout(initTimeout);
+          return true; // 성공
+        } else {
+          console.warn('🔧 DEBUG: 자동 로그인 실패, 일반 인증 플로우 진행');
+          return false; // 실패
+        }
+      }
+      return false;
+    };
+
+    // 디버그 로그인 시도 (백그라운드에서 실행)
+    tryDebugLogin();
 
     // Get initial session with error handling
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
