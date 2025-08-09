@@ -206,7 +206,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             email: testUser.email,
             display_name: testUser.display_name,
             created_at: new Date().toISOString(),
-            couple_id: testUser.couple_id || null
+            couple_id: '96e3ffc4-fc47-418c-81c5-2a020701a95b' // 실제 생성된 커플 ID
           };
 
           setUser(mockUser);
@@ -429,7 +429,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             email: testUser.email,
             display_name: testUser.display_name,
             created_at: new Date().toISOString(),
-            couple_id: testUser.couple_id || null
+            couple_id: '96e3ffc4-fc47-418c-81c5-2a020701a95b' // 실제 생성된 커플 ID
           };
 
           setUser(mockUser);
