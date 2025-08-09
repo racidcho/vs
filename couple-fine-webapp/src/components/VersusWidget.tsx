@@ -33,7 +33,7 @@ export const VersusWidget: React.FC = () => {
     // Calculate stats for each partner
     const calculateStats = (partnerId: string): PartnerStats => {
       const violations = state.violations.filter(v => v.violator_user_id === partnerId);
-      const totalFines = violations.reduce((sum, v) => sum + Math.abs(v.amount), 0);
+      const totalFines = violations.reduce((sum, v) => sum + v.amount, 0);
       
       // Get partner name
       let partnerName = '';

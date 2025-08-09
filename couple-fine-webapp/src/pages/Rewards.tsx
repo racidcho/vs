@@ -30,8 +30,8 @@ export const Rewards: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  // Calculate total penalties for progress calculation (user-specific)
-  const totalPenalties = user ? getUserTotalFines(user.id) : 0;
+  // Calculate total penalties for progress calculation (couple total)
+  const totalPenalties = state.couple?.total_balance || 0;
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {

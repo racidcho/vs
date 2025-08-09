@@ -46,6 +46,10 @@ export const Dashboard: React.FC = () => {
         const celebrationKey = `couple_celebrated_${user.id}_${state.couple.id}`;
         const hasCelebrated = localStorage.getItem(celebrationKey);
         
+        // 이번 세션에서 이미 체크했는지 확인
+        const sessionCheckKey = `celebration_checked_${user.id}_${state.couple.id}`;
+        const alreadyCheckedInSession = sessionStorage.getItem(sessionCheckKey);
+        
         // 커플이 존재하고 두 파트너 모두 이름이 설정되어 있는지 확인
         const couple = state.couple as any;
         // 단순하게 커플이 완성되었는지만 체크 (두 파트너 모두 존재)
@@ -53,6 +57,7 @@ export const Dashboard: React.FC = () => {
         
         console.log('🎉 DASHBOARD: 축하 페이지 체크:', {
           hasCelebrated: !!hasCelebrated,
+          alreadyCheckedInSession: !!alreadyCheckedInSession,
           coupleIsComplete,
           partner1Id: couple?.partner_1_id,
           partner2Id: couple?.partner_2_id,
@@ -61,9 +66,11 @@ export const Dashboard: React.FC = () => {
           currentUserName: user?.display_name
         });
         
-        if (coupleIsComplete && !hasCelebrated) {
+        if (coupleIsComplete && !hasCelebrated && !alreadyCheckedInSession) {
           // 두 파트너 모두 있고 축하 페이지를 안 봤으면 리다이렉트
           console.log('🎉 DASHBOARD: 축하 페이지로 리다이렉트');
+          // 세션에 체크 표시
+          sessionStorage.setItem(sessionCheckKey, 'true');
           navigate('/couple-complete' + location.search);
         }
       }
