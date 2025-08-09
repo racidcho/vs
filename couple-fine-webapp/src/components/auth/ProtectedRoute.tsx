@@ -32,7 +32,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Redirect to login if not authenticated
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Preserve query parameters (like ?debug=true) when redirecting
+    const searchParams = location.search;
+    return <Navigate to={`/login${searchParams}`} state={{ from: location }} replace />;
   }
 
   // Redirect to couple setup if couple is required but user doesn't have one
