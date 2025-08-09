@@ -71,7 +71,10 @@
       "Bash(timeout:*)",
       "Bash(powershell:*)",
       "mcp__supabase__execute_sql",
-      "Bash(start http://localhost:5173)"
+      "Bash(start http://localhost:5173)",
+      "Bash(start http://localhost:5190)",
+      "Bash(start http://localhost:5191)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

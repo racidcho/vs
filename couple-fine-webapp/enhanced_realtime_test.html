@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Enhanced Realtime 테스트 - joanddo.com</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: linear-gradient(135deg, #fdf2f8 0%, #f3e8ff 100%);
+            color: #1f2937;
+        }
+        .header { 
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .section { 
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status { 
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .connected { 
+            background: #dcfce7;
+            border: 1px solid #16a34a;
+            color: #15803d;
+        }
+        .disconnected { 
+            background: #fecaca;
+            border: 1px solid #dc2626;
+            color: #b91c1c;
+        }
+        button { 
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+        }
+        button:hover { 
+            opacity: 0.8;
+        }
+        .log {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 5px;
+            border-left: 3px solid #3b82f6;
+            background: white;
+        }
+        .log-success { border-left-color: #10b981; }
+        .log-error { border-left-color: #ef4444; }
+        .log-warn { border-left-color: #f59e0b; }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+        }
+        input, select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ Enhanced Realtime 테스트</h1>
+        <p>즉시 작동하는 Supabase Realtime Channels 구현</p>
+        <div id="main-status" class="status disconnected">🔴 연결 준비 중...</div>
+    </div>
+
+    <div class="section">
+        <h2>🔌 연결 설정</h2>
+        <div class="input-group">
+            <label>Couple ID:</label>
+            <input type="text" id="couple-id" placeholder="your-couple-id" value="">
+            <button onclick="initializeRealtime()">🚀 연결 시작</button>
+        </div>
+        <div class="input-group">
+            <label>사용자 이메일:</label>
+            <input type="email" id="user-email" placeholder="user@example.com">
+            <button onclick="setCurrentUser()">👤 사용자 설정</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🧪 테스트 기능</h2>
+        <div class="grid">
+            <div>
+                <h3>📋 규칙 테스트</h3>
+                <div class="input-group">
+                    <input type="text" id="rule-title" placeholder="규칙 제목">
+                    <input type="number" id="rule-amount" placeholder="벌금">
+                </div>
+                <button onclick="testCreateRule()">➕ 규칙 생성</button>
+                <button onclick="testUpdateRule()">✏️ 규칙 수정</button>
+                <button onclick="testDeleteRule()">🗑️ 규칙 삭제</button>
+            </div>
+
+            <div>
+                <h3>⚖️ 위반 테스트</h3>
+                <div class="input-group">
+                    <input type="number" id="violation-amount" placeholder="벌금액">
+                    <input type="text" id="violation-memo" placeholder="메모">
+                </div>
+                <button onclick="testCreateViolation()">➕ 위반 기록</button>
+            </div>
+
+            <div>
+                <h3>🎁 보상 테스트</h3>
+                <div class="input-group">
+                    <input type="text" id="reward-title" placeholder="보상 제목">
+                    <input type="number" id="reward-target" placeholder="목표 금액">
+                </div>
+                <button onclick="testCreateReward()">➕ 보상 생성</button>
+                <button onclick="testClaimReward()">🏆 보상 달성</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📊 실시간 모니터링</h2>
+        <div class="input-group">
+            <button onclick="clearLog()">🧹 로그 지우기</button>
+            <button onclick="testBroadcast()">📤 테스트 브로드캐스트</button>
+            <button onclick="checkConnection()">🔍 연결 상태 확인</button>
+        </div>
+        <div id="realtime-log" class="log"></div>
+    </div>
+
+    <script>
+        // Supabase 초기화
+        const { createClient } = supabase;
+        
+        // ⚠️ 실제 환경변수 사용
+        const supabaseUrl = 'https://ywocrwjzjheupewfxssu.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b2Nyd2pqaGV1cGV3Znhzc3UiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcyMzI4MDk0NSwiZXhwIjoyMDM4ODU2OTQ1fQ.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b2Nyd2pqaGV1cGV3Znhzc3UiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcyMzI4MDk0NSwiZXhwIjoyMDM4ODU2OTQ1fQ.eT9U';
+        
+        window.supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        let realtimeManager = null;
+        let enhancedCRUD = null;
+        let lastRuleId = null;
+        let lastRewardId = null;
+
+        // 로그 함수
+        function addLog(message, type = 'info') {
+            const logDiv = document.getElementById('realtime-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `<strong>${timestamp}</strong> ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('realtime-log').innerHTML = '';
+        }
+
+        function updateMainStatus(connected) {
+            const statusEl = document.getElementById('main-status');
+            if (connected) {
+                statusEl.textContent = '🟢 Enhanced Realtime 연결됨';
+                statusEl.className = 'status connected';
+            } else {
+                statusEl.textContent = '🔴 연결 끊김 또는 준비 중';
+                statusEl.className = 'status disconnected';
+            }
+        }
+
+        // Realtime 스크립트 로드 및 초기화
+        function loadRealtimeScript() {
+            return new Promise((resolve, reject) => {
+                if (window.CoupleRealtimeManager) {
+                    resolve();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = '/realtime_alternative_implementation.js';
+                script.onload = () => {
+                    addLog('📦 Realtime script loaded successfully', 'success');
+                    resolve();
+                };
+                script.onerror = () => {
+                    addLog('❌ Failed to load Realtime script', 'error');
+                    reject(new Error('Script load failed'));
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        // 사용자 설정
+        async function setCurrentUser() {
+            const email = document.getElementById('user-email').value;
+            if (!email) {
+                addLog('⚠️ 이메일을 입력해주세요', 'warn');
+                return;
+            }
+
+            try {
+                // 간단한 인증 시뮬레이션
+                addLog(`👤 사용자 설정: ${email}`, 'success');
+            } catch (error) {
+                addLog(`❌ 사용자 설정 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // Enhanced Realtime 초기화
+        async function initializeRealtime() {
+            const coupleId = document.getElementById('couple-id').value;
+            if (!coupleId) {
+                addLog('⚠️ Couple ID를 입력해주세요', 'warn');
+                return;
+            }
+
+            try {
+                addLog('🚀 Enhanced Realtime 초기화 시작...', 'info');
+                
+                // 스크립트 로드
+                await loadRealtimeScript();
+                
+                // Realtime Manager 초기화
+                realtimeManager = new window.CoupleRealtimeManager();
+                await realtimeManager.getCurrentUser();
+                
+                // Broadcast Channel 설정
+                realtimeManager.setupBroadcastChannel(coupleId);
+                
+                // Enhanced CRUD 초기화
+                enhancedCRUD = new window.EnhancedCRUD(realtimeManager);
+                
+                addLog(`✅ Enhanced Realtime 초기화 완료: ${coupleId}`, 'success');
+                
+                // 연결 상태 모니터링
+                setInterval(() => {
+                    updateMainStatus(realtimeManager.isConnected);
+                }, 2000);
+                
+            } catch (error) {
+                addLog(`❌ 초기화 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // 테스트 함수들
+        async function testCreateRule() {
+            if (!enhancedCRUD) {
+                addLog('⚠️ 먼저 Realtime을 초기화해주세요', 'warn');
+                return;
+            }
+
+            const title = document.getElementById('rule-title').value || '테스트 규칙';
+            const amount = parseInt(document.getElementById('rule-amount').value) || 5000;
+
+            try {
+                addLog(`📋 규칙 생성 시도: ${title} (${amount}원)`, 'info');
+                
+                const ruleData = {
+                    title,
+                    description: '테스트용 규칙입니다',
+                    amount,
+                    category: 'general',
+                    couple_id: document.getElementById('couple-id').value,
+                    created_by_user_id: 'test-user-id',
+                    is_active: true
+                };
+
+                const result = await enhancedCRUD.createRule(ruleData);
+                lastRuleId = result.id;
+                
+                addLog(`✅ 규칙 생성 완료: ${result.id}`, 'success');
+            } catch (error) {
+                addLog(`❌ 규칙 생성 실패: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUpdateRule() {
+            if (!enhancedCRUD || !lastRuleId) {
+                addLog('⚠️ 먼저 규칙을 생성해주세요', 'warn');
+                return;
+            }
+
+            try {
+                const updates = {
+                    title: '수정된 테스트 규칙',
+                    amount: 7000
+                };
+
+                addLog(`📋 규칙 수정 시도: ${lastRuleId}`, 'info');
+                const result = await enhancedCRUD.updateRule(lastRuleId, updates);
+                addLog(`✅ 규칙 수정 완료`, 'success');
+            } catch (error) {
+                addLog(`❌ 규칙 수정 실패: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDeleteRule() {
+            if (!enhancedCRUD || !lastRuleId) {
+                addLog('⚠️ 먼저 규칙을 생성해주세요', 'warn');
+                return;
+            }
+
+            try {
+                addLog(`📋 규칙 삭제 시도: ${lastRuleId}`, 'info');
+                await enhancedCRUD.deleteRule(lastRuleId);
+                addLog(`✅ 규칙 삭제 완료`, 'success');
+                lastRuleId = null;
+            } catch (error) {
+                addLog(`❌ 규칙 삭제 실패: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCreateViolation() {
+            if (!enhancedCRUD) {
+                addLog('⚠️ 먼저 Realtime을 초기화해주세요', 'warn');
+                return;
+            }
+
+            const amount = parseInt(document.getElementById('violation-amount').value) || 5000;
+            const memo = document.getElementById('violation-memo').value || '테스트 위반';
+
+            try {
+                addLog(`⚖️ 위반 기록 시도: ${amount}원`, 'info');
+                
+                const violationData = {
+                    rule_id: lastRuleId || 'test-rule-id',
+                    violator_user_id: 'test-user-id',
+                    recorded_by_user_id: 'test-user-id',
+                    couple_id: document.getElementById('couple-id').value,
+                    amount,
+                    memo,
+                    violation_date: new Date().toISOString()
+                };
+
+                const result = await enhancedCRUD.createViolation(violationData);
+                addLog(`✅ 위반 기록 완료`, 'success');
+            } catch (error) {
+                addLog(`❌ 위반 기록 실패: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCreateReward() {
+            if (!enhancedCRUD) {
+                addLog('⚠️ 먼저 Realtime을 초기화해주세요', 'warn');
+                return;
+            }
+
+            const title = document.getElementById('reward-title').value || '테스트 보상';
+            const targetAmount = parseInt(document.getElementById('reward-target').value) || 50000;
+
+            try {
+                addLog(`🎁 보상 생성 시도: ${title} (${targetAmount}원)`, 'info');
+                
+                const rewardData = {
+                    title,
+                    description: '테스트용 보상입니다',
+                    target_amount: targetAmount,
+                    couple_id: document.getElementById('couple-id').value,
+                    created_by_user_id: 'test-user-id',
+                    is_achieved: false
+                };
+
+                const result = await enhancedCRUD.createReward(rewardData);
+                lastRewardId = result.id;
+                
+                addLog(`✅ 보상 생성 완료: ${result.id}`, 'success');
+            } catch (error) {
+                addLog(`❌ 보상 생성 실패: ${error.message}`, 'error');
+            }
+        }
+
+        async function testClaimReward() {
+            if (!enhancedCRUD || !lastRewardId) {
+                addLog('⚠️ 먼저 보상을 생성해주세요', 'warn');
+                return;
+            }
+
+            try {
+                addLog(`🎁 보상 달성 시도: ${lastRewardId}`, 'info');
+                const result = await enhancedCRUD.claimReward(lastRewardId);
+                addLog(`✅ 보상 달성 완료`, 'success');
+            } catch (error) {
+                addLog(`❌ 보상 달성 실패: ${error.message}`, 'error');
+            }
+        }
+
+        async function testBroadcast() {
+            if (!realtimeManager) {
+                addLog('⚠️ 먼저 Realtime을 초기화해주세요', 'warn');
+                return;
+            }
+
+            try {
+                addLog('📤 테스트 브로드캐스트 발송...', 'info');
+                await realtimeManager.broadcastDataChange('TEST', 'test_table', {
+                    message: '테스트 브로드캐스트',
+                    timestamp: new Date().toISOString()
+                });
+                addLog('✅ 브로드캐스트 발송 완료', 'success');
+            } catch (error) {
+                addLog(`❌ 브로드캐스트 실패: ${error.message}`, 'error');
+            }
+        }
+
+        function checkConnection() {
+            if (realtimeManager) {
+                const connected = realtimeManager.isConnected;
+                addLog(`🔍 연결 상태: ${connected ? '연결됨' : '끊어짐'}`, connected ? 'success' : 'error');
+                updateMainStatus(connected);
+            } else {
+                addLog('⚠️ Realtime Manager가 초기화되지 않음', 'warn');
+                updateMainStatus(false);
+            }
+        }
+
+        // 초기 로그
+        addLog('🎯 Enhanced Realtime 테스트 페이지 준비 완료', 'success');
+        addLog('📋 1. Couple ID 입력 → 2. 연결 시작 → 3. 테스트 진행', 'info');
+
+        // 페이지 로드 시 상태 업데이트
+        updateMainStatus(false);
+    </script>
+</body>
+</html>

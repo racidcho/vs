@@ -3,6 +3,7 @@ import type { AppState, Couple, Rule, Violation, Reward } from '../types';
 import { supabase } from '../lib/supabase';
 import { updateViolation as updateViolationApi, deleteViolation as deleteViolationApi } from '../lib/supabaseApi';
 import { useAuth } from './AuthContext';
+import { debugLog, DEBUG_MODE, runFullDiagnostics, checkSupabaseConnection, checkAuthStatus, testRLSPolicies, testRealtimeSubscription, testCRUDOperations, checkCoupleConnection } from '../utils/debugSupabase';
 
 // Action Types
 type AppAction =
@@ -200,6 +201,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Load couple data when user changes with abort signal support
   const loadCoupleData = async (abortSignal?: AbortSignal) => {
+    debugLog('LOAD_DATA', '=== loadCoupleData 시작 ===', {
+      userId: user?.id,
+      coupleId: user?.couple_id,
+      hasAbortSignal: !!abortSignal
+    }, 'debug');
+    
     console.log('🔄 APPCONTEXT: loadCoupleData 시작', {
       userId: user?.id,
       coupleId: user?.couple_id,
@@ -207,6 +214,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     });
 
     if (!user?.couple_id) {
+      debugLog('LOAD_DATA', '커플 ID 없음 - 상태 리셋', null, 'warning');
       console.log('❌ APPCONTEXT: 커플 ID 없음 - 상태 리셋');
       dispatch({ type: 'RESET_STATE' });
       return;
@@ -226,6 +234,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       // Load couple info with partner details (with timeout)
+      debugLog('LOAD_DATA', '커플 데이터 조회 시작', { couple_id: user.couple_id }, 'info');
       const { data: coupleData, error: coupleError } = await Promise.race([
         supabase
           .from('couples')
@@ -240,6 +249,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       ]).catch(err => ({ data: null, error: err })) as any;
 
       if (coupleError) {
+        debugLog('LOAD_DATA', '커플 데이터 로드 실패', coupleError, 'error');
         console.error('💥 APPCONTEXT: 커플 데이터 로드 실패:', coupleError);
         return;
       }
@@ -278,6 +288,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       // Load rules (with timeout)
+      debugLog('LOAD_DATA', '규칙 데이터 조회 시작', { couple_id: user.couple_id }, 'info');
       const { data: rulesData, error: rulesError } = await Promise.race([
         supabase
           .from('rules')
@@ -289,14 +300,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       ]).catch(err => ({ data: null, error: err })) as any;
 
       if (rulesError) {
-
+        debugLog('LOAD_DATA', '규칙 데이터 로드 실패', rulesError, 'error');
       } else {
-
+        debugLog('LOAD_DATA', '규칙 데이터 로드 성공', { count: rulesData?.length || 0 }, 'success');
         dispatch({ type: 'SET_RULES', payload: rulesData || [] });
-
       }
 
       // Load violations with relations
+      debugLog('LOAD_DATA', '벌금 데이터 조회 시작', { couple_id: user.couple_id }, 'info');
       const { data: violationsData, error: violationsError } = await supabase
         .from('violations')
         .select(`
@@ -310,14 +321,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .limit(50);
 
       if (violationsError) {
-
+        debugLog('LOAD_DATA', '벌금 데이터 로드 실패', violationsError, 'error');
       } else {
-
+        debugLog('LOAD_DATA', '벌금 데이터 로드 성공', { count: violationsData?.length || 0 }, 'success');
         dispatch({ type: 'SET_VIOLATIONS', payload: violationsData as any || [] });
-
       }
 
       // Load rewards
+      debugLog('LOAD_DATA', '보상 데이터 조회 시작', { couple_id: user.couple_id }, 'info');
       const { data: rewardsData, error: rewardsError } = await supabase
         .from('rewards')
         .select('*')
@@ -325,11 +336,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .order('created_at', { ascending: false });
 
       if (rewardsError) {
-
+        debugLog('LOAD_DATA', '보상 데이터 로드 실패', rewardsError, 'error');
       } else {
-
+        debugLog('LOAD_DATA', '보상 데이터 로드 성공', { count: rewardsData?.length || 0 }, 'success');
         dispatch({ type: 'SET_REWARDS', payload: rewardsData || [] });
-
       }
 
     } catch (error) {
@@ -720,9 +730,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // ⚡ Enhanced Create rule with Realtime broadcast
   const createRule = async (rule: Omit<Rule, 'id' | 'couple_id' | 'created_at'>) => {
-
+    debugLog('CRUD', '=== createRule 시작 ===', rule, 'debug');
+    
     if (!user?.couple_id) {
-
+      debugLog('CRUD', 'createRule 실패: 커플 ID 없음', null, 'error');
       return { error: 'No couple found' };
     }
 
@@ -733,6 +744,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         created_by_user_id: user.id,
         is_active: true
       };
+      
+      debugLog('CRUD', 'createRule 요청 데이터', ruleData, 'info');
 
       // Enhanced CRUD 사용 시도
       if (enhancedCRUDRef.current) {
@@ -754,11 +767,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .single();
 
       if (error) {
-
+        debugLog('CRUD', 'createRule 실패', error, 'error');
         return { error: error.message };
       }
 
       if (data) {
+        debugLog('CRUD', 'createRule 성공', data, 'success');
         dispatch({ type: 'ADD_RULE', payload: data });
       }
 
@@ -842,6 +856,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // ⚡ Enhanced Create violation with Realtime broadcast
   const createViolation = async (violation: Omit<Violation, 'id' | 'created_at'>) => {
+    debugLog('CRUD', '=== createViolation 시작 ===', violation, 'debug');
+    
     try {
       // Enhanced CRUD 사용 시도
       if (enhancedCRUDRef.current) {
@@ -855,14 +871,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       // Fallback to regular CRUD
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('violations')
         .insert(violation)
         .select()
         .single();
 
-      if (error) return { error: error.message };
-
+      if (error) {
+        debugLog('CRUD', 'createViolation 실패', error, 'error');
+        return { error: error.message };
+      }
+      
+      debugLog('CRUD', 'createViolation 성공', data, 'success');
       return {};
     } catch (error) {
       return { error: 'Failed to create violation' };
@@ -893,9 +913,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // ⚡ Enhanced Create reward with Realtime broadcast
   const createReward = async (reward: Omit<Reward, 'id' | 'couple_id' | 'created_at'>) => {
-
+    debugLog('CRUD', '=== createReward 시작 ===', reward, 'debug');
+    
     if (!user?.couple_id) {
-
+      debugLog('CRUD', 'createReward 실패: 커플 ID 없음', null, 'error');
       return { error: 'No couple found' };
     }
 
@@ -906,6 +927,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         created_by_user_id: user.id,
         is_achieved: false
       };
+      
+      debugLog('CRUD', 'createReward 요청 데이터', rewardData, 'info');
 
       // Enhanced CRUD 사용 시도
       if (enhancedCRUDRef.current) {
@@ -927,11 +950,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .single();
 
       if (error) {
-
+        debugLog('CRUD', 'createReward 실패', error, 'error');
         return { error: error.message };
       }
 
       if (data) {
+        debugLog('CRUD', 'createReward 성공', data, 'success');
         dispatch({ type: 'ADD_REWARD', payload: data as Reward });
       }
 
@@ -1153,18 +1177,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Load data when user changes
   useEffect(() => {
-
+    debugLog('USER_CHANGE', '사용자 상태 변경 감지', { 
+      userId: user?.id, 
+      coupleId: user?.couple_id,
+      isLoading 
+    }, 'info');
+    
     if (user && !isLoading) {
-
       if (user.couple_id) {
-
+        debugLog('USER_CHANGE', '커플 데이터 로드 시작', null, 'info');
         loadCoupleData();
       } else {
-
+        debugLog('USER_CHANGE', '커플 ID 없음 - 상태 리셋', null, 'warning');
         dispatch({ type: 'RESET_STATE' });
       }
-    } else {
-
     }
   }, [user, isLoading]);
 
@@ -1176,6 +1202,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
 
     console.log('🔗 APPCONTEXT REALTIME: Setting up legacy subscriptions for couple:', user.couple_id);
+    debugLog('REALTIME', '=== 실시간 구독 설정 시작 ===', { couple_id: user.couple_id }, 'debug');
 
     // Subscribe to couples changes
     const coupleChannel = supabase
@@ -1207,8 +1234,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('🔌 APPCONTEXT REALTIME [COUPLES]: Channel status:', status);
+        if (err) {
+          debugLog('REALTIME', 'Couples 채널 구독 실패', err, 'error');
+        } else {
+          debugLog('REALTIME', 'Couples 채널 구독 상태', status, status === 'SUBSCRIBED' ? 'success' : 'warning');
+        }
       });
 
     // Subscribe to rules changes
@@ -1243,8 +1275,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('🔌 APPCONTEXT REALTIME [RULES]: Channel status:', status);
+        if (err) {
+          debugLog('REALTIME', 'Rules 채널 구독 실패', err, 'error');
+        } else {
+          debugLog('REALTIME', 'Rules 채널 구독 상태', status, status === 'SUBSCRIBED' ? 'success' : 'warning');
+        }
       });
 
     // Subscribe to violations changes
@@ -1273,8 +1310,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }, 1000);
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('🔌 APPCONTEXT REALTIME [VIOLATIONS]: Channel status:', status);
+        if (err) {
+          debugLog('REALTIME', 'Violations 채널 구독 실패', err, 'error');
+        } else {
+          debugLog('REALTIME', 'Violations 채널 구독 상태', status, status === 'SUBSCRIBED' ? 'success' : 'warning');
+        }
       });
 
     // Subscribe to rewards changes
@@ -1303,8 +1345,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('🔌 APPCONTEXT REALTIME [REWARDS]: Channel status:', status);
+        if (err) {
+          debugLog('REALTIME', 'Rewards 채널 구독 실패', err, 'error');
+        } else {
+          debugLog('REALTIME', 'Rewards 채널 구독 상태', status, status === 'SUBSCRIBED' ? 'success' : 'warning');
+        }
       });
 
     // Subscribe to profiles changes (for partner name updates)
@@ -1331,8 +1378,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('🔌 APPCONTEXT REALTIME [PROFILES]: Channel status:', status);
+        if (err) {
+          debugLog('REALTIME', 'Profiles 채널 구독 실패', err, 'error');
+        } else {
+          debugLog('REALTIME', 'Profiles 채널 구독 상태', status, status === 'SUBSCRIBED' ? 'success' : 'warning');
+        }
       });
 
     return () => {
@@ -1393,6 +1445,65 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     validateData,
     isRealtimeConnected
   };
+
+  // 브라우저 콘솔에서 디버깅할 수 있도록 전역 노출
+  useEffect(() => {
+    if (DEBUG_MODE) {
+      (window as any).appDebug = {
+        // 디버깅 유틸리티
+        runFullDiagnostics,
+        checkConnection: checkSupabaseConnection,
+        checkAuth: checkAuthStatus,
+        testRLS: () => user ? testRLSPolicies(user.id, user.couple_id) : console.error('No user'),
+        testRealtime: testRealtimeSubscription,
+        testCRUD: () => user?.couple_id ? testCRUDOperations(user.id, user.couple_id) : console.error('No couple'),
+        checkCouple: () => user ? checkCoupleConnection(user.id) : console.error('No user'),
+        
+        // 앱 상태
+        getState: () => ({ ...state, user }),
+        getUser: () => user,
+        getCoupleId: () => user?.couple_id,
+        
+        // 앱 함수들
+        loadData: loadCoupleData,
+        refreshData,
+        createRule: (title: string, desc: string, amount: number) => 
+          createRule({ title, description: desc, fine_amount: amount, created_by_user_id: user?.id || '' }),
+        createViolation: (ruleId: string, violatorId: string, amount: number, memo: string) =>
+          createViolation({ 
+            couple_id: user?.couple_id || '', 
+            rule_id: ruleId, 
+            violator_user_id: violatorId, 
+            recorded_by_user_id: user?.id || '',
+            amount, 
+            memo,
+            violation_date: new Date().toISOString().split('T')[0]
+          }),
+        createReward: (title: string, desc: string, amount: number) =>
+          createReward({ 
+            title, 
+            description: desc, 
+            target_amount: amount, 
+            created_by_user_id: user?.id || ''
+          }),
+        
+        // Supabase 직접 접근
+        supabase
+      };
+      
+      console.log('%c🔧 앱 디버깅 도구 활성화됨', 'color: #10b981; font-weight: bold');
+      console.log('콘솔에서 다음 명령어를 사용하세요:');
+      console.log('- appDebug.runFullDiagnostics() : 전체 진단 실행');
+      console.log('- appDebug.getState() : 현재 앱 상태 확인');
+      console.log('- appDebug.testRLS() : RLS 정책 테스트');
+      console.log('- appDebug.testCRUD() : CRUD 작업 테스트');
+      console.log('- appDebug.testRealtime("rules") : 실시간 구독 테스트');
+    }
+    
+    return () => {
+      delete (window as any).appDebug;
+    };
+  }, [user, state, createRule, createViolation, createReward, loadCoupleData, refreshData]);
 
   return (
     <AppContext.Provider value={value}>

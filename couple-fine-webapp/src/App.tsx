@@ -15,6 +15,7 @@ import { RealtimeStatus } from './components/RealtimeStatus';
 import { useAppLock } from './hooks/useAppLock';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DebugPanel } from './components/DebugPanel';
+import { MobileDebugPanel } from './components/MobileDebugPanel';
 
 // Pages (placeholders for now)
 import { Dashboard } from './pages/Dashboard';
@@ -98,6 +99,8 @@ const RouterContent: React.FC = () => {
       {import.meta.env.DEV && <RealtimeStatus />}
       {/* 디버그 패널 - 개발 환경에서만 */}
       <DebugPanel />
+      {/* 모바일 디버그 패널 - ?debug=true 파라미터로 활성화 */}
+      <MobileDebugPanel />
     </div>
   );
 };
