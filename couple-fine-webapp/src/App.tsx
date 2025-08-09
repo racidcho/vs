@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Contexts
@@ -14,8 +14,7 @@ import { PinLockScreen } from './components/auth/PinLockScreen';
 import { RealtimeStatus } from './components/RealtimeStatus';
 import { useAppLock } from './hooks/useAppLock';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { DebugPanel } from './components/DebugPanel';
-import { MobileDebugPanel } from './components/MobileDebugPanel';
+// Debug components removed for production
 
 // Pages (placeholders for now)
 import { Dashboard } from './pages/Dashboard';
@@ -97,10 +96,6 @@ const RouterContent: React.FC = () => {
       </Routes>
       {/* 개발 환경에서만 실시간 연결 상태 표시 */}
       {import.meta.env.DEV && <RealtimeStatus />}
-      {/* 디버그 패널 - 개발 환경에서만 */}
-      <DebugPanel />
-      {/* 모바일 디버그 패널 - ?debug=true 파라미터로 활성화 */}
-      <MobileDebugPanel />
     </div>
   );
 };
@@ -122,10 +117,11 @@ function App() {
 // Public route component - redirects to dashboard if already authenticated
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const location = useLocation();
 
-  // 로그인되어 있으면 대시보드로 리다이렉트
+  // 로그인되어 있으면 대시보드로 리다이렉트 (URL 파라미터 유지)
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={`/${location.search}`} replace />;
   }
 
   return <>{children}</>;

@@ -3,7 +3,8 @@ import type { AppState, Couple, Rule, Violation, Reward } from '../types';
 import { supabase } from '../lib/supabase';
 import { updateViolation as updateViolationApi, deleteViolation as deleteViolationApi } from '../lib/supabaseApi';
 import { useAuth } from './AuthContext';
-import { debugLog, DEBUG_MODE, runFullDiagnostics, checkSupabaseConnection, checkAuthStatus, testRLSPolicies, testRealtimeSubscription, testCRUDOperations, checkCoupleConnection } from '../utils/debugSupabase';
+// Debug utilities removed for production
+const debugLog = (...args: any[]) => {} // No-op function for production
 
 // Action Types
 type AppAction =

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getDashboardStats } from '../lib/supabaseApi';
@@ -24,6 +24,7 @@ import {
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { state, updateViolation, deleteViolation } = useApp();
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState({
@@ -63,7 +64,7 @@ export const Dashboard: React.FC = () => {
         if (coupleIsComplete && !hasCelebrated) {
           // 두 파트너 모두 있고 축하 페이지를 안 봤으면 리다이렉트
           console.log('🎉 DASHBOARD: 축하 페이지로 리다이렉트');
-          navigate('/couple-complete');
+          navigate('/couple-complete' + location.search);
         }
       }
     };
