@@ -456,9 +456,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       // Load violations with relations
       debugLog('LOAD_DATA', '벌금 데이터 조회 시작', { couple_id: user.couple_id }, 'info');
+      // Foreign Key 관계를 완전히 피하고 기본 데이터만 로드
       const { data: violationsData, error: violationsError } = await supabase
         .from('violations')
-        .select('*, rule:rules(*)')
+        .select('*')
         .eq('couple_id', user.couple_id)
         .order('created_at', { ascending: false })
         .limit(50);

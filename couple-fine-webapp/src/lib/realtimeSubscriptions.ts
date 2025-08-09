@@ -105,14 +105,10 @@ export class RealtimeSubscriptionManager {
             // 현재 커플의 violation인지 확인
             if (ruleData && ruleData.couple_id === coupleId) {
               // 완전한 데이터 가져오기
+              // Foreign Key 관계를 피하고 기본 데이터만 로드
               const { data: fullViolationData } = await supabase
                 .from('violations')
-                .select(`
-                  *,
-                  rule:rules(*),
-                  violator:profiles!violator_id(*),
-                  partner:profiles!partner_id(*)
-                `)
+                .select('*')
                 .eq('id', (payload.new as Violation).id)
                 .single();
 

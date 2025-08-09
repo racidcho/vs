@@ -95,7 +95,7 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
             // Foreign Key 제약조건이 없으므로 별도 쿼리로 분리
             const { data: violationWithRelations, error } = await supabase
               .from('violations')
-              .select('*, rule:rules(*)')
+              .select('*')
               .eq('id', newRecord.id)
               .single();
 

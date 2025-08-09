@@ -591,7 +591,7 @@ export const updateViolation = async (violationId: string, updates: Partial<Pick
     .from('violations')
     .update(updates)
     .eq('id', violationId)
-    .select('*, rule:rules(*)')
+    .select('*')
     .single();
 
   if (error) handleSupabaseError(error);
