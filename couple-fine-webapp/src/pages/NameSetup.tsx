@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
-import { Heart, Sparkles, User, Users, ArrowRight, Loader2 } from 'lucide-react';
-import { updateProfile } from '../lib/supabaseApi';
+import { Heart, Sparkles, User, Users, ArrowRight, Loader2, Camera, X } from 'lucide-react';
+import { updateProfile, uploadAvatar } from '../lib/supabaseApi';
 import toast from 'react-hot-toast';
 
 export const NameSetup: React.FC = () => {
@@ -15,6 +15,8 @@ export const NameSetup: React.FC = () => {
   const [partnerName, setPartnerName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasPartner, setHasPartner] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Load partner info on mount
   useEffect(() => {
@@ -33,6 +35,26 @@ export const NameSetup: React.FC = () => {
     loadPartnerInfo();
   }, [getPartnerInfo]);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      setPreviewUrl(URL.createObjectURL(selected));
+    }
+  };
+
+  const handleRemoveFile = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setFile(null);
+    setPreviewUrl(null);
+  };
+
   const handleSaveName = async () => {
     if (!displayName.trim()) {
       toast.error('이름을 입력해주세요! 📝');
@@ -45,14 +67,27 @@ export const NameSetup: React.FC = () => {
     }
 
     setIsLoading(true);
-    
+
     try {
-      // Update user profile with new display name
-      await updateProfile(user.id, { display_name: displayName.trim() });
-      
-      // Refresh user context to get updated data
+      let avatarUrl: string | undefined;
+
+      if (file) {
+        try {
+          avatarUrl = await uploadAvatar(user.id, file);
+        } catch (error) {
+          console.error('Failed to upload avatar:', error);
+          toast.error('사진 업로드에 실패했어요 😢');
+          return;
+        }
+      }
+
+      await updateProfile(user.id, {
+        display_name: displayName.trim(),
+        ...(avatarUrl ? { avatar_url: avatarUrl } : {})
+      });
+
       await refreshUser();
-      
+
       toast.success('이름이 저장되었어요! 💕');
       
       // Check if the couple is complete (both partners connected)
@@ -183,6 +218,42 @@ export const NameSetup: React.FC = () => {
               <p className="text-xs text-gray-500 text-center">
                 파트너가 보게 될 이름이에요
               </p>
+            </div>
+
+            {/* Avatar Upload */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-gray-700">
+                <Camera className="w-4 h-4 text-pink-500" />
+                <label className="text-sm font-semibold">프로필 사진</label>
+              </div>
+
+              {previewUrl ? (
+                <div className="flex justify-center">
+                  <div className="relative">
+                    <img
+                      src={previewUrl}
+                      alt="미리보기"
+                      className="w-24 h-24 rounded-full object-cover border-2 border-pink-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow text-pink-500"
+                      aria-label="사진 삭제"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileChange}
+                  className="w-full text-sm"
+                />
+              )}
             </div>
 
             {/* Partner Name Display */}
