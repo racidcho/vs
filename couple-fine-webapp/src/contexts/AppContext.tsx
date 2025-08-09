@@ -1064,13 +1064,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [user, isLoading]);
 
-  // Real-time subscriptions (Legacy - DISABLED to avoid conflicts with useRealtime hook)
+  // Real-time subscriptions (Legacy - RESTORED for proper state management)
   useEffect(() => {
-    // DISABLED: Using useRealtime hook in components instead to avoid duplicate subscriptions
-    console.log('🚫 APPCONTEXT REALTIME: Legacy subscriptions disabled - using useRealtime hook');
-    return;
-    
-    /*
     if (!user?.couple_id) {
       console.log('🚫 APPCONTEXT REALTIME: No couple_id, skipping legacy subscriptions');
       return;
@@ -1270,8 +1265,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       supabase.removeChannel(rewardsChannel);
       supabase.removeChannel(profilesChannel);
     };
-    */
-  }, [user?.couple_id]);
+  }, [user?.couple_id, refreshData, loadCoupleData]);
 
   // Online/offline status
   useEffect(() => {
