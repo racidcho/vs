@@ -563,6 +563,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       if (profileError) return { error: profileError.message };
 
+      // 먼저 user 객체를 새로고침하여 couple_id 업데이트
+      console.log('🔄 APPCONTEXT: createCouple 성공 - 사용자 정보 새로고침');
+      await refreshUser();
+      
+      // 그 다음 커플 데이터를 다시 로드하여 화면에 반영
+      console.log('🔄 APPCONTEXT: 커플 데이터 새로고침');
+      await refreshData();
 
       return { code: coupleData.couple_code, isNewCouple: true };
     } catch (error) {
@@ -622,8 +629,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return { error: profileError.message };
       }
 
-      // 즉시 커플 데이터를 다시 로드하여 화면에 반영
-      console.log('🔄 APPCONTEXT: joinCouple 성공 - 데이터 새로고침');
+      // 먼저 user 객체를 새로고침하여 couple_id 업데이트
+      console.log('🔄 APPCONTEXT: joinCouple 성공 - 사용자 정보 새로고침');
+      await refreshUser();
+      
+      // 그 다음 커플 데이터를 다시 로드하여 화면에 반영
+      console.log('🔄 APPCONTEXT: 커플 데이터 새로고침');
       await refreshData();
 
       return { success: true };

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getDashboardStats } from '../lib/supabaseApi';
@@ -15,7 +15,6 @@ import {
   Clock,
   Sparkles,
   Trophy,
-  Zap,
   Edit,
   Trash2,
   RefreshCw,
@@ -24,7 +23,6 @@ import {
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { state, updateViolation, deleteViolation } = useApp();
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState({
