@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AppProvider } from './contexts/AppContext';
+import { isTestMode } from './utils/testHelper';
 
 // Components
 import { ProtectedRoute, RequireCouple } from './components/auth/ProtectedRoute';
@@ -43,6 +44,78 @@ const RouterContent: React.FC = () => {
     return <PinLockScreen onUnlock={unlock} />;
   }
 
+  // 테스트 모드에서는 인증 우회하고 바로 앱으로 이동
+  if (isTestMode()) {
+    return (
+      <div className="App">
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#fff',
+              color: '#374151',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#059669',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#DC2626',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
+
+        <Routes>
+          {/* 테스트 모드에서는 모든 라우트를 보호 없이 접근 */}
+          <Route path="/couple-setup" element={<CoupleSetupPage />} />
+          <Route path="/name-setup" element={<NameSetupPage />} />
+          <Route path="/couple-complete" element={<CoupleCompletePage />} />
+          
+          {/* 메인 앱 라우트 */}
+          <Route path="/" element={<AppLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="rules" element={<Rules />} />
+            <Route path="violations/new" element={<NewViolation />} />
+            <Route path="rewards" element={<Rewards />} />
+            <Route path="calendar" element={<Calendar />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+
+          {/* Catch all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        
+        {/* 테스트 모드 인디케이터 */}
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: '#ff6b6b',
+          color: 'white',
+          padding: '8px 16px',
+          borderRadius: '20px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          zIndex: 9999,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+        }}>
+          🧪 TEST MODE
+        </div>
+        
+        {/* 개발 환경에서만 실시간 연결 상태 표시 */}
+        {import.meta.env.DEV && <RealtimeStatus />}
+      </div>
+    );
+  }
+
   return (
     <div className="App">
       <Toaster
@@ -63,7 +136,7 @@ const RouterContent: React.FC = () => {
           },
           error: {
             iconTheme: {
-              primary: '#DC2626',
+                primary: '#DC2626',
               secondary: '#fff',
             },
           },

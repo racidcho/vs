@@ -1,12 +1,26 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
+import { isTestMode } from '../utils/testHelper';
 
 const getSupabaseConfig = () => {
   const envUrl = import.meta.env.VITE_SUPABASE_URL;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 
+                        import.meta.env.SUPABASE_SERVICE_ROLE_KEY ||
+                        import.meta.env.VITE_SUPABASE_SERVICE_KEY;
 
   const fallbackUrl = 'https://ywocrwjzjheupewfxssu.supabase.co';
   const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b2Nyd2p6amhldXBld2Z4c3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NDkyNzIsImV4cCI6MjA3MDEyNTI3Mn0.zLalJ0ECNVKmXRtSe8gmbwOWDrqAxvOP0oIn9jOhT9U';
+
+  // 테스트 모드에서는 Service Role Key 사용 (RLS 우회)
+  if (isTestMode() && serviceRoleKey) {
+    console.log('🧪 TEST MODE: Service Role Key 사용으로 RLS 우회');
+    return {
+      url: envUrl || fallbackUrl,
+      key: serviceRoleKey,
+      source: 'service-role-test-mode'
+    };
+  }
 
   if (!envUrl || !envKey) {
     return {
