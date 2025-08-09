@@ -233,6 +233,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       // Load couple info with partner details (with timeout)
+      // LEFT JOIN을 사용하여 파트너가 없어도 커플 데이터는 가져오도록 수정
       debugLog('LOAD_DATA', '커플 데이터 조회 시작', { couple_id: user.couple_id }, 'info');
       const { data: coupleData, error: coupleError } = await Promise.race([
         supabase
@@ -479,6 +480,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (profileError) {
         return { error: profileError.message };
       }
+
+      // 즉시 커플 데이터를 다시 로드하여 화면에 반영
+      console.log('🔄 APPCONTEXT: joinCouple 성공 - 데이터 새로고침');
+      await refreshData();
 
       return { success: true };
     } catch (error) {
@@ -1089,18 +1094,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           console.log('🔄 APPCONTEXT REALTIME [COUPLES]:', payload.eventType, payload);
 
           if (payload.eventType === 'UPDATE' && payload.new) {
-            const transformedCouple: Couple = {
-              id: payload.new.id,
-              couple_code: payload.new.couple_code,
-              couple_name: payload.new.couple_name || '',
-              partner_1_id: payload.new.partner_1_id,
-              partner_2_id: payload.new.partner_2_id,
-              total_balance: payload.new.total_balance || 0,
-              is_active: payload.new.is_active,
-              created_at: payload.new.created_at
-            };
-            console.log('💑 APPCONTEXT REALTIME: Updating couple via legacy subscription');
-            dispatch({ type: 'SET_COUPLE', payload: transformedCouple });
+            console.log('💑 APPCONTEXT REALTIME: Couple updated, reloading data to get partner info');
+            // 커플 정보가 업데이트되면 전체 데이터를 다시 로드하여 파트너 정보까지 가져옴
+            setTimeout(() => {
+              refreshData();
+            }, 500);
           }
         }
       )
