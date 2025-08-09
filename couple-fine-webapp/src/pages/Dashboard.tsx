@@ -68,10 +68,19 @@ export const Dashboard: React.FC = () => {
         
         if (coupleIsComplete && !hasCelebrated && !alreadyCheckedInSession) {
           // 두 파트너 모두 있고 축하 페이지를 안 봤으면 리다이렉트
-          console.log('🎉 DASHBOARD: 축하 페이지로 리다이렉트');
-          // 세션에 체크 표시
+          console.log('🎉 DASHBOARD: 축하 페이지로 리다이렉트', {
+            coupleId: state.couple.id,
+            userId: user.id
+          });
+          // 세션에 체크 표시 (리다이렉트 전에 설정하여 루프 방지)
           sessionStorage.setItem(sessionCheckKey, 'true');
           navigate('/couple-complete' + location.search);
+        } else {
+          console.log('🏠 DASHBOARD: 축하 체크 완료', {
+            coupleIsComplete,
+            hasCelebrated: !!hasCelebrated,
+            alreadyCheckedInSession: !!alreadyCheckedInSession
+          });
         }
       }
     };

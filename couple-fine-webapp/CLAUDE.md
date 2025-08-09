@@ -1,6 +1,8 @@
 # CLAUDE.md - Couple Fine WebApp 운영 가이드 🤖
 
 > 이 문서는 Couple Fine WebApp 프로젝트에서 작업할 미래의 Claude 인스턴스를 위한 운영 가이드입니다.
+## 사용자에게 설명은 한국어로 진행한다.
+## ⚠️ 테스트는 항상 실서버(https://joanddo.com)에서 진행한다.
 
 ## 🎯 프로젝트 개요
 

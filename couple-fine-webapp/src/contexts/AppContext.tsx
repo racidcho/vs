@@ -865,24 +865,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const createRule = async (rule: Omit<Rule, 'id' | 'couple_id' | 'created_at'>) => {
     debugLog('CRUD', '=== createRule 시작 ===', rule, 'debug');
     
-    // 디버그 모드에서는 목 데이터 사용
+    // 디버그 모드에서도 실제 Supabase 사용 (인증만 우회)
     if (isDebugMode) {
-      console.log('🔧 DEBUG MODE: createRule 목 응답');
-      
-      const mockRule: Rule = {
-        id: `test-rule-${Date.now()}`,
-        ...rule,
-        couple_id: 'test-couple-1',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      // 약간의 지연 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      dispatch({ type: 'ADD_RULE', payload: mockRule });
-      console.log('✅ DEBUG MODE: 목 규칙 추가됨', mockRule);
-      return { error: undefined };
+      console.log('🔧 DEBUG MODE: createRule 실제 Supabase 사용');
     }
     
     if (!user?.couple_id) {
@@ -975,30 +960,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const createViolation = async (violation: Omit<Violation, 'id' | 'created_at'>) => {
     debugLog('CRUD', '=== createViolation 시작 ===', violation, 'debug');
     
-    // 디버그 모드에서는 목 데이터 사용
+    // 디버그 모드에서도 실제 Supabase 사용 (인증만 우회)
     if (isDebugMode) {
-      console.log('🔧 DEBUG MODE: createViolation 목 응답');
-      
-      const mockViolation: Violation = {
-        id: `test-violation-${Date.now()}`,
-        ...violation,
-        recorded_by_user_id: violation.violator_user_id, // 자기 자신이 기록한 것으로 설정
-        violation_date: violation.violation_date || new Date().toISOString().split('T')[0],
-        created_at: new Date().toISOString(),
-        violator: {
-          id: violation.violator_user_id,
-          email: violation.violator_user_id.includes('test-user-1') ? 'test1@couple-fine.app' : 'test2@couple-fine.app',
-          display_name: violation.violator_user_id.includes('test-user-1') ? '테스트 사용자 1' : '테스트 사용자 2',
-          created_at: new Date().toISOString()
-        }
-      };
-      
-      // 약간의 지연 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      dispatch({ type: 'ADD_VIOLATION', payload: mockViolation });
-      console.log('✅ DEBUG MODE: 목 위반 기록 추가됨', mockViolation);
-      return { error: undefined };
+      console.log('🔧 DEBUG MODE: createViolation 실제 Supabase 사용');
     }
     
     try {
@@ -1047,25 +1011,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const createReward = async (reward: Omit<Reward, 'id' | 'couple_id' | 'created_at'>) => {
     debugLog('CRUD', '=== createReward 시작 ===', reward, 'debug');
     
-    // 디버그 모드에서는 목 데이터 사용
+    // 디버그 모드에서도 실제 Supabase 사용 (인증만 우회)
     if (isDebugMode) {
-      console.log('🔧 DEBUG MODE: createReward 목 응답');
-      
-      const mockReward: Reward = {
-        id: `test-reward-${Date.now()}`,
-        ...reward,
-        couple_id: 'test-couple-1',
-        is_achieved: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      // 약간의 지연 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      dispatch({ type: 'ADD_REWARD', payload: mockReward });
-      console.log('✅ DEBUG MODE: 목 보상 추가됨', mockReward);
-      return { error: undefined };
+      console.log('🔧 DEBUG MODE: createReward 실제 Supabase 사용');
     }
     
     if (!user?.couple_id) {
@@ -1288,6 +1236,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
           if (payload.eventType === 'UPDATE' && payload.new) {
             console.log('💑 APPCONTEXT REALTIME: Couple updated, reloading data to get partner info');
+            
+            // partner_2_id가 추가되었는지 확인 (두 번째 사용자가 연결됨)
+            const oldCouple = payload.old as any;
+            const newCouple = payload.new as any;
+            
+            if (!oldCouple?.partner_2_id && newCouple?.partner_2_id) {
+              console.log('🎉 파트너가 연결되었습니다! 전체 데이터 새로고침');
+            }
+            
             // 커플 정보가 업데이트되면 전체 데이터를 다시 로드하여 파트너 정보까지 가져옴
             setTimeout(() => {
               refreshData();
@@ -1512,34 +1469,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('🔧 DEBUG: 테스트 데이터 초기화 시작', { coupleId, userId });
     
     try {
-      // 1. 테스트 프로필들이 존재하는지 확인하고 생성
-      const profiles = [
-        {
-          id: '11111111-1111-1111-1111-111111111111',
-          email: 'test1@couple-fine.app',
-          display_name: '테스트 사용자 1',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '22222222-2222-2222-2222-222222222222', 
-          email: 'test2@couple-fine.app',
-          display_name: '테스트 사용자 2',
-          created_at: new Date().toISOString()
-        }
+      // 실제 존재하는 사용자 ID들 사용 (Foreign Key 제약조건 해결)
+      const realUserIds = [
+        'd35ee66f-edef-440d-ace1-acf089a34381', // racidcho@gmail.com
+        '10969e2b-35e8-40c7-9a38-598159ff47e8'  // racidcho@naver.com
       ];
       
-      for (const profile of profiles) {
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', profile.id)
-          .single();
-          
-        if (!existingProfile) {
-          await supabase.from('profiles').upsert(profile);
-          console.log('✅ DEBUG: 테스트 프로필 생성:', profile.email);
-        }
-      }
+      console.log('✅ DEBUG: 실제 존재하는 사용자 ID들 사용:', realUserIds);
       
       // 2. 테스트 커플이 존재하는지 확인하고 생성
       const { data: existingCouple } = await supabase
@@ -1553,15 +1489,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           id: coupleId,
           couple_code: 'TEST01',
           couple_name: '테스트 커플',
-          partner_1_id: '11111111-1111-1111-1111-111111111111',
-          partner_2_id: '22222222-2222-2222-2222-222222222222',
+          partner_1_id: realUserIds[0], // 실제 존재하는 사용자 ID
+          partner_2_id: realUserIds[1], // 실제 존재하는 사용자 ID
           total_balance: 0,
           is_active: true,
           created_at: new Date().toISOString()
         };
         
-        await supabase.from('couples').insert(testCouple);
-        console.log('✅ DEBUG: 테스트 커플 생성');
+        const { error: coupleError } = await supabase.from('couples').insert(testCouple);
+        if (coupleError) {
+          console.error('❌ DEBUG: 테스트 커플 생성 실패:', coupleError);
+        } else {
+          console.log('✅ DEBUG: 테스트 커플 생성');
+        }
         
         // 3. 기본 규칙들 생성
         const testRules = [
@@ -1589,37 +1529,43 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         ];
         
-        await supabase.from('rules').insert(testRules);
-        console.log('✅ DEBUG: 테스트 규칙들 생성');
+        const { error: rulesError } = await supabase.from('rules').insert(testRules);
+        if (rulesError) {
+          console.error('❌ DEBUG: 테스트 규칙들 생성 실패:', rulesError);
+        } else {
+          console.log('✅ DEBUG: 테스트 규칙들 생성');
+        }
         
         // 4. 샘플 벌금 기록들 생성
         const testViolations = [
           {
             id: crypto.randomUUID(),
-            user_id: '11111111-1111-1111-1111-111111111111',
+            violator_user_id: realUserIds[0], // 실제 존재하는 사용자 ID
             rule_id: testRules[0].id,
             amount: 10000,
-            type: 'fine' as const,
             memo: '테스트 벌금 기록 1',
             couple_id: coupleId,
-            violation_date: new Date().toISOString(),
-            recorded_by_user_id: '22222222-2222-2222-2222-222222222222'
+            violation_date: new Date().toISOString().split('T')[0], // DATE 형식으로
+            recorded_by_user_id: realUserIds[1] // 실제 존재하는 사용자 ID
           },
           {
             id: crypto.randomUUID(),
-            user_id: '22222222-2222-2222-2222-222222222222',
+            violator_user_id: realUserIds[1], // 실제 존재하는 사용자 ID
             rule_id: testRules[1].id,
             amount: 20000,
-            type: 'fine' as const,
             memo: '테스트 벌금 기록 2',
             couple_id: coupleId,
-            violation_date: new Date().toISOString(),
-            recorded_by_user_id: '11111111-1111-1111-1111-111111111111'
+            violation_date: new Date().toISOString().split('T')[0], // DATE 형식으로
+            recorded_by_user_id: realUserIds[0] // 실제 존재하는 사용자 ID
           }
         ];
         
-        await supabase.from('violations').insert(testViolations);
-        console.log('✅ DEBUG: 테스트 벌금 기록들 생성');
+        const { error: violationsError } = await supabase.from('violations').insert(testViolations);
+        if (violationsError) {
+          console.error('❌ DEBUG: 테스트 벌금 기록들 생성 실패:', violationsError);
+        } else {
+          console.log('✅ DEBUG: 테스트 벌금 기록들 생성');
+        }
         
         // 5. 샘플 보상들 생성
         const testRewards = [
@@ -1645,8 +1591,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         ];
         
-        await supabase.from('rewards').insert(testRewards);
-        console.log('✅ DEBUG: 테스트 보상들 생성');
+        const { error: rewardsError } = await supabase.from('rewards').insert(testRewards);
+        if (rewardsError) {
+          console.error('❌ DEBUG: 테스트 보상들 생성 실패:', rewardsError);
+        } else {
+          console.log('✅ DEBUG: 테스트 보상들 생성');
+        }
       }
       
       console.log('🎉 DEBUG: 테스트 데이터 초기화 완료');
