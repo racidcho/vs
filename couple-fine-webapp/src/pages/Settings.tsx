@@ -586,35 +586,6 @@ export const Settings: React.FC = () => {
         </p>
       </div>
 
-      {/* Profile Section */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
-        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-400 rounded-lg flex items-center justify-center">
-            <User className="w-4 h-4 text-white" />
-          </div>
-          기본 프로필
-        </h2>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-400 rounded-2xl flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-2xl">
-                {user?.display_name?.charAt(0) || '💕'}
-              </span>
-            </div>
-            <div className="flex-1">
-              <div>
-                <h3 className="font-bold text-gray-900 text-lg">{user?.display_name}</h3>
-                <p className="text-gray-600 text-sm">{user?.email}</p>
-                <p className="text-gray-500 text-xs mt-1">
-                  위의 "우리들의 이름" 섹션에서 이름을 예쁘게 바꿔보세요! ✨
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Couple Information */}
       {state.couple && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
@@ -759,15 +730,6 @@ export const Settings: React.FC = () => {
               </span>
             </div>
 
-            {/* Celebration Page Link */}
-            <button
-              onClick={() => navigate('/couple-complete')}
-              className="w-full p-3 bg-gradient-to-r from-pink-50 to-purple-50 hover:from-pink-100 hover:to-purple-100 text-purple-600 rounded-xl transition-all font-medium flex items-center justify-center gap-2"
-            >
-              <Heart className="w-4 h-4" />
-              커플 연결 축하 페이지 다시 보기 🎉
-            </button>
-
             {/* Leave Couple Button */}
             <div className="pt-2">
               <button
@@ -896,24 +858,6 @@ export const Settings: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-gray-900">데이터 새로고침 🔄</h3>
-              <p className="text-sm text-gray-600">서버에서 최신 데이터를 다시 불러와요</p>
-            </div>
-            <button
-              onClick={handleRefreshData}
-              disabled={isLoading}
-              className="px-4 py-2 bg-gradient-to-r from-green-400 to-teal-400 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <>🔄</>
-              )}
-              새로고침
-            </button>
-          </div>
         </div>
       </div>
 
