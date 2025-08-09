@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Heart, Mail, Loader2, Key } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,7 @@ interface LoginFormProps {
 export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
   const { signIn, verifyOtp } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -68,12 +69,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
 
         toast.success('🎉 로그인 성공!');
         // 로그인 성공 후 명시적으로 리디렉션
-        // 약간의 딜레이를 주어 상태 업데이트가 완료되도록 함
+        // URL 파라미터 유지 (예: ?debug=true)
         setTimeout(() => {
-
-          navigate('/');
+          const searchParams = location.search;
+          navigate('/' + searchParams);
           // 추가적으로 페이지 리로드를 강제할 수도 있음
-          // window.location.href = '/';
+          // window.location.href = '/' + searchParams;
         }, 1000);
       }
     } catch (error) {
