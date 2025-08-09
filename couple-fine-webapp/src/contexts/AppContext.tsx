@@ -361,14 +361,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Load couple info with partner details (with timeout)
       // LEFT JOIN을 사용하여 파트너가 없어도 커플 데이터는 가져오도록 수정
       debugLog('LOAD_DATA', '커플 데이터 조회 시작', { couple_id: user.couple_id }, 'info');
+      // Foreign Key 제약조건이 없으므로 별도 쿼리로 분리
       const { data: coupleData, error: coupleError } = await Promise.race([
         supabase
           .from('couples')
-          .select(`
-            *,
-            partner_1:profiles!couples_partner_1_id_fkey(*),
-            partner_2:profiles!couples_partner_2_id_fkey(*)
-          `)
+          .select('*')
           .eq('id', user.couple_id)
           .single(),
         timeoutPromise
@@ -381,19 +378,41 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       if (coupleData) {
+        // 파트너 데이터를 별도로 로드
+        let partner_1_data = null;
+        let partner_2_data = null;
+
+        if (coupleData.partner_1_id) {
+          const { data: p1 } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', coupleData.partner_1_id)
+            .single();
+          partner_1_data = p1;
+        }
+
+        if (coupleData.partner_2_id) {
+          const { data: p2 } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', coupleData.partner_2_id)
+            .single();
+          partner_2_data = p2;
+        }
+
         console.log('📊 APPCONTEXT: 커플 데이터 로드됨:', {
           id: coupleData.id,
           partner_1_id: coupleData.partner_1_id,
           partner_2_id: coupleData.partner_2_id,
-          partner_1_data: coupleData.partner_1 ? {
-            id: coupleData.partner_1.id,
-            display_name: coupleData.partner_1.display_name,
-            email: coupleData.partner_1.email
+          partner_1_data: partner_1_data ? {
+            id: partner_1_data.id,
+            display_name: partner_1_data.display_name,
+            email: partner_1_data.email
           } : null,
-          partner_2_data: coupleData.partner_2 ? {
-            id: coupleData.partner_2.id,
-            display_name: coupleData.partner_2.display_name,
-            email: coupleData.partner_2.email
+          partner_2_data: partner_2_data ? {
+            id: partner_2_data.id,
+            display_name: partner_2_data.display_name,
+            email: partner_2_data.email
           } : null
         });
 
@@ -408,8 +427,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           is_active: coupleData.is_active,
           created_at: coupleData.created_at,
           // Include partner relations for real-time display
-          partner_1: coupleData.partner_1 || null,
-          partner_2: coupleData.partner_2 || null
+          partner_1: partner_1_data,
+          partner_2: partner_2_data
         };
 
         dispatch({ type: 'SET_COUPLE', payload: transformedCouple });
