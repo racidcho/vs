@@ -12,6 +12,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateProfile: (updates: Partial<Pick<User, 'display_name'>>) => Promise<void>;
+  isDebugMode: boolean;
+  debugLogin: (testAccountNumber: 1 | 2) => Promise<{ error?: string; success?: boolean }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +26,27 @@ export const useAuth = () => {
   return context;
 };
 
+// 디버그 모드 감지 함수
+const isDebugModeActive = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('debug') === 'testmode';
+};
+
+// 테스트 계정 정보
+const TEST_ACCOUNTS = {
+  1: {
+    email: 'test1@couple-fine.app',
+    display_name: '테스트 사용자 1',
+    couple_code: 'TEST01'
+  },
+  2: {
+    email: 'test2@couple-fine.app', 
+    display_name: '테스트 사용자 2',
+    couple_code: 'TEST01'
+  }
+} as const;
+
 interface AuthProviderProps {
   children: React.ReactNode;
 }
@@ -32,6 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDebugMode] = useState(() => isDebugModeActive());
 
   const refreshUser = async () => {
 
@@ -137,10 +161,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signIn = async (email: string) => {
-
     setIsLoading(true);
 
     try {
+      // 디버그 모드에서는 테스트 계정 확인
+      if (isDebugMode) {
+        const testAccount = Object.values(TEST_ACCOUNTS).find(account => account.email === email.trim());
+        if (testAccount) {
+          console.log('🔧 DEBUG: 테스트 계정 이메일 감지, OTP 우회');
+          return { success: true, message: 'DEBUG MODE: OTP 우회됨. 임의 코드로 진행하세요.' };
+        }
+      }
 
       const { data, error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
@@ -162,10 +193,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const verifyOtp = async (email: string, token: string) => {
-
     setIsLoading(true);
 
     try {
+      // 디버그 모드에서 테스트 계정 OTP 우회
+      if (isDebugMode) {
+        const testAccountEntry = Object.entries(TEST_ACCOUNTS).find(
+          ([_, account]) => account.email === email.trim()
+        );
+        
+        if (testAccountEntry) {
+          const [accountNumber] = testAccountEntry;
+          console.log('🔧 DEBUG: 테스트 계정 OTP 우회, 자동 로그인 진행');
+          
+          const result = await debugLogin(Number(accountNumber) as 1 | 2);
+          if (result.success) {
+            return { success: true };
+          } else {
+            return { error: 'Debug login failed' };
+          }
+        }
+      }
+
       const { data, error } = await supabase.auth.verifyOtp({
         email: email.trim(),
         token: token.trim(),
@@ -177,7 +226,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (data.session) {
-
         setSession(data.session);
 
         // Force refresh user data
@@ -227,12 +275,103 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await refreshUser();
   };
 
+  // 디버그 모드 전용 테스트 계정 자동 로그인
+  const debugLogin = async (testAccountNumber: 1 | 2) => {
+    if (!isDebugMode) {
+      return { error: 'Debug mode not active' };
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const testAccount = TEST_ACCOUNTS[testAccountNumber];
+      console.log(`🔧 DEBUG: 테스트 계정 ${testAccountNumber} 로그인 시도:`, testAccount.email);
+      
+      // 테스트 계정의 가짜 세션 생성 
+      const fakeUserId = `test-user-${testAccountNumber}-${Date.now()}`;
+      const fakeSession: AuthSession = {
+        access_token: `fake-token-${testAccountNumber}`,
+        refresh_token: `fake-refresh-${testAccountNumber}`,
+        expires_in: 86400, // 24시간
+        expires_at: Math.floor(Date.now() / 1000) + 86400,
+        token_type: 'bearer',
+        user: {
+          id: fakeUserId,
+          aud: 'authenticated', 
+          role: 'authenticated',
+          email: testAccount.email,
+          email_confirmed_at: new Date().toISOString(),
+          phone: '',
+          confirmed_at: new Date().toISOString(),
+          last_sign_in_at: new Date().toISOString(),
+          app_metadata: {},
+          user_metadata: {
+            display_name: testAccount.display_name
+          },
+          identities: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      };
+
+      // 세션 설정
+      setSession(fakeSession);
+
+      // 테스트 사용자 데이터 생성
+      const testUser: User = {
+        id: fakeUserId,
+        email: testAccount.email,
+        display_name: testAccount.display_name,
+        created_at: new Date().toISOString(),
+        couple_id: testAccountNumber === 1 ? 'test-couple-1' : 'test-couple-1' // 같은 커플로 연결
+      };
+
+      setUser(testUser);
+      
+      // 로컬스토리지에 디버그 플래그 설정
+      localStorage.setItem('debugMode', 'true');
+      localStorage.setItem(`debugAccount`, testAccountNumber.toString());
+      
+      console.log(`✅ DEBUG: 테스트 계정 ${testAccountNumber} 로그인 성공!`);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ DEBUG: 테스트 계정 로그인 실패:', error);
+      return { error: 'Debug login failed' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     // StrictMode 대응 - mounted 플래그로 언마운트 후 업데이트 방지
     let mounted = true;
     
     // Initialize auth state
     setIsLoading(true);
+
+    // 디버그 모드 자동 로그인 체크
+    if (isDebugMode && mounted) {
+      console.log('🔧 DEBUG MODE: 자동 로그인 시도...');
+      
+      // URL에서 테스트 계정 번호 확인 (기본값: 1)
+      const urlParams = new URLSearchParams(window.location.search);
+      const testAccountParam = urlParams.get('account');
+      const accountNumber = testAccountParam === '2' ? 2 : 1;
+      
+      debugLogin(accountNumber).then(result => {
+        if (result.success && mounted) {
+          console.log('🔧 DEBUG: 자동 로그인 완료');
+          setIsLoading(false);
+        } else {
+          console.warn('🔧 DEBUG: 자동 로그인 실패, 일반 모드로 진행');
+          // 실패 시 일반 인증 플로우로 진행
+        }
+      });
+      
+      return () => {
+        mounted = false;
+      };
+    }
 
     // 30초 타임아웃으로 초기화 보호 (네트워크 지연 고려)
     const initTimeout = setTimeout(() => {
@@ -516,7 +655,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     verifyOtp,
     signOut,
     refreshUser,
-    updateProfile
+    updateProfile,
+    isDebugMode,
+    debugLogin
   };
 
   return (

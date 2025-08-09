@@ -35,6 +35,119 @@ const initialState: AppState = {
   isOnline: true
 };
 
+// Mock data for debug mode
+const MOCK_DEBUG_DATA = {
+  couple: {
+    id: 'test-couple-1',
+    couple_code: 'TEST01',
+    couple_name: '테스트 커플',
+    partner_1_id: 'test-user-1',
+    partner_2_id: 'test-user-2', 
+    total_balance: 50000,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    partner_1: {
+      id: 'test-user-1',
+      email: 'test1@couple-fine.app',
+      display_name: '테스트 사용자 1',
+      created_at: new Date().toISOString()
+    },
+    partner_2: {
+      id: 'test-user-2', 
+      email: 'test2@couple-fine.app',
+      display_name: '테스트 사용자 2',
+      created_at: new Date().toISOString()
+    }
+  } as Couple,
+  
+  rules: [
+    {
+      id: 'test-rule-1',
+      title: '욕설 금지',
+      category: 'word' as const,
+      fine_amount: 10000,
+      icon_emoji: '💬',
+      is_active: true,
+      couple_id: 'test-couple-1',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'test-rule-2',
+      title: '데이트 약속 늦기',
+      category: 'behavior' as const,
+      fine_amount: 20000,
+      icon_emoji: '⏰',
+      is_active: true,
+      couple_id: 'test-couple-1',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ] as Rule[],
+  
+  violations: [
+    {
+      id: 'test-violation-1',
+      rule_id: 'test-rule-1',
+      violator_user_id: 'test-user-1',
+      recorded_by_user_id: 'test-user-1',
+      amount: 10000,
+      memo: '테스트 벌금 1',
+      couple_id: 'test-couple-1',
+      violation_date: new Date().toISOString().split('T')[0],
+      created_at: new Date().toISOString(),
+      violator: {
+        id: 'test-user-1',
+        email: 'test1@couple-fine.app',
+        display_name: '테스트 사용자 1',
+        created_at: new Date().toISOString()
+      }
+    },
+    {
+      id: 'test-violation-2',
+      rule_id: 'test-rule-2',
+      violator_user_id: 'test-user-2',
+      recorded_by_user_id: 'test-user-2',
+      amount: 20000,
+      memo: '테스트 벌금 2',
+      couple_id: 'test-couple-1',
+      violation_date: new Date().toISOString().split('T')[0],
+      created_at: new Date().toISOString(),
+      violator: {
+        id: 'test-user-2',
+        email: 'test2@couple-fine.app',
+        display_name: '테스트 사용자 2',
+        created_at: new Date().toISOString()
+      }
+    }
+  ] as Violation[],
+  
+  rewards: [
+    {
+      id: 'test-reward-1',
+      title: '맛있는 저녁 식사',
+      description: '좋아하는 레스토랑에서 저녁식사',
+      target_amount: 50000,
+      icon_emoji: '🍽️',
+      is_achieved: false,
+      couple_id: 'test-couple-1',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'test-reward-2',
+      title: '영화 관람',
+      description: '새로 나온 영화 보러가기',
+      target_amount: 30000,
+      icon_emoji: '🎬',
+      is_achieved: false,
+      couple_id: 'test-couple-1', 
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ] as Reward[]
+};
+
 // Reducer with enhanced logging
 const appReducer = (state: AppState, action: AppAction): AppState => {
   const payloadInfo = 'payload' in action ? 
@@ -193,7 +306,7 @@ interface AppProviderProps {
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
-  const { user, isLoading, refreshUser } = useAuth();
+  const { user, isLoading, refreshUser, isDebugMode } = useAuth();
 
   // ⚡ Realtime connection status
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
@@ -203,14 +316,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     debugLog('LOAD_DATA', '=== loadCoupleData 시작 ===', {
       userId: user?.id,
       coupleId: user?.couple_id,
-      hasAbortSignal: !!abortSignal
+      hasAbortSignal: !!abortSignal,
+      debugMode: isDebugMode
     }, 'debug');
     
     console.log('🔄 APPCONTEXT: loadCoupleData 시작', {
       userId: user?.id,
       coupleId: user?.couple_id,
-      hasAbortSignal: !!abortSignal
+      hasAbortSignal: !!abortSignal,
+      debugMode: isDebugMode
     });
+
+    // 디버그 모드에서는 목 데이터 사용
+    if (isDebugMode) {
+      console.log('🔧 DEBUG MODE: 목 데이터 로드');
+      
+      // 약간의 지연 시뮬레이션 (실제 API 호출과 유사하게)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      dispatch({ type: 'SET_COUPLE', payload: MOCK_DEBUG_DATA.couple });
+      dispatch({ type: 'SET_RULES', payload: MOCK_DEBUG_DATA.rules });
+      dispatch({ type: 'SET_VIOLATIONS', payload: MOCK_DEBUG_DATA.violations });
+      dispatch({ type: 'SET_REWARDS', payload: MOCK_DEBUG_DATA.rewards });
+      
+      console.log('✅ DEBUG MODE: 목 데이터 로드 완료');
+      return;
+    }
 
     if (!user?.couple_id) {
       debugLog('LOAD_DATA', '커플 ID 없음 - 상태 리셋', null, 'warning');
@@ -739,6 +870,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const createRule = async (rule: Omit<Rule, 'id' | 'couple_id' | 'created_at'>) => {
     debugLog('CRUD', '=== createRule 시작 ===', rule, 'debug');
     
+    // 디버그 모드에서는 목 데이터 사용
+    if (isDebugMode) {
+      console.log('🔧 DEBUG MODE: createRule 목 응답');
+      
+      const mockRule: Rule = {
+        id: `test-rule-${Date.now()}`,
+        ...rule,
+        couple_id: 'test-couple-1',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      // 약간의 지연 시뮬레이션
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      dispatch({ type: 'ADD_RULE', payload: mockRule });
+      console.log('✅ DEBUG MODE: 목 규칙 추가됨', mockRule);
+      return { error: undefined };
+    }
+    
     if (!user?.couple_id) {
       debugLog('CRUD', 'createRule 실패: 커플 ID 없음', null, 'error');
       return { error: 'No couple found' };
@@ -829,6 +980,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const createViolation = async (violation: Omit<Violation, 'id' | 'created_at'>) => {
     debugLog('CRUD', '=== createViolation 시작 ===', violation, 'debug');
     
+    // 디버그 모드에서는 목 데이터 사용
+    if (isDebugMode) {
+      console.log('🔧 DEBUG MODE: createViolation 목 응답');
+      
+      const mockViolation: Violation = {
+        id: `test-violation-${Date.now()}`,
+        ...violation,
+        recorded_by_user_id: violation.violator_user_id, // 자기 자신이 기록한 것으로 설정
+        violation_date: violation.violation_date || new Date().toISOString().split('T')[0],
+        created_at: new Date().toISOString(),
+        violator: {
+          id: violation.violator_user_id,
+          email: violation.violator_user_id.includes('test-user-1') ? 'test1@couple-fine.app' : 'test2@couple-fine.app',
+          display_name: violation.violator_user_id.includes('test-user-1') ? '테스트 사용자 1' : '테스트 사용자 2',
+          created_at: new Date().toISOString()
+        }
+      };
+      
+      // 약간의 지연 시뮬레이션
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      dispatch({ type: 'ADD_VIOLATION', payload: mockViolation });
+      console.log('✅ DEBUG MODE: 목 위반 기록 추가됨', mockViolation);
+      return { error: undefined };
+    }
+    
     try {
       // Direct Supabase CRUD
       const { error, data } = await supabase
@@ -874,6 +1051,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Create reward
   const createReward = async (reward: Omit<Reward, 'id' | 'couple_id' | 'created_at'>) => {
     debugLog('CRUD', '=== createReward 시작 ===', reward, 'debug');
+    
+    // 디버그 모드에서는 목 데이터 사용
+    if (isDebugMode) {
+      console.log('🔧 DEBUG MODE: createReward 목 응답');
+      
+      const mockReward: Reward = {
+        id: `test-reward-${Date.now()}`,
+        ...reward,
+        couple_id: 'test-couple-1',
+        is_achieved: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      // 약간의 지연 시뮬레이션
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      dispatch({ type: 'ADD_REWARD', payload: mockReward });
+      console.log('✅ DEBUG MODE: 목 보상 추가됨', mockReward);
+      return { error: undefined };
+    }
     
     if (!user?.couple_id) {
       debugLog('CRUD', 'createReward 실패: 커플 ID 없음', null, 'error');
