@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApp } from '../../contexts/AppContext';
+import { useRealtime } from '../../hooks/useRealtime';
 import {
   Home,
   Heart,
@@ -33,6 +34,12 @@ export const AppLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isOnline = useOnlineStatus();
+  
+  // Enable real-time synchronization for the entire app
+  const { isConnected: isRealtimeConnected } = useRealtime({ 
+    coupleId: user?.couple_id || undefined, 
+    userId: user?.id 
+  });
 
   // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 

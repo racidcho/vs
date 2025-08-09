@@ -20,6 +20,9 @@ export interface Couple {
   is_active: boolean;
   created_at: string;
   updated_at?: string;
+  // Relations - 파트너 정보 포함
+  partner_1?: User | null;
+  partner_2?: User | null;
 }
 
 export interface Rule {

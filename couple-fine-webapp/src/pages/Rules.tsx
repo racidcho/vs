@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Heart, Plus, Edit, Trash2, Sparkles, Star, Save, X } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useRealtime } from '../hooks/useRealtime';
 import { toast } from 'react-hot-toast';
 
 interface RuleFormData {
@@ -14,6 +16,14 @@ interface RuleFormData {
 
 export const Rules: React.FC = () => {
   const { state, createRule, updateRule, deleteRule } = useApp();
+  const { user } = useAuth();
+  
+  // Enable real-time synchronization for rules
+  const { isConnected } = useRealtime({ 
+    coupleId: user?.couple_id || undefined, 
+    userId: user?.id 
+  });
+  
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<string | null>(null);
   const [formData, setFormData] = useState<RuleFormData>({

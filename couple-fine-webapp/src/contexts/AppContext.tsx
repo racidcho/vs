@@ -270,7 +270,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           } : null
         });
 
-        // Transform the data to match Couple interface
+        // Transform the data to match Couple interface with partner information
         const transformedCouple: Couple = {
           id: coupleData.id,
           couple_code: coupleData.couple_code,
@@ -279,7 +279,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           partner_2_id: coupleData.partner_2_id,
           total_balance: coupleData.total_balance || 0,
           is_active: coupleData.is_active,
-          created_at: coupleData.created_at
+          created_at: coupleData.created_at,
+          // Include partner relations for real-time display
+          partner_1: coupleData.partner_1 || null,
+          partner_2: coupleData.partner_2 || null
         };
 
         dispatch({ type: 'SET_COUPLE', payload: transformedCouple });
@@ -1061,8 +1064,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [user, isLoading]);
 
-  // Real-time subscriptions (Legacy - will be replaced by useRealtime)
+  // Real-time subscriptions (Legacy - DISABLED to avoid conflicts with useRealtime hook)
   useEffect(() => {
+    // DISABLED: Using useRealtime hook in components instead to avoid duplicate subscriptions
+    console.log('🚫 APPCONTEXT REALTIME: Legacy subscriptions disabled - using useRealtime hook');
+    return;
+    
+    /*
     if (!user?.couple_id) {
       console.log('🚫 APPCONTEXT REALTIME: No couple_id, skipping legacy subscriptions');
       return;
@@ -1262,6 +1270,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       supabase.removeChannel(rewardsChannel);
       supabase.removeChannel(profilesChannel);
     };
+    */
   }, [user?.couple_id]);
 
   // Online/offline status
