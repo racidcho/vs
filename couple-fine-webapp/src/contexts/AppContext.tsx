@@ -327,20 +327,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       debugMode: isDebugMode
     });
 
-    // 디버그 모드에서는 목 데이터 사용
-    if (isDebugMode) {
-      console.log('🔧 DEBUG MODE: 목 데이터 로드');
+    // 디버그 모드에서도 실제 Supabase 사용하지만 테스트 데이터 자동 생성
+    if (isDebugMode && user?.couple_id) {
+      console.log('🔧 DEBUG MODE: 실제 Supabase와 연동하여 테스트 데이터 생성/조회');
       
-      // 약간의 지연 시뮬레이션 (실제 API 호출과 유사하게)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 디버그 테스트 데이터 초기화 (한 번만 실행)
+      await initializeDebugData(user.couple_id, user.id);
       
-      dispatch({ type: 'SET_COUPLE', payload: MOCK_DEBUG_DATA.couple });
-      dispatch({ type: 'SET_RULES', payload: MOCK_DEBUG_DATA.rules });
-      dispatch({ type: 'SET_VIOLATIONS', payload: MOCK_DEBUG_DATA.violations });
-      dispatch({ type: 'SET_REWARDS', payload: MOCK_DEBUG_DATA.rewards });
-      
-      console.log('✅ DEBUG MODE: 목 데이터 로드 완료');
-      return;
+      console.log('✅ DEBUG MODE: 실제 Supabase 연동 완료, 일반 로직으로 진행');
+      // 일반 로직으로 진행하여 실제 데이터베이스에서 조회
     }
 
     if (!user?.couple_id) {
@@ -1510,6 +1505,154 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     getRewardProgress,
     validateData,
     isRealtimeConnected
+  };
+
+  // 디버그 모드 전용 - 실제 Supabase에 테스트 데이터 생성
+  const initializeDebugData = async (coupleId: string, userId: string) => {
+    console.log('🔧 DEBUG: 테스트 데이터 초기화 시작', { coupleId, userId });
+    
+    try {
+      // 1. 테스트 프로필들이 존재하는지 확인하고 생성
+      const profiles = [
+        {
+          id: '11111111-1111-1111-1111-111111111111',
+          email: 'test1@couple-fine.app',
+          display_name: '테스트 사용자 1',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '22222222-2222-2222-2222-222222222222', 
+          email: 'test2@couple-fine.app',
+          display_name: '테스트 사용자 2',
+          created_at: new Date().toISOString()
+        }
+      ];
+      
+      for (const profile of profiles) {
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', profile.id)
+          .single();
+          
+        if (!existingProfile) {
+          await supabase.from('profiles').upsert(profile);
+          console.log('✅ DEBUG: 테스트 프로필 생성:', profile.email);
+        }
+      }
+      
+      // 2. 테스트 커플이 존재하는지 확인하고 생성
+      const { data: existingCouple } = await supabase
+        .from('couples')
+        .select('id')
+        .eq('id', coupleId)
+        .single();
+        
+      if (!existingCouple) {
+        const testCouple = {
+          id: coupleId,
+          couple_code: 'TEST01',
+          couple_name: '테스트 커플',
+          partner_1_id: '11111111-1111-1111-1111-111111111111',
+          partner_2_id: '22222222-2222-2222-2222-222222222222',
+          total_balance: 0,
+          is_active: true,
+          created_at: new Date().toISOString()
+        };
+        
+        await supabase.from('couples').insert(testCouple);
+        console.log('✅ DEBUG: 테스트 커플 생성');
+        
+        // 3. 기본 규칙들 생성
+        const testRules = [
+          {
+            id: crypto.randomUUID(),
+            title: '욕설 금지',
+            category: 'word' as const,
+            fine_amount: 10000,
+            icon_emoji: '💬',
+            is_active: true,
+            couple_id: coupleId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          {
+            id: crypto.randomUUID(),
+            title: '데이트 약속 늦기',
+            category: 'behavior' as const,
+            fine_amount: 20000,
+            icon_emoji: '⏰',
+            is_active: true,
+            couple_id: coupleId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ];
+        
+        await supabase.from('rules').insert(testRules);
+        console.log('✅ DEBUG: 테스트 규칙들 생성');
+        
+        // 4. 샘플 벌금 기록들 생성
+        const testViolations = [
+          {
+            id: crypto.randomUUID(),
+            user_id: '11111111-1111-1111-1111-111111111111',
+            rule_id: testRules[0].id,
+            amount: 10000,
+            type: 'fine' as const,
+            memo: '테스트 벌금 기록 1',
+            couple_id: coupleId,
+            violation_date: new Date().toISOString(),
+            recorded_by_user_id: '22222222-2222-2222-2222-222222222222'
+          },
+          {
+            id: crypto.randomUUID(),
+            user_id: '22222222-2222-2222-2222-222222222222',
+            rule_id: testRules[1].id,
+            amount: 20000,
+            type: 'fine' as const,
+            memo: '테스트 벌금 기록 2',
+            couple_id: coupleId,
+            violation_date: new Date().toISOString(),
+            recorded_by_user_id: '11111111-1111-1111-1111-111111111111'
+          }
+        ];
+        
+        await supabase.from('violations').insert(testViolations);
+        console.log('✅ DEBUG: 테스트 벌금 기록들 생성');
+        
+        // 5. 샘플 보상들 생성
+        const testRewards = [
+          {
+            id: crypto.randomUUID(),
+            title: '맛있는 저녁식사',
+            target_amount: 50000,
+            description: '좋은 레스토랑에서 저녁식사',
+            icon_emoji: '🍽️',
+            is_achieved: false,
+            couple_id: coupleId,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: crypto.randomUUID(),
+            title: '영화 데이트',
+            target_amount: 30000,
+            description: '함께 보고 싶던 영화 보기',
+            icon_emoji: '🎬',
+            is_achieved: false,
+            couple_id: coupleId,
+            created_at: new Date().toISOString()
+          }
+        ];
+        
+        await supabase.from('rewards').insert(testRewards);
+        console.log('✅ DEBUG: 테스트 보상들 생성');
+      }
+      
+      console.log('🎉 DEBUG: 테스트 데이터 초기화 완료');
+    } catch (error) {
+      console.error('❌ DEBUG: 테스트 데이터 초기화 실패:', error);
+    }
   };
 
   // Debug mode removed for production

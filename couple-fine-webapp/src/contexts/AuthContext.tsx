@@ -33,19 +33,24 @@ const isDebugModeActive = (): boolean => {
   return urlParams.get('debug') === 'testmode';
 };
 
-// 테스트 계정 정보
+// 테스트 계정 정보 - 실제 UUID 사용
 const TEST_ACCOUNTS = {
   1: {
+    id: '11111111-1111-1111-1111-111111111111',
     email: 'test1@couple-fine.app',
     display_name: '테스트 사용자 1',
     couple_code: 'TEST01'
   },
   2: {
+    id: '22222222-2222-2222-2222-222222222222',
     email: 'test2@couple-fine.app', 
     display_name: '테스트 사용자 2',
     couple_code: 'TEST01'
   }
 } as const;
+
+// 디버그 모드에서 사용할 실제 커플 ID
+const DEBUG_COUPLE_ID = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -287,8 +292,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const testAccount = TEST_ACCOUNTS[testAccountNumber];
       console.log(`🔧 DEBUG: 테스트 계정 ${testAccountNumber} 로그인 시도:`, testAccount.email);
       
-      // 테스트 계정의 가짜 세션 생성 
-      const fakeUserId = `test-user-${testAccountNumber}-${Date.now()}`;
+      // 테스트 계정의 가짜 세션 생성 - 실제 UUID 사용
+      const fakeUserId = testAccount.id;
       const fakeSession: AuthSession = {
         access_token: `fake-token-${testAccountNumber}`,
         refresh_token: `fake-refresh-${testAccountNumber}`,
@@ -317,13 +322,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // 세션 설정
       setSession(fakeSession);
 
-      // 테스트 사용자 데이터 생성
+      // 테스트 사용자 데이터 생성 - 실제 UUID 사용
       const testUser: User = {
         id: fakeUserId,
         email: testAccount.email,
         display_name: testAccount.display_name,
         created_at: new Date().toISOString(),
-        couple_id: 'test-couple-1' // 모든 테스트 계정은 같은 커플로 연결
+        couple_id: DEBUG_COUPLE_ID // 실제 UUID 커플 ID 사용
       };
 
       setUser(testUser);
