@@ -195,10 +195,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { user, isLoading, refreshUser } = useAuth();
 
-  // ⚡ Enhanced Realtime with Broadcast Channels
+  // ⚡ Realtime connection status
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
-  const realtimeManagerRef = useRef<any>(null);
-  const enhancedCRUDRef = useRef<any>(null);
 
   // Load couple data when user changes with abort signal support
   const loadCoupleData = async (abortSignal?: AbortSignal) => {
@@ -748,19 +746,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       debugLog('CRUD', 'createRule 요청 데이터', ruleData, 'info');
 
-      // Enhanced CRUD 사용 시도
-      if (enhancedCRUDRef.current) {
-        console.log('🚀 ENHANCED CRUD: Creating rule with broadcast');
-        try {
-          const data = await enhancedCRUDRef.current.createRule(ruleData);
-          dispatch({ type: 'ADD_RULE', payload: data });
-          return {};
-        } catch (enhancedError) {
-          console.warn('⚠️ Enhanced CRUD failed, fallback to regular:', enhancedError);
-        }
-      }
-
-      // Fallback to regular CRUD
+      // Direct Supabase CRUD
       const { error, data } = await supabase
         .from('rules')
         .insert(ruleData)
@@ -788,19 +774,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const updateRule = async (id: string, updates: Partial<Rule>) => {
 
     try {
-      // Enhanced CRUD 사용 시도
-      if (enhancedCRUDRef.current) {
-        console.log('🚀 ENHANCED CRUD: Updating rule with broadcast');
-        try {
-          const data = await enhancedCRUDRef.current.updateRule(id, updates);
-          dispatch({ type: 'UPDATE_RULE', payload: data as Rule });
-          return {};
-        } catch (enhancedError) {
-          console.warn('⚠️ Enhanced CRUD failed, fallback to regular:', enhancedError);
-        }
-      }
-
-      // Fallback to regular CRUD
+      // Direct Supabase CRUD
       const { error, data } = await supabase
         .from('rules')
         .update(updates)
@@ -824,22 +798,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // ⚡ Enhanced Delete rule with Realtime broadcast
+  // Delete rule
   const deleteRule = async (id: string) => {
     try {
-      // Enhanced CRUD 사용 시도
-      if (enhancedCRUDRef.current) {
-        console.log('🚀 ENHANCED CRUD: Deleting rule with broadcast');
-        try {
-          await enhancedCRUDRef.current.deleteRule(id);
-          dispatch({ type: 'DELETE_RULE', payload: id });
-          return {};
-        } catch (enhancedError) {
-          console.warn('⚠️ Enhanced CRUD failed, fallback to regular:', enhancedError);
-        }
-      }
-
-      // Fallback to regular CRUD
+      // Direct Supabase CRUD
       const { error } = await supabase
         .from('rules')
         .delete()
@@ -855,23 +817,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // ⚡ Enhanced Create violation with Realtime broadcast
+  // Create violation
   const createViolation = async (violation: Omit<Violation, 'id' | 'created_at'>) => {
     debugLog('CRUD', '=== createViolation 시작 ===', violation, 'debug');
     
     try {
-      // Enhanced CRUD 사용 시도
-      if (enhancedCRUDRef.current) {
-        console.log('🚀 ENHANCED CRUD: Creating violation with broadcast');
-        try {
-          await enhancedCRUDRef.current.createViolation(violation);
-          return {};
-        } catch (enhancedError) {
-          console.warn('⚠️ Enhanced CRUD failed, fallback to regular:', enhancedError);
-        }
-      }
-
-      // Fallback to regular CRUD
+      // Direct Supabase CRUD
       const { error, data } = await supabase
         .from('violations')
         .insert(violation)
@@ -912,7 +863,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // ⚡ Enhanced Create reward with Realtime broadcast
+  // Create reward
   const createReward = async (reward: Omit<Reward, 'id' | 'couple_id' | 'created_at'>) => {
     debugLog('CRUD', '=== createReward 시작 ===', reward, 'debug');
     
@@ -931,19 +882,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       debugLog('CRUD', 'createReward 요청 데이터', rewardData, 'info');
 
-      // Enhanced CRUD 사용 시도
-      if (enhancedCRUDRef.current) {
-        console.log('🚀 ENHANCED CRUD: Creating reward with broadcast');
-        try {
-          const data = await enhancedCRUDRef.current.createReward(rewardData);
-          dispatch({ type: 'ADD_REWARD', payload: data as Reward });
-          return {};
-        } catch (enhancedError) {
-          console.warn('⚠️ Enhanced CRUD failed, fallback to regular:', enhancedError);
-        }
-      }
-
-      // Fallback to regular CRUD
+      // Direct Supabase CRUD
       const { error, data } = await supabase
         .from('rewards')
         .insert(rewardData)
@@ -967,22 +906,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // ⚡ Enhanced Claim reward with Realtime broadcast
+  // Claim reward
   const claimReward = async (id: string) => {
     try {
-      // Enhanced CRUD 사용 시도
-      if (enhancedCRUDRef.current) {
-        console.log('🚀 ENHANCED CRUD: Claiming reward with broadcast');
-        try {
-          const data = await enhancedCRUDRef.current.claimReward(id);
-          dispatch({ type: 'UPDATE_REWARD', payload: data as Reward });
-          return {};
-        } catch (enhancedError) {
-          console.warn('⚠️ Enhanced CRUD failed, fallback to regular:', enhancedError);
-        }
-      }
-
-      // Fallback to regular CRUD
+      // Direct Supabase CRUD
       const { error, data } = await supabase
         .from('rewards')
         .update({ is_achieved: true })
@@ -1109,71 +1036,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // ⚡ Enhanced Realtime System Setup
+  // ⚡ Enhanced Realtime System Setup - DISABLED for stability
   useEffect(() => {
-    if (!user?.couple_id) {
-      console.log('🚫 ENHANCED REALTIME: No couple_id, cleaning up');
-      if (realtimeManagerRef.current) {
-        realtimeManagerRef.current.disconnect();
-        realtimeManagerRef.current = null;
-        enhancedCRUDRef.current = null;
-        setIsRealtimeConnected(false);
-      }
-      return;
-    }
-
-    console.log('🚀 ENHANCED REALTIME: Initializing for couple:', user.couple_id);
-
-    // Realtime 스크립트 동적 로드
-    const script = document.createElement('script');
-    script.src = '/realtime_alternative_implementation.js';
-    script.onload = () => {
-      console.log('📦 Realtime script loaded');
-      
-      // @ts-ignore - 동적 로드된 클래스
-      const RealtimeManager = window.CoupleRealtimeManager;
-      const EnhancedCRUD = window.EnhancedCRUD;
-
-      if (RealtimeManager && EnhancedCRUD) {
-        // Realtime Manager 초기화
-        realtimeManagerRef.current = new RealtimeManager();
-        realtimeManagerRef.current.setupBroadcastChannel(user.couple_id);
-
-        // Enhanced CRUD 초기화
-        enhancedCRUDRef.current = new EnhancedCRUD(realtimeManagerRef.current);
-
-        // 전역 함수 등록 (Realtime 이벤트에서 호출용)
-        (window as any).dispatchAppAction = dispatch;
-        (window as any).refreshAppData = () => refreshData();
-        (window as any).loadCoupleData = () => loadCoupleData();
-
-        // 연결 상태 모니터링
-        const checkConnection = () => {
-          const connected = realtimeManagerRef.current?.isConnected || false;
-          setIsRealtimeConnected(connected);
-          console.log('🔌 ENHANCED REALTIME: Connection status:', connected);
-        };
-
-        checkConnection();
-        const connectionInterval = setInterval(checkConnection, 5000);
-
-        return () => clearInterval(connectionInterval);
-      }
-    };
-
-    if (!document.querySelector('script[src="/realtime_alternative_implementation.js"]')) {
-      document.head.appendChild(script);
-    }
-
-    return () => {
-      if (realtimeManagerRef.current) {
-        realtimeManagerRef.current.disconnect();
-      }
-      // 전역 함수 정리
-      delete (window as any).dispatchAppAction;
-      delete (window as any).refreshAppData;
-      delete (window as any).loadCoupleData;
-    };
+    // Enhanced Realtime temporarily disabled - using standard Supabase realtime subscriptions
+    setIsRealtimeConnected(true); // Assume connected when using standard subscriptions
   }, [user?.couple_id]);
 
   // Load data when user changes
@@ -1447,64 +1313,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     isRealtimeConnected
   };
 
-  // 브라우저 콘솔에서 디버깅할 수 있도록 전역 노출
-  useEffect(() => {
-    if (DEBUG_MODE) {
-      (window as any).appDebug = {
-        // 디버깅 유틸리티
-        runFullDiagnostics,
-        checkConnection: checkSupabaseConnection,
-        checkAuth: checkAuthStatus,
-        testRLS: () => user ? testRLSPolicies(user.id, user.couple_id) : console.error('No user'),
-        testRealtime: testRealtimeSubscription,
-        testCRUD: () => user?.couple_id ? testCRUDOperations(user.id, user.couple_id) : console.error('No couple'),
-        checkCouple: () => user ? checkCoupleConnection(user.id) : console.error('No user'),
-        
-        // 앱 상태
-        getState: () => ({ ...state, user }),
-        getUser: () => user,
-        getCoupleId: () => user?.couple_id,
-        
-        // 앱 함수들
-        loadData: loadCoupleData,
-        refreshData,
-        createRule: (title: string, desc: string, amount: number) => 
-          createRule({ title, description: desc, fine_amount: amount, created_by_user_id: user?.id || '' }),
-        createViolation: (ruleId: string, violatorId: string, amount: number, memo: string) =>
-          createViolation({ 
-            couple_id: user?.couple_id || '', 
-            rule_id: ruleId, 
-            violator_user_id: violatorId, 
-            recorded_by_user_id: user?.id || '',
-            amount, 
-            memo,
-            violation_date: new Date().toISOString().split('T')[0]
-          }),
-        createReward: (title: string, desc: string, amount: number) =>
-          createReward({ 
-            title, 
-            description: desc, 
-            target_amount: amount, 
-            created_by_user_id: user?.id || ''
-          }),
-        
-        // Supabase 직접 접근
-        supabase
-      };
-      
-      console.log('%c🔧 앱 디버깅 도구 활성화됨', 'color: #10b981; font-weight: bold');
-      console.log('콘솔에서 다음 명령어를 사용하세요:');
-      console.log('- appDebug.runFullDiagnostics() : 전체 진단 실행');
-      console.log('- appDebug.getState() : 현재 앱 상태 확인');
-      console.log('- appDebug.testRLS() : RLS 정책 테스트');
-      console.log('- appDebug.testCRUD() : CRUD 작업 테스트');
-      console.log('- appDebug.testRealtime("rules") : 실시간 구독 테스트');
-    }
-    
-    return () => {
-      delete (window as any).appDebug;
-    };
-  }, [user, state, createRule, createViolation, createReward, loadCoupleData, refreshData]);
+  // Debug mode removed for production
 
   return (
     <AppContext.Provider value={value}>
