@@ -442,10 +442,53 @@ export const Dashboard: React.FC = () => {
             })()}
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-gray-100 to-gray-200 rounded-3xl p-8 text-center shadow-lg">
-            <div className="text-6xl mb-4">💔</div>
-            <h2 className="text-2xl font-bold text-gray-600 mb-2">커플 연결이 필요해요</h2>
-            <p className="text-gray-500">먼저 커플 설정을 완료해주세요</p>
+          <div className="bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100 rounded-3xl p-8 text-center shadow-xl">
+            <div className="text-6xl mb-4 animate-bounce">💑</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">커플 연결이 필요해요!</h2>
+            <p className="text-gray-600 mb-6">아래 버튼을 눌러 커플을 만들어보세요</p>
+            
+            <div className="space-y-4">
+              {/* 새 커플 만들기 버튼 */}
+              <button
+                onClick={() => navigate('/couple-setup')}
+                className="w-full px-6 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-2xl font-bold hover:from-pink-600 hover:to-purple-600 transition-all transform hover:scale-105 shadow-lg"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-xl">✨</span>
+                  <span>새 커플 만들기</span>
+                  <span className="text-xl">💝</span>
+                </div>
+              </button>
+              
+              {/* 또는 구분선 */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-4 bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100 text-sm text-gray-600">또는</span>
+                </div>
+              </div>
+              
+              {/* 기존 커플 참여 버튼 */}
+              <button
+                onClick={() => navigate('/couple-setup')}
+                className="w-full px-6 py-4 bg-white border-2 border-purple-300 text-purple-600 rounded-2xl font-bold hover:bg-purple-50 transition-all transform hover:scale-105 shadow-md"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-xl">🔗</span>
+                  <span>파트너 코드로 연결하기</span>
+                  <span className="text-xl">💕</span>
+                </div>
+              </button>
+            </div>
+            
+            {/* 도움말 */}
+            <div className="mt-6 p-4 bg-white/70 rounded-xl">
+              <p className="text-sm text-gray-600">
+                <span className="font-bold text-purple-600">💡 Tip:</span> 한 명이 커플을 만들고 생성된 6자리 코드를 파트너에게 공유하면 돼요!
+              </p>
+            </div>
           </div>
         )}
 
