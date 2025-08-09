@@ -68,14 +68,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
       } else if (success) {
 
         toast.success('🎉 로그인 성공!');
-        // 로그인 성공 후 명시적으로 리디렉션
+        // 로그인 성공 후 즉시 리디렉션
         // URL 파라미터 유지 (예: ?debug=true)
-        setTimeout(() => {
-          const searchParams = location.search;
-          navigate('/' + searchParams);
-          // 추가적으로 페이지 리로드를 강제할 수도 있음
-          // window.location.href = '/' + searchParams;
-        }, 1000);
+        const searchParams = location.search;
+        navigate('/' + searchParams);
       }
     } catch (error) {
       console.error('❌ Unexpected error:', error);

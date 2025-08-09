@@ -257,15 +257,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Force refresh user data
         await refreshUser();
 
-        // Wait a bit for state to update
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Double check user was set
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (currentSession) {
-          console.log('✅ OTP 인증 성공, 세션 저장 완료');
-        }
-
+        console.log('✅ OTP 인증 성공, 세션 저장 완료');
         return { success: true };
       }
 
