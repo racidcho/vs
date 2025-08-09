@@ -165,8 +165,12 @@ export const VersusWidget: React.FC = () => {
         <div className="flex items-center justify-between">
           {/* Partner 1 */}
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center shadow-md">
-              <span className="text-xl">{getLeaderIcon()}</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center shadow-md overflow-hidden">
+              {partner1Stats.avatar ? (
+                <img src={partner1Stats.avatar} alt={partner1Stats.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xl">{getLeaderIcon()}</span>
+              )}
             </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">{partner1Stats.name}</p>
@@ -185,8 +189,12 @@ export const VersusWidget: React.FC = () => {
               <p className="font-bold text-gray-900 text-sm text-right">{partner2Stats.name}</p>
               <p className="text-xs text-gray-500 text-right">{partner2Stats.violationCount}번 기록</p>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center shadow-md">
-              <span className="text-xl">{getFollowerIcon()}</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center shadow-md overflow-hidden">
+              {partner2Stats.avatar ? (
+                <img src={partner2Stats.avatar} alt={partner2Stats.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xl">{getFollowerIcon()}</span>
+              )}
             </div>
           </div>
         </div>

@@ -12,7 +12,9 @@ interface AuthContextType {
   verifyOtp: (email: string, token: string) => Promise<{ error?: string; success?: boolean }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  updateProfile: (updates: Partial<Pick<User, 'display_name'>>) => Promise<void>;
+  updateProfile: (
+    updates: Partial<Pick<User, 'display_name' | 'avatar_url'>>
+  ) => Promise<void>;
   isDebugMode: boolean;
   debugLogin: (testAccountNumber: 1 | 2) => Promise<{ error?: string; success?: boolean }>;
 }
@@ -59,6 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isDebugMode] = useState(() => isTestMode());
 
   const refreshUser = async () => {
+    setIsLoading(true);
 
     // 30초 타임아웃 설정 (네트워크 지연 고려)
     const timeoutPromise = new Promise((_, reject) => {
@@ -76,8 +79,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: { session: currentSession } } = sessionResult as any;
 
     if (!currentSession?.user) {
-
       setUser(null);
+      setIsLoading(false);
       return;
     }
 
@@ -158,6 +161,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         setUser(null);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -282,7 +287,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   };
 
-  const updateProfile = async (updates: Partial<Pick<User, 'display_name'>>) => {
+  const updateProfile = async (
+    updates: Partial<Pick<User, 'display_name' | 'avatar_url'>>
+  ) => {
     if (!user) throw new Error('No user found');
 
     const { error } = await supabase
