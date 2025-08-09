@@ -591,12 +591,7 @@ export const updateViolation = async (violationId: string, updates: Partial<Pick
     .from('violations')
     .update(updates)
     .eq('id', violationId)
-    .select(`
-      *,
-      rule:rules(*),
-      violator:profiles!violations_violator_user_id_fkey(*),
-      recorded_by:profiles!violations_recorded_by_user_id_fkey(*)
-    `)
+    .select('*, rule:rules(*)')
     .single();
 
   if (error) handleSupabaseError(error);

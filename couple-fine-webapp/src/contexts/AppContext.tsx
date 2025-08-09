@@ -458,12 +458,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       debugLog('LOAD_DATA', '벌금 데이터 조회 시작', { couple_id: user.couple_id }, 'info');
       const { data: violationsData, error: violationsError } = await supabase
         .from('violations')
-        .select(`
-          *,
-          rule:rules(*),
-          violator:profiles!violations_violator_user_id_fkey(*),
-          recorded_by:profiles!violations_recorded_by_user_id_fkey(*)
-        `)
+        .select('*, rule:rules(*)')
         .eq('couple_id', user.couple_id)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -778,13 +773,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // If we don't have couple data in state, fetch it
       if (!coupleData) {
         console.log('📡 APPCONTEXT: 상태에 커플 데이터 없음, DB에서 조회');
+        // Foreign Key 제약조건이 없으므로 별도 쿼리로 분리
         const { data: fetchedCoupleData, error: coupleError } = await supabase
           .from('couples')
-          .select(`
-            *,
-            partner_1:profiles!couples_partner_1_id_fkey(*),
-            partner_2:profiles!couples_partner_2_id_fkey(*)
-          `)
+          .select('*')
           .eq('id', user.couple_id)
           .single();
 

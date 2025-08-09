@@ -92,14 +92,10 @@ export const useRealtime = ({ coupleId, userId }: RealtimeOptions) => {
           if (newRecord) {
             console.log('📝 Fetching complete violation data for:', newRecord.id);
             // Fetch the complete violation data with relations
+            // Foreign Key 제약조건이 없으므로 별도 쿼리로 분리
             const { data: violationWithRelations, error } = await supabase
               .from('violations')
-              .select(`
-                *,
-                rule:rules(*),
-                violator:profiles!violations_violator_user_id_fkey(*),
-                recorded_by:profiles!violations_recorded_by_user_id_fkey(*)
-              `)
+              .select('*, rule:rules(*)')
               .eq('id', newRecord.id)
               .single();
 
