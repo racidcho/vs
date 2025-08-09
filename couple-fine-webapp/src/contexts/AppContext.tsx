@@ -1208,10 +1208,82 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // ⚡ Enhanced Realtime System Setup - DISABLED for stability
+  // ⚡ Mobile-Enhanced Realtime System Setup
   useEffect(() => {
-    // Enhanced Realtime temporarily disabled - using standard Supabase realtime subscriptions
-    setIsRealtimeConnected(true); // Assume connected when using standard subscriptions
+    let connectionCheckInterval: NodeJS.Timeout;
+    let reconnectTimeout: NodeJS.Timeout;
+    let isVisible = !document.hidden;
+
+    // 모바일 브라우저 연결 상태 모니터링
+    const checkConnectionStatus = () => {
+      // 온라인 상태와 페이지 가시성 확인
+      const isOnline = navigator.onLine;
+      const isPageVisible = !document.hidden;
+      
+      if (isOnline && isPageVisible) {
+        setIsRealtimeConnected(true);
+        console.log('📱 MOBILE REALTIME: 연결 상태 양호');
+      } else {
+        setIsRealtimeConnected(false);
+        console.log('📱 MOBILE REALTIME: 연결 불안정', { isOnline, isPageVisible });
+      }
+    };
+
+    // 네트워크 상태 변경 감지
+    const handleOnline = () => {
+      console.log('📱 MOBILE: 온라인 상태 복구');
+      clearTimeout(reconnectTimeout);
+      reconnectTimeout = setTimeout(() => {
+        refreshData(); // 데이터 새로고침
+        checkConnectionStatus();
+      }, 1000);
+    };
+
+    const handleOffline = () => {
+      console.log('📱 MOBILE: 오프라인 상태');
+      setIsRealtimeConnected(false);
+    };
+
+    // 페이지 가시성 변경 감지 (앱 전환)
+    const handleVisibilityChange = () => {
+      const wasVisible = isVisible;
+      isVisible = !document.hidden;
+      
+      console.log('📱 MOBILE: 페이지 가시성 변경', { 
+        wasVisible, 
+        isVisible, 
+        hidden: document.hidden 
+      });
+
+      if (!wasVisible && isVisible) {
+        // 백그라운드에서 포그라운드로 전환
+        console.log('📱 MOBILE: 포그라운드 복귀 - 데이터 동기화');
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = setTimeout(() => {
+          refreshData(); // 즉시 데이터 동기화
+          checkConnectionStatus();
+        }, 500);
+      }
+    };
+
+    // 주기적 연결 상태 체크 (모바일에서 중요)
+    connectionCheckInterval = setInterval(checkConnectionStatus, 10000);
+
+    // 이벤트 리스너 등록
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 초기 상태 설정
+    checkConnectionStatus();
+
+    return () => {
+      clearInterval(connectionCheckInterval);
+      clearTimeout(reconnectTimeout);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user?.couple_id]);
 
   // Load data when user changes
@@ -1282,6 +1354,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         } else {
           debugLog('REALTIME', 'Couples 채널 구독 상태', status, status === 'SUBSCRIBED' ? 'success' : 'warning');
         }
+        
+        // 📱 모바일 브라우저에서 연결 상태 업데이트
+        if (status === 'SUBSCRIBED') {
+          setIsRealtimeConnected(true);
+          console.log('📱 COUPLES 채널 연결 성공');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setIsRealtimeConnected(false);
+          console.log('📱 COUPLES 채널 연결 실패, 데이터 새로고침으로 대체');
+          // 실시간 연결 실패 시 폴백으로 데이터 새로고침
+          setTimeout(() => refreshData(), 2000);
+        }
       });
 
     // Subscribe to rules changes
@@ -1323,6 +1406,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         } else {
           debugLog('REALTIME', 'Rules 채널 구독 상태', status, status === 'SUBSCRIBED' ? 'success' : 'warning');
         }
+        
+        // 📱 모바일 브라우저에서 연결 실패 시 폴백
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.log('📱 RULES 채널 연결 실패, 데이터 새로고침으로 대체');
+          setTimeout(() => refreshData(), 2000);
+        }
       });
 
     // Subscribe to violations changes
@@ -1357,6 +1446,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           debugLog('REALTIME', 'Violations 채널 구독 실패', err, 'error');
         } else {
           debugLog('REALTIME', 'Violations 채널 구독 상태', status, status === 'SUBSCRIBED' ? 'success' : 'warning');
+        }
+        
+        // 📱 모바일 브라우저에서 연결 실패 시 폴백
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.log('📱 VIOLATIONS 채널 연결 실패, 데이터 새로고침으로 대체');
+          setTimeout(() => refreshData(), 2000);
         }
       });
 
@@ -1393,6 +1488,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         } else {
           debugLog('REALTIME', 'Rewards 채널 구독 상태', status, status === 'SUBSCRIBED' ? 'success' : 'warning');
         }
+        
+        // 📱 모바일 브라우저에서 연결 실패 시 폴백
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.log('📱 REWARDS 채널 연결 실패, 데이터 새로고침으로 대체');
+          setTimeout(() => refreshData(), 2000);
+        }
       });
 
     // Subscribe to profiles changes (for partner name updates)
@@ -1426,6 +1527,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         } else {
           debugLog('REALTIME', 'Profiles 채널 구독 상태', status, status === 'SUBSCRIBED' ? 'success' : 'warning');
         }
+        
+        // 📱 모바일 브라우저에서 연결 실패 시 폴백
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.log('📱 PROFILES 채널 연결 실패, 데이터 새로고침으로 대체');
+          setTimeout(() => refreshData(), 2000);
+        }
       });
 
     return () => {
@@ -1438,23 +1545,130 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     };
   }, [user?.couple_id, refreshData, loadCoupleData]);
 
-  // Online/offline status
+  // Enhanced Mobile Browser Synchronization System
   useEffect(() => {
+    let isPageVisible = !document.hidden;
+    let lastSyncTime = Date.now();
+    let syncTimeout: NodeJS.Timeout | null = null;
+    
     const updateOnlineStatus = () => {
-      dispatch({ type: 'SET_ONLINE_STATUS', payload: navigator.onLine });
+      const isOnline = navigator.onLine;
+      dispatch({ type: 'SET_ONLINE_STATUS', payload: isOnline });
+      
+      if (isOnline && isPageVisible) {
+        setIsRealtimeConnected(true);
+        console.log('🌐 APPCONTEXT: 온라인 상태 복구 - 데이터 동기화 시작');
+        
+        // Force data refresh when coming back online
+        const timeSinceLastSync = Date.now() - lastSyncTime;
+        if (timeSinceLastSync > 30000) { // 30초 이상 지났으면 새로고침
+          console.log('🔄 APPCONTEXT: 30초 이상 경과 - 강제 데이터 새로고침');
+          refreshData();
+          lastSyncTime = Date.now();
+        }
+      }
+    };
+
+    // 모바일 브라우저 감지
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log('📱 APPCONTEXT: 모바일 브라우저 감지:', isMobile);
+
+    // 페이지 visibility 변경 감지 (모바일 특화)
+    const handleVisibilityChange = () => {
+      const wasVisible = isPageVisible;
+      isPageVisible = !document.hidden;
+      
+      console.log('👁️ APPCONTEXT: Visibility 변경', {
+        wasVisible,
+        isVisible: isPageVisible,
+        isMobile,
+        timeSinceLastSync: Date.now() - lastSyncTime
+      });
+
+      if (!wasVisible && isPageVisible) {
+        // 페이지가 다시 보이게 됨 (백그라운드 → 포그라운드)
+        console.log('🎯 APPCONTEXT: 페이지 포그라운드 복귀 - 동기화 시작');
+        
+        // 모바일에서는 더 적극적으로 동기화
+        const syncDelay = isMobile ? 500 : 1000;
+        const maxSyncAge = isMobile ? 10000 : 30000; // 모바일은 10초, 데스크탑은 30초
+        
+        if (syncTimeout) clearTimeout(syncTimeout);
+        
+        syncTimeout = setTimeout(() => {
+          const timeSinceLastSync = Date.now() - lastSyncTime;
+          
+          if (timeSinceLastSync > maxSyncAge) {
+            console.log('🔄 APPCONTEXT: 백그라운드 복귀 - 강제 데이터 새로고침', {
+              timeSinceLastSync,
+              maxSyncAge,
+              isMobile
+            });
+            
+            // Force refresh all data
+            refreshData();
+            lastSyncTime = Date.now();
+          }
+        }, syncDelay);
+      }
+    };
+
+    // 네트워크 연결 상태 변경 감지 (WiFi ↔ 모바일 데이터)
+    const handleConnectionChange = () => {
+      if (navigator.onLine && isPageVisible) {
+        console.log('📶 APPCONTEXT: 네트워크 연결 변경 감지 - 재동기화');
+        
+        // 네트워크 변경 시 즉시 재동기화
+        setTimeout(() => {
+          refreshData();
+          lastSyncTime = Date.now();
+        }, 1000);
+      }
     };
 
     // Set initial status
     updateOnlineStatus();
 
+    // Event listeners
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // 모바일 브라우저에서 추가 네트워크 변경 감지
+    if (isMobile) {
+      window.addEventListener('online', handleConnectionChange);
+      
+      // 주기적인 연결 상태 체크 (모바일만)
+      const connectionCheckInterval = setInterval(() => {
+        if (isPageVisible && navigator.onLine) {
+          const timeSinceLastSync = Date.now() - lastSyncTime;
+          
+          // 5분 이상 동기화하지 않았으면 체크
+          if (timeSinceLastSync > 300000) {
+            console.log('⏰ APPCONTEXT: 주기적 동기화 체크 (5분 경과)');
+            refreshData();
+            lastSyncTime = Date.now();
+          }
+        }
+      }, 60000); // 1분마다 체크
+      
+      return () => {
+        window.removeEventListener('online', updateOnlineStatus);
+        window.removeEventListener('offline', updateOnlineStatus);
+        window.removeEventListener('online', handleConnectionChange);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        clearInterval(connectionCheckInterval);
+        if (syncTimeout) clearTimeout(syncTimeout);
+      };
+    }
 
     return () => {
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (syncTimeout) clearTimeout(syncTimeout);
     };
-  }, []);
+  }, [refreshData]);
 
   const value: AppContextType = {
     state: { ...state, user },

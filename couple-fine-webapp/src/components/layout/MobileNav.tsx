@@ -52,7 +52,7 @@ const navItems = [
 
 // Fine Status Bar Component
 const FineStatusBar: React.FC = () => {
-  const { state, getUserTotalFines } = useApp();
+  const { state, getUserTotalFines, isRealtimeConnected } = useApp();
   const { user } = useAuth();
 
   if (!state.couple || !user) return null;
@@ -90,7 +90,7 @@ const FineStatusBar: React.FC = () => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-pink-50 px-3 py-2.5 border-b border-pink-100/50 backdrop-blur-sm">
+    <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-pink-50 px-3 py-2.5 border-b border-pink-100/50 backdrop-blur-sm relative">
       {/* Partner Names and Amounts */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
@@ -160,12 +160,30 @@ const FineStatusBar: React.FC = () => {
         )}
       </div>
       
-      {/* Cute message */}
-      {totalFines === 0 && (
-        <p className="text-center text-xs text-purple-500 mt-1 animate-fade-in">
-          아직 벌금이 없어요! 💕
-        </p>
-      )}
+      {/* Connection Status & Cute message */}
+      <div className="flex items-center justify-between mt-1">
+        {/* Connection Status Indicator */}
+        <div className="flex items-center space-x-1">
+          {isRealtimeConnected ? (
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-xs text-green-600 font-medium">실시간 동기화</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+              <span className="text-xs text-yellow-600 font-medium">동기화 중...</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Cute message */}
+        {totalFines === 0 && (
+          <p className="text-xs text-purple-500 animate-fade-in">
+            아직 벌금이 없어요! 💕
+          </p>
+        )}
+      </div>
     </div>
   );
 };
