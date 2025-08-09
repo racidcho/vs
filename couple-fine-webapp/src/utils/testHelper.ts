@@ -18,13 +18,13 @@ export const getTestUser = () => {
       id: 'd35ee66f-edef-440d-ace1-acf089a34381',
       email: 'test1@joanddo.com',
       display_name: '테스트1',
-      couple_id: null
+      couple_id: '96e3ffc4-fc47-418c-81c5-2a020701a95b'
     },
     '2': {
       id: '10969e2b-35e8-40c7-9a38-598159ff47e8',
       email: 'test2@joanddo.com',
       display_name: '테스트2',
-      couple_id: null
+      couple_id: '96e3ffc4-fc47-418c-81c5-2a020701a95b'
     }
   };
   
