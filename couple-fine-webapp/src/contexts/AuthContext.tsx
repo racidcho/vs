@@ -373,6 +373,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // StrictMode 대응 - mounted 플래그로 언마운트 후 업데이트 방지
     let mounted = true;
+    let isRefreshingSession = false; // 토큰 갱신 중 충돌 방지
     
     // Initialize auth state
     setIsLoading(true);
@@ -525,9 +526,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
         
-        // USER_UPDATED 이벤트 스마트 처리 - 세션이 있으면 유지, 없을 때만 재확인
+        // USER_UPDATED 이벤트 스마트 처리 - 불필요한 세션 갱신 방지
         if (event === 'USER_UPDATED') {
           console.log('📝 USER_UPDATED 이벤트 - 세션 상태 확인');
+          if (isRefreshingSession) {
+            console.log('⏳ 토큰 갱신 중 - USER_UPDATED 이벤트 스킵');
+            return; // 갱신 중이면 스킵하여 충돌 방지
+          }
           if (!session) {
             // 세션이 없을 때만 재확인
             const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -542,10 +547,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setUser(null);
             }
           } else if (mounted) {
-            // 세션이 있으면 갱신만
-            console.log('✅ USER_UPDATED: 세션 유지 및 갱신');
+            // 세션이 있으면 불필요한 갱신 방지 - 유효한 세션은 유지만
+            console.log('✅ USER_UPDATED: 세션 유지 (갱신 스킵으로 충돌 방지)');
+            // 세션이 유효하므로 refreshUser() 호출 생략하여 충돌 방지
             setSession(session);
-            await refreshUser();
+            // await refreshUser(); // 주석 처리로 불필요한 갱신 방지
           }
           return;
         }
@@ -638,7 +644,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // JWT 토큰 만료 시간 추적 및 자동 갱신
     const checkAndRefreshToken = async () => {
-      if (!mounted) return;
+      if (!mounted || isRefreshingSession) return; // 갱신 중이면 스킵
       
       try {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
@@ -659,24 +665,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // 토큰이 5분 이내에 만료되면 즉시 갱신
           if (timeUntilExpiry < 300) { // 5분 = 300초
             console.log('🔄 토큰 만료 임박 - 즉시 갱신 시작!');
+            isRefreshingSession = true; // 갱신 시작 플래그 설정
             const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
             
             if (refreshError) {
               console.error('❌ 토큰 갱신 실패:', refreshError.message);
+              isRefreshingSession = false; // 갱신 실패 시 플래그 해제
               // 갱신 실패 시 재시도
               setTimeout(async () => {
                 if (!mounted) return;
                 console.log('🔁 토큰 갱신 재시도...');
+                isRefreshingSession = true; // 재시도 시 플래그 다시 설정
                 const { data: retryData } = await supabase.auth.refreshSession();
                 if (retryData?.session && mounted) {
                   console.log('✅ 재시도 성공!');
                   setSession(retryData.session);
                   await refreshUser();
                 }
+                isRefreshingSession = false; // 재시도 완료 후 플래그 해제
               }, 2000);
             } else if (refreshData?.session) {
               console.log('✅ 토큰 갱신 성공! 새 만료 시간:', new Date(refreshData.session.expires_at! * 1000).toLocaleTimeString());
               setSession(refreshData.session);
+              isRefreshingSession = false; // 갱신 성공 시 플래그 해제
               
               // 갱신된 토큰을 localStorage에 저장
               localStorage.setItem('sb-auth-token', JSON.stringify({
@@ -698,15 +709,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           // 세션이 없으면 복구 시도
           console.log('🔍 세션 없음 - 복구 시도...');
+          isRefreshingSession = true; // 복구 시도 시 플래그 설정
           const { data: refreshData } = await supabase.auth.refreshSession();
           if (refreshData?.session && mounted) {
             console.log('✅ 세션 복구 성공!');
             setSession(refreshData.session);
             await refreshUser();
           }
+          isRefreshingSession = false; // 복구 완료 후 플래그 해제
         }
       } catch (err) {
         console.error('💥 토큰 관리 오류:', err);
+        isRefreshingSession = false; // 오류 발생 시에도 플래그 해제
       }
     };
     
