@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { Avatar, AvatarSizes } from '../components/Avatar';
+import { supabase } from '../lib/supabase';
 import {
   User,
   LogOut,
@@ -57,49 +58,39 @@ export const Settings: React.FC = () => {
         return;
       }
       
-      // 파일명 생성 (사용자 ID + 타임스탬프)
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      // 임시로 Base64로 변환하여 저장 (Storage 설정 전까지)
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        
+        // 사용자 프로필 업데이트 (Base64 데이터 URL로 저장)
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: base64String })
+          .eq('id', user.id);
+        
+        if (updateError) {
+          console.error('Profile update error:', updateError);
+          toast.error('프로필 업데이트 실패: ' + updateError.message);
+          return;
+        }
+        
+        // 로컬 상태 업데이트는 실시간 구독으로 자동 처리됨
+        toast.success('프로필 사진이 변경되었습니다! 📸');
+        setShowImageUpload(false);
+        setIsUploadingAvatar(false);
+      };
       
-      // Supabase Storage에 업로드
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      reader.onerror = () => {
+        toast.error('이미지 읽기 실패');
+        setIsUploadingAvatar(false);
+      };
       
-      if (error) {
-        console.error('Storage upload error:', error);
-        toast.error('이미지 업로드 실패: ' + error.message);
-        return;
-      }
-      
-      // Public URL 가져오기
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-      
-      // 사용자 프로필 업데이트
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id);
-      
-      if (updateError) {
-        console.error('Profile update error:', updateError);
-        toast.error('프로필 업데이트 실패: ' + updateError.message);
-        return;
-      }
-      
-      // 로컬 상태 업데이트는 실시간 구독으로 자동 처리됨
-      toast.success('프로필 사진이 변경되었습니다! 📸');
-      setShowImageUpload(false);
+      reader.readAsDataURL(file);
       
     } catch (error) {
       console.error('Image upload error:', error);
       toast.error('이미지 업로드 중 오류가 발생했습니다');
-    } finally {
       setIsUploadingAvatar(false);
     }
   };
