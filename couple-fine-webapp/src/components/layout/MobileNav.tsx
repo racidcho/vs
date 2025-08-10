@@ -86,9 +86,9 @@ const FineStatusBar: React.FC = () => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-pink-50 px-3 py-1.5 border-b border-pink-100/50 backdrop-blur-sm">
+    <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-pink-50 px-3 py-1 border-b border-pink-100/50 backdrop-blur-sm">
       {/* Partner Names and Amounts */}
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-0.5">
         <div className="flex items-center space-x-2">
           <span className="text-sm animate-bounce">👩</span>
           <div className="flex flex-col">
@@ -126,7 +126,7 @@ const FineStatusBar: React.FC = () => {
       </div>
       
       {/* Progress Bar */}
-      <div className="relative h-1.5 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+      <div className="relative h-1 bg-gray-100 rounded-full overflow-hidden shadow-inner">
         {/* Sparkle effect overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
         
@@ -185,7 +185,7 @@ export const MobileNav: React.FC = () => {
       <div className="absolute inset-0 bg-white/80 backdrop-blur-lg border-t border-pink-100"></div>
 
       {/* 네비게이션 아이템들 */}
-      <nav className="relative flex items-center justify-around px-2 py-1.5 safe-area-pb">
+      <nav className="relative flex items-center justify-around px-2 py-1 safe-area-pb">
         {navItems.map((item) => {
           const Icon = item.icon;
           const current = isCurrentPath(item.href);
@@ -196,17 +196,17 @@ export const MobileNav: React.FC = () => {
               <Link
                 key={item.name}
                 to={item.href}
-                className="relative -top-1"
+                className="relative -top-0.5"
               >
                 <div className={`
                   relative flex flex-col items-center justify-center
-                  w-12 h-12 rounded-2xl
+                  w-10 h-10 rounded-2xl
                   bg-gradient-to-br ${item.gradient}
                   shadow-lg shadow-pink-200/50
                   transform transition-all duration-300
                   ${current ? 'scale-110 rotate-3' : 'hover:scale-105 active:scale-95'}
                 `}>
-                  <Icon className="w-5 h-5 text-white" />
+                  <Icon className="w-4 h-4 text-white" />
                   {current && (
                     <div className="absolute -top-1 -right-1">
                       <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
@@ -214,7 +214,7 @@ export const MobileNav: React.FC = () => {
                   )}
                 </div>
                 <span className={`
-                  text-[9px] mt-0.5 block text-center font-medium
+                  text-[8px] mt-0.5 block text-center font-medium
                   ${current ? 'text-pink-600' : 'text-gray-500'}
                 `}>
                   {item.name}
@@ -231,7 +231,7 @@ export const MobileNav: React.FC = () => {
             >
               <div className={`
                 relative flex items-center justify-center
-                w-9 h-9 rounded-xl
+                w-8 h-8 rounded-xl
                 transition-all duration-300
                 ${current
                   ? `bg-gradient-to-br ${item.gradient} shadow-md scale-110`
@@ -240,17 +240,17 @@ export const MobileNav: React.FC = () => {
               `}>
                 {current ? (
                   <>
-                    <Icon className="w-5 h-5 text-white" />
+                    <Icon className="w-4 h-4 text-white" />
                     <div className="absolute -top-1 -right-1">
                       <span className="text-xs animate-bounce">{item.emoji}</span>
                     </div>
                   </>
                 ) : (
-                  <Icon className={`w-5 h-5 text-gray-500`} />
+                  <Icon className={`w-4 h-4 text-gray-500`} />
                 )}
               </div>
               <span className={`
-                text-[9px] mt-0.5 font-medium
+                text-[8px] mt-0.5 font-medium
                 ${current ? 'text-pink-600' : 'text-gray-500'}
               `}>
                 {item.name}
