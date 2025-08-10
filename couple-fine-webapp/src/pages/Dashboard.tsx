@@ -501,8 +501,28 @@ export const Dashboard: React.FC = () => {
               </h2>
             </div>
 
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {recentActivity.slice(0, 3).map((violation: any) => {
+            {/* 스크롤 힌트 */}
+            {recentActivity.length > 1 && (
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-pink-300 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-purple-300 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                  <div className="w-2 h-2 bg-pink-300 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                </div>
+                <span className="text-xs text-gray-500 font-medium">좌우로 밀어서 더 보기</span>
+                <span className="text-lg">👈👉</span>
+              </div>
+            )}
+
+            <div className="relative">
+              <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide" 
+                   style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+                <style jsx>{`
+                  div::-webkit-scrollbar {
+                    display: none;
+                  }
+                `}</style>
+              {recentActivity.slice(0, 5).map((violation: any) => {
                 const rule = state.rules?.find(r => r.id === violation.rule_id);
                 const isAdd = violation.amount > 0;
                 
@@ -539,7 +559,7 @@ export const Dashboard: React.FC = () => {
                 return (
                   <div
                     key={violation.id}
-                    className={`flex-shrink-0 w-72 bg-gradient-to-r ${cardBg} rounded-2xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-102`}
+                    className={`flex-shrink-0 w-64 bg-gradient-to-r ${cardBg} rounded-2xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-102 snap-start`}
                   >
                     {editingViolation === violation.id ? (
                       <div className="space-y-3">
@@ -655,6 +675,12 @@ export const Dashboard: React.FC = () => {
                   </div>
                 );
               })}
+              </div>
+              
+              {/* 오른쪽 페이딩 그라데이션 (더 많은 카드가 있을 때) */}
+              {recentActivity.length > 2 && (
+                <div className="absolute right-0 top-0 bottom-2 w-6 bg-gradient-to-l from-white to-transparent pointer-events-none"></div>
+              )}
             </div>
 
             <Link
