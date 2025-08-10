@@ -154,6 +154,22 @@ export const Dashboard: React.FC = () => {
       abortController.abort();
     };
   }, [user?.couple_id]); // Only depend on couple_id change
+  
+  // Reload dashboard data when violations change
+  useEffect(() => {
+    if (!user?.couple_id || state.violations.length === 0) return;
+    
+    const loadUpdatedStats = async () => {
+      try {
+        const stats = await getDashboardStats(user.couple_id);
+        setDashboardData(stats);
+      } catch (error) {
+        console.error('💥 DASHBOARD: 통계 업데이트 실패:', error);
+      }
+    };
+    
+    loadUpdatedStats();
+  }, [state.violations, user?.couple_id]); // 벌금 데이터 변경 시 대시보드 새로고침
 
   // Handle edit violation
   const handleEdit = (violation: any) => {

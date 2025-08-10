@@ -989,11 +989,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
     
     try {
-      // Direct Supabase CRUD
+      // Direct Supabase CRUD with violator info
       const { error, data } = await supabase
         .from('violations')
         .insert(violation)
-        .select()
+        .select(`
+          *,
+          violator:profiles!violator_user_id (
+            id,
+            email,
+            display_name,
+            created_at
+          )
+        `)
         .single();
 
       if (error) {
@@ -1001,7 +1009,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return { error: error.message };
       }
       
-      debugLog('CRUD', 'createViolation 성공', data, 'success');
+      if (data) {
+        debugLog('CRUD', 'createViolation 성공', data, 'success');
+        // ADD_VIOLATION 액션 디스패치 추가 - 즉시 state 업데이트
+        dispatch({ type: 'ADD_VIOLATION', payload: data as Violation });
+        
+        // 모든 violations 다시 로드하여 완전한 동기화
+        loadViolations();
+      }
+      
       return {};
     } catch (error) {
       return { error: 'Failed to create violation' };
