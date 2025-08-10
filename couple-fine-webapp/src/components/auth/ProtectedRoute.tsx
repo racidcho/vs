@@ -15,8 +15,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
+  // Show loading spinner while checking authentication OR during session recovery
+  const isSessionRecovering = user?.id === 'session-recovering';
+  
+  if (isLoading || isSessionRecovering) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-coral-50 flex items-center justify-center">
         <div className="text-center">
@@ -24,7 +26,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             <Heart className="w-8 h-8 text-white" />
           </div>
           <Loader2 className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-2" />
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">
+            {isSessionRecovering ? '세션 복구중...' : 'Loading...'}
+          </p>
         </div>
       </div>
     );

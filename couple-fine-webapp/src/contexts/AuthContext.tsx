@@ -474,51 +474,122 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Initialize auth state
     setIsLoading(true);
 
-    // 강제 로딩 완료 메커니즘 (3초) - 무한 로딩 방지
+    // 🚀 PROGRESSIVE AUTHENTICATION - 즉시 토큰 체크
+    const storedTokens = localStorage.getItem('sb-auth-token');
+    const hasValidTokens = !!storedTokens;
+    
+    console.log(`🔍 Progressive Authentication: ${hasValidTokens ? '토큰 발견 ✅' : '토큰 없음 ❌'}`);
+    
+    // 토큰이 있으면 즉시 임시 사용자 상태 설정 (login redirect 방지)
+    if (hasValidTokens && mounted) {
+      try {
+        const { access_token, refresh_token } = JSON.parse(storedTokens);
+        if (access_token && refresh_token) {
+          // 임시 사용자 설정으로 login redirect 방지
+          console.log('🛡️ 임시 사용자 설정 - login redirect 방지');
+          const tempUser: User = {
+            id: 'session-recovering',
+            email: 'recovering@session.temp',
+            display_name: '세션 복구중...',
+            created_at: new Date().toISOString()
+          };
+          setUser(tempUser);
+        }
+      } catch (error) {
+        console.error('⚠️ 저장된 토큰 파싱 실패:', error);
+      }
+    }
+
+    // 강제 로딩 완료 메커니즘 - 토큰 여부에 따라 다른 타임아웃
     const emergencyTimeout = setTimeout(() => {
       if (mounted && isLoading) {
-        console.log('🚨 3초 긴급 타임아웃 - 무한 로딩 방지');
+        const timeoutDuration = hasValidTokens ? 8 : 3;
+        console.log(`🚨 ${timeoutDuration}초 긴급 타임아웃 - 무한 로딩 방지`);
         setIsLoading(false);
-        // 세션이 없으면 null로 설정
-        if (!session) {
+        
+        // 토큰이 없거나 복구 실패 시에만 null 설정
+        if (!hasValidTokens && !session) {
           setUser(null);
           setSession(null);
         }
       }
-    }, 3000);
+    }, hasValidTokens ? 8000 : 3000); // 토큰 있으면 8초, 없으면 3초
 
-    // localStorage에서 세션 복구 시도
+    // localStorage에서 세션 복구 시도 - Progressive Authentication 지원
     const restoreSession = async () => {
       try {
         const storedSession = localStorage.getItem('sb-auth-token');
         if (storedSession) {
           const { access_token, refresh_token } = JSON.parse(storedSession);
+          console.log('🔄 Progressive Authentication: 세션 복구 시작...');
+          
           const { data, error } = await supabase.auth.setSession({
             access_token,
             refresh_token
           });
           
           if (data?.session && mounted) {
-            console.log('✅ localStorage에서 세션 복구 성공');
+            console.log('✅ Progressive Authentication: 세션 복구 성공!');
             setSession(data.session);
-            await refreshUser();
+            
+            // 임시 사용자를 실제 사용자 데이터로 교체
+            try {
+              await refreshUser();
+              console.log('🎯 Progressive Authentication: 실제 사용자 데이터로 교체 완료');
+            } catch (refreshError) {
+              console.error('⚠️ 사용자 데이터 로드 실패, fallback 사용자 생성:', refreshError);
+              // refreshUser 실패해도 세션이 있으니 기본 사용자 생성
+              if (data.session.user) {
+                const fallbackUser: User = {
+                  id: data.session.user.id,
+                  email: data.session.user.email || '',
+                  display_name: data.session.user.email?.split('@')[0] || '사용자',
+                  created_at: new Date().toISOString()
+                };
+                setUser(fallbackUser);
+                console.log('🔧 Progressive Authentication: fallback 사용자 설정 완료');
+              }
+            }
+            
             clearTimeout(emergencyTimeout); // 복구 성공 시 긴급 타임아웃 클리어
             return true;
+          } else if (error) {
+            console.error('❌ Progressive Authentication: 세션 복구 실패 -', error.message);
+            // 토큰이 만료되었거나 invalid하면 임시 사용자 제거
+            if (mounted && user?.id === 'session-recovering') {
+              console.log('🧹 Progressive Authentication: 만료된 임시 사용자 정리');
+              setUser(null);
+              setSession(null);
+            }
           }
         }
       } catch (error) {
-        console.error('세션 복구 실패:', error);
+        console.error('Progressive Authentication 세션 복구 실패:', error);
+        // 복구 실패 시 임시 사용자 정리
+        if (mounted && user?.id === 'session-recovering') {
+          console.log('🧹 Progressive Authentication: 복구 실패한 임시 사용자 정리');
+          setUser(null);
+          setSession(null);
+        }
       }
       return false;
     };
 
-    // 5초 타임아웃으로 초기화 보호 (모바일 브라우저 고려)
+    // Progressive Authentication 타임아웃 - 토큰 여부에 따라 조정
+    const initTimeoutDuration = hasValidTokens ? 10000 : 5000; // 토큰 있으면 10초, 없으면 5초
     const initTimeout = setTimeout(() => {
       if (mounted) {
-        console.log('⏰ 5초 타임아웃 - 강제 로딩 완료');
+        console.log(`⏰ ${initTimeoutDuration / 1000}초 타임아웃 - 강제 로딩 완료 (Progressive Auth)`);
         setIsLoading(false);
+        
+        // 토큰이 있었는데 여전히 임시 사용자면 복구 실패로 간주
+        if (hasValidTokens && user?.id === 'session-recovering') {
+          console.log('⚠️ Progressive Authentication: 복구 시간 초과, 임시 사용자 정리');
+          setUser(null);
+          setSession(null);
+        }
       }
-    }, 5000);
+    }, initTimeoutDuration);
 
     // 테스트 모드 자동 로그인 시도 (비동기, 일반 인증과 병행)
     const tryTestModeLogin = async () => {
@@ -910,34 +981,74 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // 모바일 브라우저 특별 처리: pageshow 이벤트 + pull-to-refresh 감지
+    // 모바일 브라우저 특별 처리: pageshow 이벤트 + pull-to-refresh 감지 (Progressive Authentication 지원)
     const handlePageShow = async (event: PageTransitionEvent) => {
       if (event.persisted && mounted) {
         console.log('📱 페이지 복원 (Back-Forward Cache) - 세션 재확인');
         await handleFocus();
       } else if (mounted) {
         // Pull-to-refresh 감지 (새로고침이지만 persisted가 아닌 경우)
-        console.log('📱 Pull-to-refresh 감지 - 빠른 세션 복구 시도');
+        console.log('📱 Pull-to-refresh 감지 - Progressive Authentication 시작');
         
-        // Pull-to-refresh 시 더 적극적인 세션 복구
+        // Pull-to-refresh에서 Progressive Authentication 적용
         const storedSession = localStorage.getItem('sb-auth-token');
-        if (storedSession && !session) {
+        if (storedSession) {
           try {
             const { access_token, refresh_token } = JSON.parse(storedSession);
+            
+            // 1. 즉시 임시 사용자 설정 (login redirect 방지)
+            if (!user || user.id === 'session-recovering') {
+              console.log('🛡️ Pull-to-refresh: 즉시 임시 사용자 설정');
+              const tempUser: User = {
+                id: 'session-recovering',
+                email: 'recovering@pullrefresh.temp',
+                display_name: '새로고침 복구중...',
+                created_at: new Date().toISOString()
+              };
+              setUser(tempUser);
+            }
+            
+            // 2. 백그라운드에서 세션 복구
             const { data, error } = await supabase.auth.setSession({
               access_token,
               refresh_token
             });
             
             if (data?.session) {
-              console.log('✅ Pull-to-refresh 세션 복구 성공');
+              console.log('✅ Pull-to-refresh Progressive Authentication: 세션 복구 성공');
               setSession(data.session);
               setIsLoading(false);
-              await refreshUser();
+              
+              // 실제 사용자 데이터로 교체
+              try {
+                await refreshUser();
+                console.log('🎯 Pull-to-refresh: 실제 사용자 데이터로 교체 완료');
+              } catch (refreshError) {
+                console.error('⚠️ Pull-to-refresh: 사용자 데이터 로드 실패, fallback 사용', refreshError);
+                if (data.session.user) {
+                  const fallbackUser: User = {
+                    id: data.session.user.id,
+                    email: data.session.user.email || '',
+                    display_name: data.session.user.email?.split('@')[0] || '사용자',
+                    created_at: new Date().toISOString()
+                  };
+                  setUser(fallbackUser);
+                }
+              }
+            } else {
+              console.error('❌ Pull-to-refresh: 세션 복구 실패', error);
+              // 복구 실패 시 임시 사용자 정리
+              setUser(null);
+              setSession(null);
             }
           } catch (error) {
-            console.error('Pull-to-refresh 세션 복구 실패:', error);
+            console.error('Pull-to-refresh Progressive Authentication 실패:', error);
+            // 파싱 에러 등으로 실패 시 정리
+            setUser(null);
+            setSession(null);
           }
+        } else {
+          console.log('📱 Pull-to-refresh: 저장된 토큰 없음');
         }
       }
     };
