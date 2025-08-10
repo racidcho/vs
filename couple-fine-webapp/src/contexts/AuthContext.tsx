@@ -257,11 +257,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => {
-          reject(new Error('OTP 검증 타임아웃 (10초)'));
-        }, 10000);
+          reject(new Error('OTP 검증 타임아웃 (20초)'));
+        }, 20000);
       });
 
-      console.log('⏰ OTP 검증 타임아웃 설정: 10초');
+      console.log('⏰ OTP 검증 타임아웃 설정: 20초');
       const { data, error } = await Promise.race([
         otpVerificationPromise,
         timeoutPromise
