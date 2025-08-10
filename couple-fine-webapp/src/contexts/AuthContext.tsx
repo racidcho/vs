@@ -740,20 +740,63 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const handleFocus = async () => {
       if (!mounted) return;
       console.log('👀 탭 포커스 - 토큰 상태 즉시 확인');
-      // 포커스 시 즉시 토큰 체크
+      
+      // 먼저 localStorage에서 세션 복구 시도
+      try {
+        const storedSession = localStorage.getItem('sb-auth-token');
+        if (storedSession) {
+          const { access_token, refresh_token } = JSON.parse(storedSession);
+          console.log('🔄 포커스 시 localStorage 세션 복구 시도...');
+          
+          const { data, error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token
+          });
+          
+          if (data?.session && mounted) {
+            console.log('✅ 포커스 시 세션 복구 성공!');
+            setSession(data.session);
+            await refreshUser();
+            
+            // 복구된 세션 다시 저장
+            localStorage.setItem('sb-auth-token', JSON.stringify({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token
+            }));
+            return;
+          } else if (error) {
+            console.log('⚠️ localStorage 세션 만료, 새로 갱신 시도...');
+          }
+        }
+      } catch (error) {
+        console.error('세션 복구 실패:', error);
+      }
+      
+      // 세션 복구 실패 시 토큰 체크 및 갱신
       await checkAndRefreshToken();
     };
     
     window.addEventListener('focus', handleFocus);
     
-    // 페이지가 보이게 될 때도 확인
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        handleFocus();
+    // 페이지가 보이게 될 때도 확인 (모바일 브라우저 대응)
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && mounted) {
+        console.log('📱 페이지 visible - 세션 상태 확인');
+        await handleFocus();
       }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // 모바일 브라우저 특별 처리: pageshow 이벤트
+    const handlePageShow = async (event: PageTransitionEvent) => {
+      if (event.persisted && mounted) {
+        console.log('📱 페이지 복원 (Back-Forward Cache) - 세션 재확인');
+        await handleFocus();
+      }
+    };
+    
+    window.addEventListener('pageshow', handlePageShow);
 
     return () => {
       mounted = false; // StrictMode 대응 - 언마운트 플래그
@@ -762,6 +805,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       clearTimeout(initTimeout);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
     };
   }, []);
 
