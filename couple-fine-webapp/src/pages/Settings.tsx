@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
+import { Avatar, AvatarSizes } from '../components/Avatar';
 import {
   User,
   LogOut,
@@ -10,7 +11,10 @@ import {
   X,
   Info,
   Heart,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Camera,
+  Upload,
+  Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -28,7 +32,92 @@ export const Settings: React.FC = () => {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [isEditingCoupleName, setIsEditingCoupleName] = useState(false);
   const [coupleName, setCoupleName] = useState('');
+  
+  // 프로필 사진 관련 상태
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [showImageUpload, setShowImageUpload] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 프로필 사진 업로드 처리
+  const handleImageUpload = async (file: File) => {
+    if (!user?.id) return;
+    
+    try {
+      setIsUploadingAvatar(true);
+      
+      // 파일 크기 체크 (5MB 제한)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('이미지 크기는 5MB 이하여야 합니다');
+        return;
+      }
+      
+      // 파일 형식 체크
+      if (!file.type.startsWith('image/')) {
+        toast.error('이미지 파일만 업로드 가능합니다');
+        return;
+      }
+      
+      // 파일명 생성 (사용자 ID + 타임스탬프)
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      
+      // Supabase Storage에 업로드
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error('Storage upload error:', error);
+        toast.error('이미지 업로드 실패: ' + error.message);
+        return;
+      }
+      
+      // Public URL 가져오기
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+      
+      // 사용자 프로필 업데이트
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+      
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        toast.error('프로필 업데이트 실패: ' + updateError.message);
+        return;
+      }
+      
+      // 로컬 상태 업데이트는 실시간 구독으로 자동 처리됨
+      toast.success('프로필 사진이 변경되었습니다! 📸');
+      setShowImageUpload(false);
+      
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast.error('이미지 업로드 중 오류가 발생했습니다');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+  
+  // 파일 선택 처리
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleImageUpload(file);
+    }
+    // 같은 파일 재선택을 위해 값 초기화
+    event.target.value = '';
+  };
+  
+  // 카메라/앨범 선택
+  const handleAvatarClick = () => {
+    setShowImageUpload(!showImageUpload);
+  };
 
   const handleUpdateProfile = async () => {
     if (!displayName.trim()) {
@@ -266,11 +355,51 @@ export const Settings: React.FC = () => {
             {/* My Name Card */}
             <div className="bg-white rounded-2xl p-6 shadow-md border-2 border-pink-200 transform hover:scale-105 transition-all duration-300">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-pink-400 to-purple-400 rounded-2xl flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-2xl">
-                    {user?.display_name?.charAt(0) || '👩'}
-                  </span>
+                {/* 새로운 Avatar 컴포넌트 + 업로드 기능 */}
+                <div className="relative">
+                  <Avatar
+                    user={user}
+                    size={AvatarSizes.lg}
+                    className="shadow-lg cursor-pointer"
+                    onClick={handleAvatarClick}
+                    editable={!isUploadingAvatar}
+                  />
+                  {isUploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    </div>
+                  )}
+                  
+                  {/* 이미지 업로드 옵션 */}
+                  {showImageUpload && (
+                    <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-lg border-2 border-pink-200 p-3 z-10 min-w-48">
+                      <p className="text-sm font-medium text-gray-700 mb-3 text-center">프로필 사진 변경</p>
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-pink-50 rounded-lg transition-colors"
+                        >
+                          <Camera className="w-5 h-5 text-pink-500" />
+                          <div>
+                            <p className="font-medium text-gray-900">카메라</p>
+                            <p className="text-xs text-gray-500">사진 촬영하기</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-purple-50 rounded-lg transition-colors"
+                        >
+                          <Upload className="w-5 h-5 text-purple-500" />
+                          <div>
+                            <p className="font-medium text-gray-900">앨범</p>
+                            <p className="text-xs text-gray-500">갤러리에서 선택</p>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+                
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                     내 이름 👩
@@ -278,6 +407,16 @@ export const Settings: React.FC = () => {
                   <p className="text-gray-600 text-sm">나를 부를 이름이에요</p>
                 </div>
               </div>
+              
+              {/* 숨겨진 파일 입력 */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
 
               {isEditingProfile ? (
                 <div className="space-y-4">
