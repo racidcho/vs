@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from 'lucide-react';
 
 interface AvatarProps {
@@ -25,6 +25,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   onClick,
   editable = false
 }) => {
+  const [imageError, setImageError] = useState(false);
   // 사용자 이니셜 생성
   const getInitials = () => {
     if (user?.display_name) {
@@ -71,20 +72,16 @@ export const Avatar: React.FC<AvatarProps> = ({
       style={containerStyle}
       onClick={onClick}
     >
-      {user?.avatar_url ? (
-        // 프로필 사진이 있는 경우
+      {user?.avatar_url && !imageError ? (
+        // 프로필 사진이 있고 에러가 없는 경우
         <img
           src={user.avatar_url}
           alt={`${user.display_name || 'User'} 프로필`}
           className="w-full h-full object-cover"
-          onError={(e) => {
-            // 이미지 로드 실패 시 숨김
-            const img = e.target as HTMLImageElement;
-            img.style.display = 'none';
-          }}
+          onError={() => setImageError(true)}
         />
       ) : (
-        // 프로필 사진이 없는 경우 - 이니셜 또는 기본 아이콘
+        // 프로필 사진이 없거나 로드 실패한 경우 - 이니셜 표시
         <span 
           className="text-white font-bold select-none"
           style={{ fontSize: size * 0.4 }}
@@ -97,18 +94,6 @@ export const Avatar: React.FC<AvatarProps> = ({
       {editable && (
         <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center">
           <User className="w-3 h-3 text-gray-600" />
-        </div>
-      )}
-      
-      {/* 프로필 사진 로드 실패 시 대체 이미지 */}
-      {user?.avatar_url && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-pink-400 to-purple-400">
-          <span 
-            className="text-white font-bold select-none"
-            style={{ fontSize: size * 0.4 }}
-          >
-            {getInitials()}
-          </span>
         </div>
       )}
     </div>
