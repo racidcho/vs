@@ -600,8 +600,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (mounted) {
             setSession(session);
             if (session) {
-              // SIGNED_IN 이벤트에서 사용자 정보 새로고침 추가
-              await refreshUser();
+              // SIGNED_IN만 refreshUser() 호출, 나머지는 세션만 설정 (토큰 갱신 중이 아닐 때만)
+              if (event === 'SIGNED_IN' && !isRefreshingSession) {
+                console.log('🔄 SIGNED_IN: 사용자 정보 새로고침');
+                try {
+                  await refreshUser();
+                } catch (error) {
+                  console.error('⚠️ SIGNED_IN refreshUser 오류:', error);
+                }
+              }
               // 세션 토큰을 localStorage에 저장 (페이지 이동 시 복구용)
               localStorage.setItem('sb-auth-token', JSON.stringify({
                 access_token: session.access_token,
