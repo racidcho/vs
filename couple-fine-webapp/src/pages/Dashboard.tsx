@@ -157,17 +157,25 @@ export const Dashboard: React.FC = () => {
   
   // Reload dashboard data when violations change
   useEffect(() => {
-    if (!user?.couple_id || state.violations.length === 0) return;
+    if (!user?.couple_id) return;
     
     const loadUpdatedStats = async () => {
       try {
         const stats = await getDashboardStats(user.couple_id);
+        console.log('📊 DASHBOARD: 통계 데이터 로드됨:', {
+          totalBalance: stats.totalBalance,
+          activeRules: stats.activeRules,
+          thisMonthViolations: stats.thisMonthViolations,
+          availableRewards: stats.availableRewards,
+          violationsCount: state.violations?.length || 0
+        });
         setDashboardData(stats);
       } catch (error) {
         console.error('💥 DASHBOARD: 통계 업데이트 실패:', error);
       }
     };
     
+    // violations 배열이 변경될 때마다 통계 업데이트 (빈 배열도 포함)
     loadUpdatedStats();
   }, [state.violations, user?.couple_id]); // 벌금 데이터 변경 시 대시보드 새로고침
 

@@ -18,7 +18,7 @@ export const VersusWidget: React.FC = () => {
   const [partner2Stats, setPartner2Stats] = useState<PartnerStats | null>(null);
 
   useEffect(() => {
-    if (!state.couple || !state.violations || !user) return;
+    if (!state.couple || !user) return;
 
     // Get partner info from couple data
     const couple = state.couple as any;
@@ -28,12 +28,12 @@ export const VersusWidget: React.FC = () => {
     const partner1Id = couple.partner_1?.id || couple.partner_1_id;
     const partner2Id = couple.partner_2?.id || couple.partner_2_id;
     
-    if (!partner1Id && !partner2Id) return;
+    if (!partner1Id || !partner2Id) return;
 
     // Calculate stats for each partner
     const calculateStats = (partnerId: string): PartnerStats => {
-      const violations = state.violations.filter(v => v.violator_user_id === partnerId);
-      const totalFines = violations.reduce((sum, v) => sum + v.amount, 0);
+      const violations = (state.violations || []).filter(v => v.violator_user_id === partnerId);
+      const totalFines = violations.reduce((sum, v) => sum + Math.abs(v.amount), 0);
       
       // Get partner name
       let partnerName = '';
@@ -60,12 +60,21 @@ export const VersusWidget: React.FC = () => {
     };
 
     if (partner1Id) {
-      setPartner1Stats(calculateStats(partner1Id));
+      const stats1 = calculateStats(partner1Id);
+      console.log('👥 VersusWidget Partner1 Stats:', stats1);
+      setPartner1Stats(stats1);
     }
     
     if (partner2Id) {
-      setPartner2Stats(calculateStats(partner2Id));
+      const stats2 = calculateStats(partner2Id);
+      console.log('👥 VersusWidget Partner2 Stats:', stats2);
+      setPartner2Stats(stats2);
     }
+    
+    console.log('📊 VersusWidget Violations:', {
+      total: state.violations?.length || 0,
+      violations: state.violations
+    });
   }, [state.couple, state.violations, user]);
 
   // Don't render if we don't have both partners

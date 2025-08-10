@@ -279,6 +279,7 @@ interface AppContextType {
   createViolation: (violation: Omit<Violation, 'id' | 'created_at'>) => Promise<{ error?: string }>;
   updateViolation: (id: string, updates: Partial<Pick<Violation, 'amount' | 'memo'>>) => Promise<{ error?: string }>;
   deleteViolation: (id: string) => Promise<{ error?: string }>;
+  loadViolations: () => Promise<void>;
   // Reward management
   createReward: (reward: Omit<Reward, 'id' | 'couple_id' | 'created_at'>) => Promise<{ error?: string }>;
   claimReward: (id: string) => Promise<{ error?: string }>;
@@ -456,10 +457,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       // Load violations with relations
       debugLog('LOAD_DATA', '벌금 데이터 조회 시작', { couple_id: user.couple_id }, 'info');
-      // Foreign Key 관계를 완전히 피하고 기본 데이터만 로드
+      // violations과 violator 정보 함께 로드
       const { data: violationsData, error: violationsError } = await supabase
         .from('violations')
-        .select('*')
+        .select(`
+          *,
+          violator:profiles!violator_user_id (
+            id,
+            email,
+            display_name,
+            created_at
+          )
+        `)
         .eq('couple_id', user.couple_id)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -979,6 +988,33 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Load violations function
+  const loadViolations = async () => {
+    if (!user?.couple_id) return;
+    
+    try {
+      const { data: violationsData, error } = await supabase
+        .from('violations')
+        .select(`
+          *,
+          violator:profiles!violator_user_id (
+            id,
+            email,
+            display_name,
+            created_at
+          )
+        `)
+        .eq('couple_id', user.couple_id)
+        .order('created_at', { ascending: false });
+      
+      if (!error && violationsData) {
+        dispatch({ type: 'SET_VIOLATIONS', payload: violationsData as Violation[] });
+      }
+    } catch (error) {
+      console.error('Failed to load violations:', error);
+    }
+  };
+
   // Create violation
   const createViolation = async (violation: Omit<Violation, 'id' | 'created_at'>) => {
     debugLog('CRUD', '=== createViolation 시작 ===', violation, 'debug');
@@ -1492,6 +1528,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     createViolation,
     updateViolation,
     deleteViolation,
+    loadViolations,
     // Reward management
     createReward,
     claimReward,
