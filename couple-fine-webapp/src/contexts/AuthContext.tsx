@@ -57,6 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDebugMode] = useState(() => isTestMode());
+  const [isAuthenticating, setIsAuthenticating] = useState(false); // 로그인 중 플래그
 
   const refreshUser = async () => {
 
@@ -192,6 +193,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const verifyOtp = async (email: string, token: string) => {
     setIsLoading(true);
+    setIsAuthenticating(true); // 로그인 프로세스 시작
 
     try {
       // 테스트 모드에서 OTP 우회하고 바로 로그인
@@ -263,9 +265,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return { error: 'Failed to verify OTP' };
     } catch (error) {
+      setIsAuthenticating(false); // 로그인 프로세스 종료
       return { error: 'An unexpected error occurred' };
     } finally {
       setIsLoading(false);
+      // 로그인 완료 후 약간의 지연을 두고 플래그 해제
+      setTimeout(() => setIsAuthenticating(false), 1000);
     }
   };
 
@@ -738,7 +743,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // 브라우저 탭이 포커스를 받을 때마다 토큰 상태 즉시 체크
     const handleFocus = async () => {
-      if (!mounted) return;
+      if (!mounted || isAuthenticating) return; // 로그인 중에는 실행하지 않음
+      
+      // 세션이 없으면 복구 시도하지 않음 (초기 로그인 중일 수 있음)
+      if (!session) {
+        console.log('👀 세션 없음 - 복구 시도 건너뜀');
+        return;
+      }
+      
       console.log('👀 탭 포커스 - 토큰 상태 즉시 확인');
       
       // 먼저 localStorage에서 세션 복구 시도
