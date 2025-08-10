@@ -30,6 +30,7 @@ export const Settings: React.FC = () => {
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false); // 로그아웃 중 상태 추가
   const [partner, setPartner] = useState<any>(null);
   const [partnerLoading, setPartnerLoading] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
@@ -294,11 +295,18 @@ export const Settings: React.FC = () => {
   };
 
   const handleSignOut = async () => {
+    setIsSigningOut(true); // 로그아웃 시작
     try {
+      // 즉시 로그인 페이지로 이동 (사용자 경험 개선)
+      navigate('/login');
+      
+      // 백그라운드에서 로그아웃 처리
       await signOut();
       toast.success('안녕히 가세요! 👋');
     } catch (error) {
       toast.error('로그아웃에 실패했어요 😢');
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
@@ -894,10 +902,20 @@ export const Settings: React.FC = () => {
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 p-4 bg-gradient-to-r from-red-50 to-pink-50 text-red-600 hover:from-red-100 hover:to-pink-100 rounded-xl transition-all font-bold hover:scale-105 active:scale-95"
+          disabled={isSigningOut}
+          className="w-full flex items-center justify-center gap-2 p-4 bg-gradient-to-r from-red-50 to-pink-50 text-red-600 hover:from-red-100 hover:to-pink-100 rounded-xl transition-all font-bold hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <LogOut className="w-4 h-4" />
-          로그아웃
+          {isSigningOut ? (
+            <>
+              <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+              로그아웃 중...
+            </>
+          ) : (
+            <>
+              <LogOut className="w-4 h-4" />
+              로그아웃
+            </>
+          )}
         </button>
       </div>
 

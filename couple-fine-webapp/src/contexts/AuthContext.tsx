@@ -275,16 +275,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async () => {
-    setIsLoading(true);
-    await supabase.auth.signOut();
+    // 즉시 UI 상태 업데이트 (사용자 경험 개선)
+    setUser(null);
+    setSession(null);
     
-    // localStorage에서 세션 정보 제거
+    // localStorage 즉시 정리
     localStorage.removeItem('sb-auth-token');
     localStorage.removeItem('lastValidSession');
     
-    setUser(null);
-    setSession(null);
-    setIsLoading(false);
+    // 로딩 상태 설정
+    setIsLoading(true);
+    
+    try {
+      // Supabase signOut을 타임아웃과 함께 처리
+      const signOutPromise = supabase.auth.signOut();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign out timeout')), 5000)
+      );
+      
+      // 5초 타임아웃 설정
+      await Promise.race([signOutPromise, timeoutPromise]).catch(err => {
+        console.log('Sign out API call failed or timed out:', err);
+        // API 호출이 실패해도 로컬 상태는 이미 정리됨
+      });
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // 에러가 발생해도 로컬 상태는 이미 정리됨
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateProfile = async (updates: Partial<Pick<User, 'display_name'>>) => {
