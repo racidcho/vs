@@ -93,6 +93,14 @@ export const NewViolation: React.FC = () => {
         return;
       }
 
+      // 디버그: amount 값 확인
+      console.log('🔍 NewViolation - 벌금 저장 시도:', {
+        selectedRule: state.rules?.find(r => r.id === selectedRuleId),
+        amount: amount,
+        violationType: violationType,
+        finalAmount: violationType === 'add' ? amount : -amount
+      });
+
       const violationData = {
         rule_id: selectedRuleId,
         couple_id: coupleId,
@@ -102,6 +110,8 @@ export const NewViolation: React.FC = () => {
         memo: note.trim() || undefined,
         violation_date: new Date().toISOString().split('T')[0]
       };
+
+      console.log('🔍 NewViolation - 전송할 데이터:', violationData);
 
       const { error } = await createViolation(violationData);
 

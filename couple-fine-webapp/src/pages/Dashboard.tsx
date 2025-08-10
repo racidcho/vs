@@ -728,6 +728,26 @@ export const Dashboard: React.FC = () => {
             <p>• activeRules: {activeRules}개</p>
             <p>• thisMonthViolations: {thisMonthViolations}번</p>
           </div>
+          <div className="mt-3 pt-3 border-t border-blue-200">
+            <h5 className="font-bold text-blue-700 mb-1">📋 규칙 데이터:</h5>
+            <div className="text-xs text-blue-600 space-y-1">
+              {state.rules?.map((rule, idx) => (
+                <p key={rule.id}>
+                  {idx + 1}. {rule.title}: fine_amount={rule.fine_amount}
+                </p>
+              ))}
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-blue-200">
+            <h5 className="font-bold text-blue-700 mb-1">💰 벌금 데이터:</h5>
+            <div className="text-xs text-blue-600 space-y-1">
+              {state.violations?.slice(0, 3).map((v, idx) => (
+                <p key={v.id}>
+                  {idx + 1}. amount={v.amount}, rule_id={v.rule_id}
+                </p>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* 통계 카드 - 작게 만들어서 하단으로 이동 */}
