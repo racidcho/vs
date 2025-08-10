@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
-import { Heart, Sparkles, User, Users, ArrowRight, Loader2 } from 'lucide-react';
-import { updateProfile } from '../lib/supabaseApi';
+import { Heart, Sparkles, User, Users, ArrowRight, Loader2, Image as ImageIcon, X } from 'lucide-react';
+import { updateProfile, uploadAvatar } from '../lib/supabaseApi';
 import toast from 'react-hot-toast';
 
 export const NameSetup: React.FC = () => {
@@ -15,6 +15,8 @@ export const NameSetup: React.FC = () => {
   const [partnerName, setPartnerName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasPartner, setHasPartner] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Load partner info on mount
   useEffect(() => {
@@ -33,6 +35,21 @@ export const NameSetup: React.FC = () => {
     loadPartnerInfo();
   }, [getPartnerInfo]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setAvatarFile(null);
+    setPreviewUrl(null);
+  };
+
   const handleSaveName = async () => {
     if (!displayName.trim()) {
       toast.error('이름을 입력해주세요! 📝');
@@ -45,11 +62,19 @@ export const NameSetup: React.FC = () => {
     }
 
     setIsLoading(true);
-    
+
     try {
-      // Update user profile with new display name
-      await updateProfile(user.id, { display_name: displayName.trim() });
-      
+      let avatarUrl: string | undefined;
+      if (avatarFile) {
+        avatarUrl = await uploadAvatar(user.id, avatarFile);
+      }
+
+      // Update user profile with new display name and optional avatar
+      const profileUpdates: any = { display_name: displayName.trim() };
+      if (avatarUrl) profileUpdates.avatar_url = avatarUrl;
+
+      await updateProfile(user.id, profileUpdates);
+
       // Refresh user context to get updated data
       await refreshUser();
       
@@ -180,17 +205,54 @@ export const NameSetup: React.FC = () => {
                 </div>
               </div>
               
-              <p className="text-xs text-gray-500 text-center">
-                파트너가 보게 될 이름이에요
-              </p>
+            <p className="text-xs text-gray-500 text-center">
+              파트너가 보게 될 이름이에요
+            </p>
+          </div>
+
+          {/* Avatar Upload */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-gray-700">
+              <ImageIcon className="w-4 h-4 text-coral-500" />
+              <label className="text-sm font-semibold">내 사진 (선택)</label>
             </div>
 
-            {/* Partner Name Display */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-gray-700">
-                <Users className="w-4 h-4 text-purple-500" />
-                <label className="text-sm font-semibold">파트너 이름</label>
-                <div className="text-purple-500 animate-bounce" style={{ animationDelay: '0.5s' }}>
+            <div className="flex flex-col items-center gap-2">
+              {previewUrl ? (
+                <div className="relative">
+                  <img
+                    src={previewUrl}
+                    className="w-24 h-24 rounded-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow"
+                  >
+                    <X className="w-4 h-4 text-red-500" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-r from-pink-50 to-purple-50 rounded-full flex items-center justify-center border-2 border-dashed border-pink-200">
+                  <ImageIcon className="w-8 h-8 text-pink-400" />
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileChange}
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          {/* Partner Name Display */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-gray-700">
+              <Users className="w-4 h-4 text-purple-500" />
+              <label className="text-sm font-semibold">파트너 이름</label>
+              <div className="text-purple-500 animate-bounce" style={{ animationDelay: '0.5s' }}>
                   👨
                 </div>
               </div>

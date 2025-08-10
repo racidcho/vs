@@ -179,7 +179,10 @@ export const createProfile = async (userId: string, email: string, displayName: 
   }
 };
 
-export const updateProfile = async (userId: string, updates: Partial<Pick<User, 'display_name' | 'couple_id'>>): Promise<User> => {
+export const updateProfile = async (
+  userId: string,
+  updates: Partial<Pick<User, 'display_name' | 'couple_id' | 'avatar_url'>>
+): Promise<User> => {
   const tableName = SCHEMA_MAP.tables.users;
 
   try {
@@ -191,6 +194,9 @@ export const updateProfile = async (userId: string, updates: Partial<Pick<User, 
     }
     if (updates.couple_id !== undefined) {
       safeUpdates[SCHEMA_MAP.columns.couple_id] = updates.couple_id;
+    }
+    if (updates.avatar_url !== undefined) {
+      safeUpdates[SCHEMA_MAP.columns.avatar_url] = updates.avatar_url;
     }
 
     const { data, error } = await supabase
@@ -207,7 +213,7 @@ export const updateProfile = async (userId: string, updates: Partial<Pick<User, 
       email: '',
       display_name: updates.display_name || '',
       couple_id: updates.couple_id || null,
-      avatar_url: null,
+      avatar_url: updates.avatar_url ?? null,
       created_at: new Date().toISOString()
     } as User);
   } catch (error: any) {
@@ -896,7 +902,7 @@ export const signOut = async (): Promise<void> => {
 export const uploadAvatar = async (userId: string, file: File): Promise<string> => {
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}-${Math.random()}.${fileExt}`;
-  const filePath = `avatars/${fileName}`;
+  const filePath = fileName;
 
   const { error: uploadError } = await supabase.storage
     .from('avatars')

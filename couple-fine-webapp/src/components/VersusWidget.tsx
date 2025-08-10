@@ -12,28 +12,63 @@ interface PartnerStats {
 }
 
 export const VersusWidget: React.FC = () => {
-  const { state } = useApp();
+  const { state, getUserTotalFines } = useApp();
   const { user } = useAuth();
   const [partner1Stats, setPartner1Stats] = useState<PartnerStats | null>(null);
   const [partner2Stats, setPartner2Stats] = useState<PartnerStats | null>(null);
 
   useEffect(() => {
-    if (!state.couple || !state.violations || !user) return;
+    if (!state.couple || !state.violations || !user) {
+      console.log('🚫 VERSUS: 필수 데이터 없음', {
+        couple: !!state.couple,
+        violations: !!state.violations,
+        violationsLength: state.violations?.length,
+        user: !!user
+      });
+      return;
+    }
 
     // Get partner info from couple data
     const couple = state.couple as any;
     const currentUserId = user.id;
     
+    console.log('📊 VERSUS: 데이터 확인', {
+      currentUserId,
+      coupleId: couple?.id,
+      violationsCount: state.violations.length,
+      violations: state.violations.map(v => ({
+        id: v.id,
+        violator_user_id: v.violator_user_id,
+        amount: v.amount
+      }))
+    });
+    
     // Determine partners
     const partner1Id = couple.partner_1?.id || couple.partner_1_id;
     const partner2Id = couple.partner_2?.id || couple.partner_2_id;
     
-    if (!partner1Id && !partner2Id) return;
+    console.log('👥 VERSUS: 파트너 ID 확인', {
+      partner1Id,
+      partner2Id,
+      currentUserId
+    });
+    
+    if (!partner1Id && !partner2Id) {
+      console.log('⚠️ VERSUS: 파트너 ID 없음');
+      return;
+    }
 
-    // Calculate stats for each partner
+    // Calculate stats for each partner - AppContext의 getUserTotalFines 함수 직접 사용
     const calculateStats = (partnerId: string): PartnerStats => {
       const violations = state.violations.filter(v => v.violator_user_id === partnerId);
-      const totalFines = violations.reduce((sum, v) => sum + v.amount, 0);
+      const totalFines = getUserTotalFines(partnerId); // AppContext 함수 직접 사용
+      
+      console.log(`💰 VERSUS: ${partnerId} 통계 계산`, {
+        partnerId,
+        violationsCount: violations.length,
+        violations: violations.map(v => ({ id: v.id, amount: v.amount })),
+        totalFines
+      });
       
       // Get partner name
       let partnerName = '';
@@ -60,11 +95,15 @@ export const VersusWidget: React.FC = () => {
     };
 
     if (partner1Id) {
-      setPartner1Stats(calculateStats(partner1Id));
+      const stats1 = calculateStats(partner1Id);
+      setPartner1Stats(stats1);
+      console.log('✅ VERSUS: Partner1 설정됨', stats1);
     }
     
     if (partner2Id) {
-      setPartner2Stats(calculateStats(partner2Id));
+      const stats2 = calculateStats(partner2Id);
+      setPartner2Stats(stats2);
+      console.log('✅ VERSUS: Partner2 설정됨', stats2);
     }
   }, [state.couple, state.violations, user]);
 
@@ -126,8 +165,12 @@ export const VersusWidget: React.FC = () => {
         <div className="flex items-center justify-between">
           {/* Partner 1 */}
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center shadow-md">
-              <span className="text-xl">{getLeaderIcon()}</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center shadow-md overflow-hidden">
+              {partner1Stats.avatar ? (
+                <img src={partner1Stats.avatar} alt={partner1Stats.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xl">{getLeaderIcon()}</span>
+              )}
             </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">{partner1Stats.name}</p>
@@ -146,8 +189,12 @@ export const VersusWidget: React.FC = () => {
               <p className="font-bold text-gray-900 text-sm text-right">{partner2Stats.name}</p>
               <p className="text-xs text-gray-500 text-right">{partner2Stats.violationCount}번 기록</p>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center shadow-md">
-              <span className="text-xl">{getFollowerIcon()}</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center shadow-md overflow-hidden">
+              {partner2Stats.avatar ? (
+                <img src={partner2Stats.avatar} alt={partner2Stats.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xl">{getFollowerIcon()}</span>
+              )}
             </div>
           </div>
         </div>

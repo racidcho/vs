@@ -12,7 +12,9 @@ interface AuthContextType {
   verifyOtp: (email: string, token: string) => Promise<{ error?: string; success?: boolean }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  updateProfile: (updates: Partial<Pick<User, 'display_name'>>) => Promise<void>;
+  updateProfile: (
+    updates: Partial<Pick<User, 'display_name' | 'avatar_url'>>
+  ) => Promise<void>;
   isDebugMode: boolean;
   debugLogin: (testAccountNumber: 1 | 2) => Promise<{ error?: string; success?: boolean }>;
 }
@@ -60,6 +62,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticating, setIsAuthenticating] = useState(false); // 로그인 중 플래그
 
   const refreshUser = async () => {
+    setIsLoading(true);
 
     // 30초 타임아웃 설정 (네트워크 지연 고려)
     const timeoutPromise = new Promise((_, reject) => {
@@ -77,8 +80,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: { session: currentSession } } = sessionResult as any;
 
     if (!currentSession?.user) {
-
       setUser(null);
+      setIsLoading(false);
       return;
     }
 
@@ -159,6 +162,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         setUser(null);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -306,7 +311,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const updateProfile = async (updates: Partial<Pick<User, 'display_name'>>) => {
+  const updateProfile = async (
+    updates: Partial<Pick<User, 'display_name' | 'avatar_url'>>
+  ) => {
     if (!user) throw new Error('No user found');
 
     const { error } = await supabase
@@ -600,8 +607,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (mounted) {
             setSession(session);
             if (session) {
-              // SIGNED_IN 이벤트에서 사용자 정보 새로고침 추가
-              await refreshUser();
+              // SIGNED_IN만 refreshUser() 호출, 나머지는 세션만 설정 (토큰 갱신 중이 아닐 때만)
+              if (event === 'SIGNED_IN' && !isRefreshingSession) {
+                console.log('🔄 SIGNED_IN: 사용자 정보 새로고침');
+                try {
+                  await refreshUser();
+                } catch (error) {
+                  console.error('⚠️ SIGNED_IN refreshUser 오류:', error);
+                }
+              }
               // 세션 토큰을 localStorage에 저장 (페이지 이동 시 복구용)
               localStorage.setItem('sb-auth-token', JSON.stringify({
                 access_token: session.access_token,

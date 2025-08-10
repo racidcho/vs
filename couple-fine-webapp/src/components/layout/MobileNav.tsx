@@ -90,7 +90,7 @@ const FineStatusBar: React.FC = () => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-pink-50 px-3 py-2.5 border-b border-pink-100/50 backdrop-blur-sm">
+    <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-pink-50 px-3 py-2.5 border-b border-pink-100/50 backdrop-blur-sm relative">
       {/* Partner Names and Amounts */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
