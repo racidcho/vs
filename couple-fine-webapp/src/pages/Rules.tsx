@@ -63,7 +63,7 @@ export const Rules: React.FC = () => {
       if (editingRule) {
 
         // Update existing rule with timeout protection
-        const updatePromise = updateRule(editingRule, { ...formData, fine_amount: amount });
+        const updatePromise = updateRule(editingRule, { ...formData, fine_amount: amount * 10000 });  // 만원을 원 단위로 변환
         const { error } = await Promise.race([
           updatePromise,
           new Promise<{error: string}>((_, reject) =>
@@ -90,7 +90,7 @@ export const Rules: React.FC = () => {
       } else {
 
         // Create new rule with timeout protection
-        const createPromise = createRule({ ...formData, fine_amount: amount });
+        const createPromise = createRule({ ...formData, fine_amount: amount * 10000 });  // 만원을 원 단위로 변환
         const { error } = await Promise.race([
           createPromise,
           new Promise<{error: string}>((_, reject) =>
@@ -155,7 +155,7 @@ export const Rules: React.FC = () => {
     setFormData({
       category: rule.category as 'word' | 'behavior',
       title: rule.title,
-      fine_amount: rule.fine_amount,
+      fine_amount: Math.floor(rule.fine_amount / 10000),  // 원 단위를 만원 단위로 변환
       icon_emoji: rule.icon_emoji || '💝',
       is_active: rule.is_active
     });
@@ -330,7 +330,7 @@ export const Rules: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-medium">
                           <span>💰</span>
-                          <span>벌금 {rule.fine_amount}만원</span>
+                          <span>벌금 {Math.floor(rule.fine_amount / 10000)}만원</span>
                         </span>
                         <span className={`px-3 py-1 text-xs font-medium rounded-full ${
                           rule.category === 'word'

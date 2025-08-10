@@ -65,7 +65,7 @@ const MOCK_DEBUG_DATA = {
       id: 'test-rule-1',
       title: '욕설 금지',
       category: 'word' as const,
-      fine_amount: 1,  // 1만원 (만원 단위로 변경)
+      fine_amount: 10000,  // 10000원 (원 단위로 저장)
       icon_emoji: '💬',
       is_active: true,
       couple_id: 'test-couple-1',
@@ -76,7 +76,7 @@ const MOCK_DEBUG_DATA = {
       id: 'test-rule-2',
       title: '데이트 약속 늦기',
       category: 'behavior' as const,
-      fine_amount: 2,  // 2만원 (만원 단위로 변경)
+      fine_amount: 20000,  // 20000원 (원 단위로 저장)
       icon_emoji: '⏰',
       is_active: true,
       couple_id: 'test-couple-1',
@@ -91,7 +91,7 @@ const MOCK_DEBUG_DATA = {
       rule_id: 'test-rule-1',
       violator_user_id: 'test-user-1',
       recorded_by_user_id: 'test-user-1',
-      amount: 1,  // 1만원 (만원 단위로 변경)
+      amount: 10000,  // 10000원 (원 단위로 저장)
       memo: '테스트 벌금 1',
       couple_id: 'test-couple-1',
       violation_date: new Date().toISOString().split('T')[0],
@@ -108,7 +108,7 @@ const MOCK_DEBUG_DATA = {
       rule_id: 'test-rule-2',
       violator_user_id: 'test-user-2',
       recorded_by_user_id: 'test-user-2',
-      amount: 2,  // 2만원 (만원 단위로 변경)
+      amount: 20000,  // 20000원 (원 단위로 저장)
       memo: '테스트 벌금 2',
       couple_id: 'test-couple-1',
       violation_date: new Date().toISOString().split('T')[0],
@@ -1585,7 +1585,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             id: crypto.randomUUID(),
             title: '욕설 금지',
             category: 'word' as const,
-            fine_amount: 1,  // 1만원 (만원 단위로 변경)
+            fine_amount: 10000,  // 10000원 (원 단위로 저장)
             icon_emoji: '💬',
             is_active: true,
             couple_id: coupleId,
@@ -1596,7 +1596,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             id: crypto.randomUUID(),
             title: '데이트 약속 늦기',
             category: 'behavior' as const,
-            fine_amount: 2,  // 2만원 (만원 단위로 변경)
+            fine_amount: 20000,  // 20000원 (원 단위로 저장)
             icon_emoji: '⏰',
             is_active: true,
             couple_id: coupleId,
@@ -1618,7 +1618,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             id: crypto.randomUUID(),
             violator_user_id: realUserIds[0], // 실제 존재하는 사용자 ID
             rule_id: testRules[0].id,
-            amount: 1,  // 1만원 (만원 단위로 변경)
+            amount: 10000,  // 10000원 (원 단위로 저장)
             memo: '테스트 벌금 기록 1',
             couple_id: coupleId,
             violation_date: new Date().toISOString().split('T')[0], // DATE 형식으로
@@ -1628,7 +1628,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             id: crypto.randomUUID(),
             violator_user_id: realUserIds[1], // 실제 존재하는 사용자 ID
             rule_id: testRules[1].id,
-            amount: 2,  // 2만원 (만원 단위로 변경)
+            amount: 20000,  // 20000원 (원 단위로 저장)
             memo: '테스트 벌금 기록 2',
             couple_id: coupleId,
             violation_date: new Date().toISOString().split('T')[0], // DATE 형식으로
