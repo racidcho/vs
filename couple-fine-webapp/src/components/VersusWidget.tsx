@@ -172,14 +172,14 @@ export const VersusWidget: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="text-center">
             <p className="text-2xl font-bold text-pink-600">
-              {Math.floor(partner1Stats.totalFines / 10000)}
+              {partner1Stats.totalFines}
               <span className="text-sm font-normal text-gray-600 ml-1">만원</span>
             </p>
           </div>
           
           <div className="text-center">
             <p className="text-2xl font-bold text-blue-600">
-              {Math.floor(partner2Stats.totalFines / 10000)}
+              {partner2Stats.totalFines}
               <span className="text-sm font-normal text-gray-600 ml-1">만원</span>
             </p>
           </div>
@@ -218,7 +218,7 @@ export const VersusWidget: React.FC = () => {
               <span className="text-xs font-medium text-gray-600">총 벌금</span>
             </div>
             <p className="text-lg font-bold text-green-600">
-              {Math.floor(total / 10000)}만원
+              {total}만원
             </p>
           </div>
           <div className="w-px h-8 bg-gray-200"></div>

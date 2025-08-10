@@ -79,14 +79,10 @@ const FineStatusBar: React.FC = () => {
   const currentUserWinning = currentUserFines < partnerFines;
   const isEqual = currentUserFines === partnerFines;
   
-  // Format currency
+  // Format currency - simple 만원 unit
   const formatAmount = (amount: number) => {
-    if (amount === 0) return '0원';
-    return amount >= 10000 
-      ? `${Math.floor(amount / 10000)}만${amount % 10000 > 0 ? Math.floor((amount % 10000) / 1000) + '천' : ''}원`
-      : amount >= 1000
-      ? `${Math.floor(amount / 1000)}천${amount % 1000 > 0 ? amount % 1000 : ''}원`
-      : `${amount}원`;
+    if (amount === 0) return '0만원';
+    return `${amount}만원`;
   };
 
   return (

@@ -259,7 +259,7 @@ export const Dashboard: React.FC = () => {
     },
     {
       title: '모인 벌금',
-      value: Math.floor(totalBalance / 10000),
+      value: totalBalance,
       unit: '만원',
       icon: TrendingUp,
       emoji: '💰',
@@ -722,7 +722,7 @@ export const Dashboard: React.FC = () => {
             <p>• 커플 ID: {user?.couple_id || '없음'}</p>
             <p>• dashboardData.totalBalance: {dashboardData.totalBalance}원</p>
             <p>• 계산된 totalBalance: {totalBalance}원</p>
-            <p>• 표시 값 (만원): {Math.floor(totalBalance / 10000)}만원</p>
+            <p>• 표시 값 (만원): {totalBalance}만원</p>
             <p>• violations 개수: {state.violations?.length || 0}개</p>
             <p>• violations 총액: {state.violations?.reduce((sum, v) => sum + Math.abs(v.amount || 0), 0) || 0}원</p>
             <p>• activeRules: {activeRules}개</p>
