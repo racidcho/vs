@@ -501,8 +501,8 @@ export const Dashboard: React.FC = () => {
               </h2>
             </div>
 
-            {/* 스크롤 힌트 */}
-            {recentActivity.length > 1 && (
+            {/* 스크롤 힌트 - 벌금 기록이 있을 때 항상 표시 */}
+            {recentActivity.length > 0 && (
               <div className="flex items-center justify-center gap-2 mb-3">
                 <div className="flex gap-1">
                   <div className="w-2 h-2 bg-pink-300 rounded-full animate-pulse"></div>
@@ -516,7 +516,11 @@ export const Dashboard: React.FC = () => {
 
             <div className="relative">
               <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide" 
-                   style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+                   style={{
+                     scrollbarWidth: 'none', 
+                     msOverflowStyle: 'none',
+                     WebkitOverflowScrolling: 'touch'
+                   }}>
                 <style jsx>{`
                   div::-webkit-scrollbar {
                     display: none;
@@ -678,8 +682,8 @@ export const Dashboard: React.FC = () => {
               </div>
               
               {/* 오른쪽 페이딩 그라데이션 (더 많은 카드가 있을 때) */}
-              {recentActivity.length > 2 && (
-                <div className="absolute right-0 top-0 bottom-2 w-6 bg-gradient-to-l from-white to-transparent pointer-events-none"></div>
+              {recentActivity.length > 1 && (
+                <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-white via-white/80 to-transparent pointer-events-none"></div>
               )}
             </div>
 
