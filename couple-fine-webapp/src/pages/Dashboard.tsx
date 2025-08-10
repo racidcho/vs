@@ -21,10 +21,50 @@ import {
   WifiOff
 } from 'lucide-react';
 
+// 오늘의 한마디 30가지 배열
+const DAILY_MESSAGES = [
+  "작은 약속도 소중히, 우리의 사랑은 더욱 단단해져요! 💪✨",
+  "오늘도 서로에게 사랑 표현하기 💕",
+  "함께하는 시간이 가장 소중해요 ⏰",
+  "작은 배려가 큰 행복을 만들어요 🌟",
+  "서로의 말을 끝까지 들어주세요 👂",
+  "고마운 마음을 자주 표현해요 🙏",
+  "다툰 날에도 잠들기 전엔 화해해요 🌙",
+  "서로의 꿈을 응원해주는 우리 💫",
+  "매일 안아주기 챌린지! 🤗",
+  "좋은 추억을 하나씩 쌓아가요 📸",
+  "서로의 장점을 매일 찾아봐요 🔍",
+  "함께 웃을 수 있어서 행복해요 😄",
+  "작은 선물도 큰 기쁨이 되어요 🎁",
+  "솔직한 대화가 가장 중요해요 💬",
+  "서로 다름을 인정하고 존중해요 🤝",
+  "감사한 마음을 잊지 말아요 💝",
+  "함께 성장하는 우리가 멋져요 🌱",
+  "서로의 취미도 관심 가져봐요 🎨",
+  "건강한 식사 함께 해요 🥗",
+  "운동도 함께 하면 더 재밌어요 🏃‍♀️",
+  "여행 계획 세우는 즐거움 ✈️",
+  "서로의 가족도 소중히 여겨요 👨‍👩‍👧‍👦",
+  "매일 '사랑한다' 말해주세요 ❤️",
+  "힘든 일 있을 때 함께 견뎌내요 💪",
+  "서로의 성공을 진심으로 축하해요 🎉",
+  "작은 실수는 따뜻하게 용서해요 🌈",
+  "미래를 함께 그려가는 우리 🖼️",
+  "매일매일이 새로운 시작이에요 🌅",
+  "서로 있어서 더욱 강해져요 💎",
+  "우리의 사랑은 날마다 자라나요 🌸"
+];
+
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { state, updateViolation, deleteViolation } = useApp();
   const { user } = useAuth();
+  
+  // 날짜 기반으로 오늘의 한마디 선택
+  const getTodayMessage = () => {
+    const today = new Date().getDate();
+    return DAILY_MESSAGES[today % DAILY_MESSAGES.length];
+  };
   const [dashboardData, setDashboardData] = useState({
     totalBalance: 0,
     activeRules: 0,
@@ -501,18 +541,6 @@ export const Dashboard: React.FC = () => {
               </h2>
             </div>
 
-            {/* 스크롤 힌트 - 벌금 기록이 있을 때 항상 표시 */}
-            {recentActivity.length > 0 && (
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-pink-300 rounded-full animate-pulse"></div>
-                  <div className="w-2 h-2 bg-purple-300 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                  <div className="w-2 h-2 bg-pink-300 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
-                </div>
-                <span className="text-xs text-gray-500 font-medium">좌우로 밀어서 더 보기</span>
-                <span className="text-lg">👈👉</span>
-              </div>
-            )}
 
             <div className="relative">
               <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide" 
@@ -811,7 +839,7 @@ export const Dashboard: React.FC = () => {
                 <Sparkles className="w-5 h-5 text-yellow-500 animate-spin" />
               </p>
               <p className="text-base text-purple-800 font-medium">
-                "작은 약속도 소중히, 우리의 사랑은 더욱 단단해져요! 💪✨"
+                "{getTodayMessage()}"
               </p>
             </div>
           </div>
