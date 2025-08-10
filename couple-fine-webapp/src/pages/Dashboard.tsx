@@ -715,6 +715,21 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* 디버그 정보 표시 (사파리 대응) */}
+        <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
+          <h4 className="font-bold text-blue-800 mb-2">🔍 대시보드 디버그 정보</h4>
+          <div className="text-sm text-blue-600 space-y-1">
+            <p>• 커플 ID: {user?.couple_id || '없음'}</p>
+            <p>• dashboardData.totalBalance: {dashboardData.totalBalance}원</p>
+            <p>• 계산된 totalBalance: {totalBalance}원</p>
+            <p>• 표시 값 (만원): {Math.floor(totalBalance / 10000)}만원</p>
+            <p>• violations 개수: {state.violations?.length || 0}개</p>
+            <p>• violations 총액: {state.violations?.reduce((sum, v) => sum + Math.abs(v.amount || 0), 0) || 0}원</p>
+            <p>• activeRules: {activeRules}개</p>
+            <p>• thisMonthViolations: {thisMonthViolations}번</p>
+          </div>
+        </div>
+
         {/* 통계 카드 - 작게 만들어서 하단으로 이동 */}
         <div className="grid grid-cols-2 gap-3">
           {statsCards.map((stat, index) => {

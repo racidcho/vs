@@ -775,25 +775,25 @@ export const getDashboardStats = async (coupleId: string): Promise<{
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      // 이번 달 위반 수 - amount 기준으로 계산
+      // 이번 달 위반 수 - 모든 데이터 가져오기
       const { data: thisMonthViolationsData } = await supabase
         .from(violationsTable)
-        .select(SCHEMA_MAP.columns.amount)
-        .eq(SCHEMA_MAP.columns.couple_id, coupleId)
-        .gte(SCHEMA_MAP.columns.created_at, startOfMonth.toISOString());
+        .select('*')  // 모든 컴럼 가져오기
+        .eq('couple_id', coupleId)  // 직접 'couple_id' 사용
+        .gte('created_at', startOfMonth.toISOString());  // 직접 'created_at' 사용
 
       // 이번 달 위반 수 계산 (모든 violations 카운트)
       thisMonthCount = (thisMonthViolationsData || []).length;
 
-      // 총 잔고 계산 (벌금의 경우 amount가 양수이면 추가, 음수이면 차감)
+      // 총 잔고 계산 - 모든 컴럼 가져오기
       const { data: allViolationsData } = await supabase
         .from(violationsTable)
-        .select(SCHEMA_MAP.columns.amount)
-        .eq(SCHEMA_MAP.columns.couple_id, coupleId);
+        .select('*')  // 모든 컴럼 가져오기
+        .eq('couple_id', coupleId);  // 직접 'couple_id' 사용
 
       totalBalance = (allViolationsData || []).reduce((sum, violation) => {
-        // 'amount' 키로 직접 접근
-        const amount = violation.amount || 0;
+        // amount 필드 확인
+        const amount = violation?.amount || 0;
         return sum + Math.abs(amount); // 절대값으로 총 벌금 계산
       }, 0);
     } catch (error: any) {

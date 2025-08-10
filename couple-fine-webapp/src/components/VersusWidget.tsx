@@ -33,11 +33,8 @@ export const VersusWidget: React.FC = () => {
     // Calculate stats for each partner
     const calculateStats = (partnerId: string): PartnerStats => {
       const allViolations = state.violations || [];
-      console.log('🔍 VERSUS: Calculating for partner', partnerId, 'from', allViolations.length, 'violations');
       const violations = allViolations.filter(v => v.violator_user_id === partnerId);
-      console.log('📊 VERSUS: Found', violations.length, 'violations for', partnerId);
       const totalFines = violations.reduce((sum, v) => sum + Math.abs(v.amount), 0);
-      console.log('💰 VERSUS: Total fines for', partnerId, ':', totalFines);
       
       // Get partner name
       let partnerName = '';
@@ -74,9 +71,22 @@ export const VersusWidget: React.FC = () => {
     }
   }, [state.couple, state.violations, user]);
 
-  // Don't render if we don't have both partners
+  // 디버그 정보 표시
   if (!partner1Stats || !partner2Stats) {
-    return null;
+    return (
+      <div className="bg-red-50 rounded-2xl p-5 border border-red-200">
+        <h3 className="font-bold text-red-800 mb-2">🔍 Versus 위젯 디버그 정보</h3>
+        <div className="text-sm text-red-600 space-y-1">
+          <p>• 커플 ID: {state.couple?.id || '없음'}</p>
+          <p>• Partner 1 ID: {(state.couple as any)?.partner_1_id || '없음'}</p>
+          <p>• Partner 2 ID: {(state.couple as any)?.partner_2_id || '없음'}</p>
+          <p>• Violations 개수: {state.violations?.length || 0}개</p>
+          <p>• Partner1 Stats: {partner1Stats ? '있음' : '없음'}</p>
+          <p>• Partner2 Stats: {partner2Stats ? '있음' : '없음'}</p>
+          <p>• 현재 유저 ID: {user?.id || '없음'}</p>
+        </div>
+      </div>
+    );
   }
 
   const total = partner1Stats.totalFines + partner2Stats.totalFines;
