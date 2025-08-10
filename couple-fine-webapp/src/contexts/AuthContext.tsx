@@ -192,13 +192,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const verifyOtp = async (email: string, token: string) => {
+    console.log('🔍 verifyOtp 시작:', { email, token, length: token.length });
     setIsLoading(true);
     setIsAuthenticating(true); // 로그인 프로세스 시작
+
+    // **타임아웃 설정**: 전체 인증 프로세스를 15초로 제한
+    const overallTimeoutId = setTimeout(() => {
+      console.error('⏰ verifyOtp 전체 타임아웃 (15초) - 강제 종료');
+      setIsLoading(false);
+      setIsAuthenticating(false);
+    }, 15000);
 
     try {
       // 테스트 모드에서 OTP 우회하고 바로 로그인
       if (isTestMode()) {
         console.log('🧪 TEST MODE: OTP 검증 우회, 자동 로그인');
+        clearTimeout(overallTimeoutId);
         
         const testUser = getTestUser();
         if (testUser) {
@@ -237,17 +246,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error: 'Test user not found' };
       }
 
-      const { data, error } = await supabase.auth.verifyOtp({
+      console.log('🔍 Supabase OTP 검증 시작...');
+      
+      // **OTP 검증에 10초 타임아웃 추가**
+      const otpVerificationPromise = supabase.auth.verifyOtp({
         email: email.trim(),
         token: token.trim(),
         type: 'email'
       });
 
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('OTP 검증 타임아웃 (10초)'));
+        }, 10000);
+      });
+
+      console.log('⏰ OTP 검증 타임아웃 설정: 10초');
+      const { data, error } = await Promise.race([
+        otpVerificationPromise,
+        timeoutPromise
+      ]);
+
+      console.log('🔍 Supabase OTP 검증 결과:', { data, error });
+
       if (error) {
-        return { error: error.message };
+        console.error('❌ Supabase OTP 에러:', error);
+        return { 
+          error: error.message || 'OTP 검증에 실패했습니다.' 
+        };
       }
 
       if (data.session) {
+        console.log('✅ 세션 데이터 받음:', data.session.user.email);
         setSession(data.session);
         
         // 세션 토큰을 localStorage에 저장
@@ -256,21 +286,63 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           refresh_token: data.session.refresh_token
         }));
 
-        // Force refresh user data
-        await refreshUser();
+        // **사용자 데이터 새로고침에도 타임아웃 적용**
+        console.log('🔄 사용자 데이터 새로고침 중...');
+        try {
+          const refreshUserPromise = refreshUser();
+          const refreshTimeoutPromise = new Promise<void>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('사용자 데이터 새로고침 타임아웃 (5초)'));
+            }, 5000);
+          });
 
+          await Promise.race([
+            refreshUserPromise,
+            refreshTimeoutPromise
+          ]);
+
+          console.log('✅ 사용자 데이터 새로고침 완료');
+        } catch (refreshError) {
+          console.warn('⚠️ 사용자 데이터 새로고침 실패 또는 타임아웃:', refreshError);
+          // 새로고침 실패해도 로그인은 성공으로 처리 (세션이 있으므로)
+        }
+
+        clearTimeout(overallTimeoutId); // 성공 시 전체 타임아웃 해제
         console.log('✅ OTP 인증 성공, 세션 저장 완료');
         return { success: true };
       }
 
-      return { error: 'Failed to verify OTP' };
-    } catch (error) {
+      console.warn('⚠️ 세션이 없음 - OTP 검증 실패');
+      return { error: '인증 코드를 다시 확인해주세요.' };
+    } catch (error: any) {
+      console.error('💥 verifyOtp 예상치 못한 에러:', error);
+      
+      // **타임아웃 에러인지 확인**
+      if (error.message && error.message.includes('타임아웃')) {
+        console.error('⏰ 타임아웃 에러 감지:', error.message);
+        return { 
+          error: `인증 시간이 초과되었습니다. 네트워크를 확인하고 다시 시도해주세요.` 
+        };
+      }
+      
       setIsAuthenticating(false); // 로그인 프로세스 종료
-      return { error: 'An unexpected error occurred' };
+      return { 
+        error: `인증 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}` 
+      };
     } finally {
+      console.log('🔍 verifyOtp finally 블록 실행');
+      
+      // **모든 타임아웃 정리**
+      clearTimeout(overallTimeoutId);
+      
+      console.log('🔍 verifyOtp 완료 - 로딩 상태 해제');
       setIsLoading(false);
+      
       // 로그인 완료 후 약간의 지연을 두고 플래그 해제
-      setTimeout(() => setIsAuthenticating(false), 1000);
+      setTimeout(() => {
+        setIsAuthenticating(false);
+        console.log('🔍 인증 플래그 해제 완료');
+      }, 1000);
     }
   };
 

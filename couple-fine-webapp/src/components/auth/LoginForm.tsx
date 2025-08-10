@@ -57,26 +57,51 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
       return;
     }
 
+    console.log('🎯 LoginForm OTP 제출 시작:', { email, otp, length: otp.length });
     setIsLoading(true);
 
+    // **UI 타임아웃 추가**: 20초 후 UI 로딩 상태 강제 해제
+    const uiTimeoutId = setTimeout(() => {
+      console.error('⏰ LoginForm UI 타임아웃 (20초) - 로딩 상태 강제 해제');
+      setIsLoading(false);
+      toast.error('인증 시간이 너무 오래 걸리고 있어요. 페이지를 새로고침하고 다시 시도해주세요.');
+    }, 20000);
+
     try {
-      const { error, success } = await verifyOtp(email, otp);
+      console.log('🔄 verifyOtp 호출 중...');
+      const result = await verifyOtp(email, otp);
+      console.log('🎯 verifyOtp 결과 받음:', result);
 
-      if (error) {
-        console.error('❌ OTP verification failed:', error);
-        toast.error(error);
-      } else if (success) {
+      clearTimeout(uiTimeoutId); // 성공적으로 결과를 받으면 타임아웃 해제
 
+      if (result.error) {
+        console.error('❌ OTP verification failed:', result.error);
+        toast.error(result.error);
+      } else if (result.success) {
+        console.log('🎉 로그인 성공 - 네비게이션 시작');
         toast.success('🎉 로그인 성공!');
+        
         // 로그인 성공 후 즉시 리디렉션
         // URL 파라미터 유지 (예: ?debug=true)
         const searchParams = location.search;
+        console.log('🔄 네비게이션:', '/' + searchParams);
         navigate('/' + searchParams);
+      } else {
+        console.warn('⚠️ 예상치 못한 verifyOtp 결과:', result);
+        toast.error('알 수 없는 오류가 발생했어요. 다시 시도해주세요.');
       }
     } catch (error) {
-      console.error('❌ Unexpected error:', error);
-      toast.error('인증 코드가 올바르지 않아요. 다시 확인해주세요.');
+      console.error('💥 LoginForm 예상치 못한 에러:', error);
+      clearTimeout(uiTimeoutId);
+      
+      if (error instanceof Error && error.message.includes('타임아웃')) {
+        toast.error('인증 시간이 초과되었어요. 네트워크를 확인하고 다시 시도해주세요.');
+      } else {
+        toast.error('인증 코드가 올바르지 않아요. 다시 확인해주세요.');
+      }
     } finally {
+      console.log('🎯 LoginForm OTP 제출 완료');
+      clearTimeout(uiTimeoutId);
       setIsLoading(false);
     }
   };
