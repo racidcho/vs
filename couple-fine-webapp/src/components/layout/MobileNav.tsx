@@ -65,7 +65,7 @@ export const MobileNav: React.FC = () => {
       <div className="absolute inset-0 bg-white/90 backdrop-blur-lg border-t border-pink-100/30"></div>
 
       {/* 네비게이션 아이템들 */}
-      <nav className="relative flex items-center justify-around px-1 py-0.5 safe-area-pb">
+      <nav className="relative flex items-center justify-around px-1 py-1 safe-area-pb">
         {navItems.map((item) => {
           const Icon = item.icon;
           const current = isCurrentPath(item.href);
@@ -80,13 +80,13 @@ export const MobileNav: React.FC = () => {
               >
                 <div className={`
                   relative flex flex-col items-center justify-center
-                  w-10 h-10 rounded-xl
+                  w-11 h-11 rounded-xl
                   bg-gradient-to-br ${item.gradient}
                   shadow-md shadow-pink-200/40
                   transform transition-all duration-300
                   ${current ? 'scale-105 rotate-2' : 'hover:scale-105 active:scale-95'}
                 `}>
-                  <Icon className="w-4 h-4 text-white" />
+                  <Icon className="w-5 h-5 text-white" />
                   {current && (
                     <div className="absolute -top-0.5 -right-0.5">
                       <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
@@ -94,7 +94,7 @@ export const MobileNav: React.FC = () => {
                   )}
                 </div>
                 <span className={`
-                  text-[9px] mt-0.5 block text-center font-medium
+                  text-[10px] mt-0.5 block text-center font-medium
                   ${current ? 'text-pink-600' : 'text-gray-500'}
                 `}>
                   {item.name}
@@ -107,11 +107,11 @@ export const MobileNav: React.FC = () => {
             <Link
               key={item.name}
               to={item.href}
-              className="flex flex-col items-center justify-center flex-1 py-0.5"
+              className="flex flex-col items-center justify-center flex-1 py-1"
             >
               <div className={`
                 relative flex items-center justify-center
-                w-8 h-8 rounded-lg
+                w-9 h-9 rounded-lg
                 transition-all duration-300
                 ${current
                   ? `bg-gradient-to-br ${item.gradient} shadow-sm scale-105`
@@ -120,17 +120,17 @@ export const MobileNav: React.FC = () => {
               `}>
                 {current ? (
                   <>
-                    <Icon className="w-4 h-4 text-white" />
+                    <Icon className="w-5 h-5 text-white" />
                     <div className="absolute -top-0.5 -right-0.5">
                       <span className="text-xs animate-bounce">{item.emoji}</span>
                     </div>
                   </>
                 ) : (
-                  <Icon className={`w-4 h-4 text-gray-500`} />
+                  <Icon className={`w-5 h-5 text-gray-500`} />
                 )}
               </div>
               <span className={`
-                text-[9px] mt-0.5 font-medium
+                text-[10px] mt-0.5 font-medium
                 ${current ? 'text-pink-600' : 'text-gray-500'}
               `}>
                 {item.name}

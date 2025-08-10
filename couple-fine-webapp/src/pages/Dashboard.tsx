@@ -21,17 +21,17 @@ import {
   WifiOff
 } from 'lucide-react';
 
-// 오늘의 한마디 30가지 배열
+// 오늘의 한마디 - 커플의 사랑과 존중을 강조하는 메시지
 const DAILY_MESSAGES = [
-  "작은 약속도 소중히, 우리의 사랑은 더욱 단단해져요! 💪✨",
-  "오늘도 서로에게 사랑 표현하기 💕",
-  "함께하는 시간이 가장 소중해요 ⏰",
-  "작은 배려가 큰 행복을 만들어요 🌟",
-  "서로의 말을 끝까지 들어주세요 👂",
-  "고마운 마음을 자주 표현해요 🙏",
-  "다툰 날에도 잠들기 전엔 화해해요 🌙",
-  "서로의 꿈을 응원해주는 우리 💫",
-  "매일 안아주기 챌린지! 🤗",
+  "서로는 조각도 서툴지만, 함께하면 완전해지는 우리 💕",
+  "사랑한다는 말은 조금도 아까지 마세요 💌",
+  "오늘 하루도 서로에게 소중한 선물이 되길 ✨",
+  "화가 나도 나는 당신이 좋아요, 다만 표현이 서툴를 뿐 😊",
+  "사소한 배려가 쌓여 사랑이 되어요 🌸",
+  "서로의 부족함을 채워주는 게 사랑이에요 💖",
+  "나보다 우리가 더 소중해요 👫",
+  "오늘도 함께해서 감사해요 🙏",
+  "지금 이 순간이 우리의 가장 아름다운 날 🌈",
   "좋은 추억을 하나씩 쌓아가요 📸",
   "서로의 장점을 매일 찾아봐요 🔍",
   "함께 웃을 수 있어서 행복해요 😄",
@@ -363,8 +363,18 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* 작은 인사말 - 1줄로 간단하게 */}
-        <div className="text-center">
+        {/* 오늘의 한마디 - 상단으로 이동 */}
+        <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-blue-50 rounded-2xl p-4 shadow-sm border border-pink-100 mb-4">
+          <div className="text-center">
+            <p className="text-xs text-purple-600 font-medium mb-1">💌 오늘의 한마디 💌</p>
+            <p className="text-sm text-gray-700 font-medium italic">
+              "{getTodayMessage()}"
+            </p>
+          </div>
+        </div>
+
+        {/* 작은 인사말 */}
+        <div className="text-center mb-4">
           <h1 className="text-lg font-bold text-gray-800 flex items-center justify-center gap-2">
             {getGreeting()}, {user?.display_name || '사랑'}님! 
             <Sparkles className="w-5 h-5 text-yellow-500 animate-spin" />
@@ -761,21 +771,6 @@ export const Dashboard: React.FC = () => {
           })}
         </div>
 
-        {/* 오늘의 한마디 - 더 귀엽게! */}
-        <div className="bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 rounded-3xl p-6 shadow-lg border-2 border-pink-200 animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="text-4xl animate-bounce">🏆</div>
-            <div className="flex-1">
-              <p className="text-lg font-bold text-purple-900 mb-2 flex items-center gap-2">
-                오늘의 한마디 💝
-                <Sparkles className="w-5 h-5 text-yellow-500 animate-spin" />
-              </p>
-              <p className="text-base text-purple-800 font-medium">
-                "{getTodayMessage()}"
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

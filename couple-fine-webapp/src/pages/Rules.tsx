@@ -347,6 +347,18 @@ export const Rules: React.FC = () => {
                           {rule.is_active !== false ? '✅ 활성' : '⏸️ 비활성'}
                         </span>
                       </div>
+                      {/* 생성 날짜/시간 표시 */}
+                      {rule.created_at && (
+                        <p className="text-xs text-gray-400 mt-2">
+                          📅 {new Date(rule.created_at).toLocaleDateString('ko-KR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 ml-2">

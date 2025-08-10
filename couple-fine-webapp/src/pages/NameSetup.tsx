@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
-import { Heart, Sparkles, User, Users, ArrowRight, Loader2 } from 'lucide-react';
+import { Heart, Sparkles, User, Users, ArrowRight, Loader2, Camera } from 'lucide-react';
 import { updateProfile } from '../lib/supabaseApi';
 import toast from 'react-hot-toast';
 
 export const NameSetup: React.FC = () => {
   const navigate = useNavigate();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, updateProfile: updateAuthProfile } = useAuth();
   const { getPartnerInfo } = useApp();
   
   const [displayName, setDisplayName] = useState(user?.display_name || '');
   const [partnerName, setPartnerName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasPartner, setHasPartner] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url || null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load partner info on mount
   useEffect(() => {
@@ -33,6 +36,40 @@ export const NameSetup: React.FC = () => {
     loadPartnerInfo();
   }, [getPartnerInfo]);
 
+  // Handle avatar upload
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 선택 가능해요! 📷');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('파일 크기는 5MB 이하여야 해요! 📦');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    try {
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        setAvatarUrl(base64String);
+        toast.success('프로필 사진이 선택되었어요! 📸');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('사진 업로드에 실패했어요 😢');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const handleSaveName = async () => {
     if (!displayName.trim()) {
       toast.error('이름을 입력해주세요! 📝');
@@ -47,8 +84,18 @@ export const NameSetup: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Update user profile with new display name
-      await updateProfile(user.id, { display_name: displayName.trim() });
+      // Update user profile with new display name and avatar if provided
+      const updates: any = { display_name: displayName.trim() };
+      if (avatarUrl) {
+        updates.avatar_url = avatarUrl;
+      }
+      
+      await updateProfile(user.id, updates);
+      
+      // Also update auth context if avatar was changed
+      if (avatarUrl) {
+        await updateAuthProfile({ avatar_url: avatarUrl });
+      }
       
       // Refresh user context to get updated data
       await refreshUser();
@@ -155,6 +202,45 @@ export const NameSetup: React.FC = () => {
 
           {/* Content Section */}
           <div className="p-8 space-y-6">
+            {/* Profile Photo Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-center">
+                <div className="relative">
+                  <div className="w-24 h-24 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full overflow-hidden shadow-lg border-3 border-pink-200">
+                    {avatarUrl ? (
+                      <img 
+                        src={avatarUrl} 
+                        alt="프로필"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Camera className="w-10 h-10 text-pink-300" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingAvatar}
+                    className="absolute bottom-0 right-0 w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+                  >
+                    <Camera className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 text-center">
+                프로필 사진 (선택사항) 📸
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+            </div>
+
             {/* User Name Input */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-gray-700">
