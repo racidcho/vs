@@ -61,9 +61,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshUser = async () => {
 
-    // 30초 타임아웃 설정 (네트워크 지연 고려)
+    // 8초 타임아웃 설정 (모바일 브라우저 고려)
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('사용자 정보 로딩 시간 초과')), 30000);
+      setTimeout(() => reject(new Error('사용자 정보 로딩 시간 초과')), 8000);
     });
 
     // Get current session from Supabase (with timeout)
@@ -474,6 +474,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Initialize auth state
     setIsLoading(true);
 
+    // 강제 로딩 완료 메커니즘 (3초) - 무한 로딩 방지
+    const emergencyTimeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.log('🚨 3초 긴급 타임아웃 - 무한 로딩 방지');
+        setIsLoading(false);
+        // 세션이 없으면 null로 설정
+        if (!session) {
+          setUser(null);
+          setSession(null);
+        }
+      }
+    }, 3000);
+
     // localStorage에서 세션 복구 시도
     const restoreSession = async () => {
       try {
@@ -489,6 +502,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.log('✅ localStorage에서 세션 복구 성공');
             setSession(data.session);
             await refreshUser();
+            clearTimeout(emergencyTimeout); // 복구 성공 시 긴급 타임아웃 클리어
             return true;
           }
         }
@@ -498,12 +512,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     };
 
-    // 30초 타임아웃으로 초기화 보호 (네트워크 지연 고려)
+    // 5초 타임아웃으로 초기화 보호 (모바일 브라우저 고려)
     const initTimeout = setTimeout(() => {
       if (mounted) {
+        console.log('⏰ 5초 타임아웃 - 강제 로딩 완료');
         setIsLoading(false);
       }
-    }, 30000);
+    }, 5000);
 
     // 테스트 모드 자동 로그인 시도 (비동기, 일반 인증과 병행)
     const tryTestModeLogin = async () => {
@@ -543,6 +558,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('✅ 테스트 모드 자동 로그인 성공');
           setIsLoading(false);
           clearTimeout(initTimeout);
+          clearTimeout(emergencyTimeout);
           return true;
         }
       }
@@ -556,6 +572,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setIsLoading(false);
         }
         clearTimeout(initTimeout);
+        clearTimeout(emergencyTimeout); // 복구 성공 시 긴급 타임아웃도 클리어
         return;
       }
       
@@ -598,6 +615,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsLoading(false);
       }
       clearTimeout(initTimeout);
+      clearTimeout(emergencyTimeout);
       }).catch((error) => {
         console.error('💥 초기화 중 예외:', error);
         if (mounted) {
@@ -606,6 +624,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setIsLoading(false);
         }
         clearTimeout(initTimeout);
+        clearTimeout(emergencyTimeout);
       });
     });
 
@@ -891,11 +910,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // 모바일 브라우저 특별 처리: pageshow 이벤트
+    // 모바일 브라우저 특별 처리: pageshow 이벤트 + pull-to-refresh 감지
     const handlePageShow = async (event: PageTransitionEvent) => {
       if (event.persisted && mounted) {
         console.log('📱 페이지 복원 (Back-Forward Cache) - 세션 재확인');
         await handleFocus();
+      } else if (mounted) {
+        // Pull-to-refresh 감지 (새로고침이지만 persisted가 아닌 경우)
+        console.log('📱 Pull-to-refresh 감지 - 빠른 세션 복구 시도');
+        
+        // Pull-to-refresh 시 더 적극적인 세션 복구
+        const storedSession = localStorage.getItem('sb-auth-token');
+        if (storedSession && !session) {
+          try {
+            const { access_token, refresh_token } = JSON.parse(storedSession);
+            const { data, error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token
+            });
+            
+            if (data?.session) {
+              console.log('✅ Pull-to-refresh 세션 복구 성공');
+              setSession(data.session);
+              setIsLoading(false);
+              await refreshUser();
+            }
+          } catch (error) {
+            console.error('Pull-to-refresh 세션 복구 실패:', error);
+          }
+        }
       }
     };
     
@@ -906,6 +949,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       subscription.unsubscribe();
       clearInterval(sessionRefreshInterval);
       clearTimeout(initTimeout);
+      clearTimeout(emergencyTimeout); // 긴급 타임아웃도 정리
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
