@@ -43,56 +43,47 @@ export const Settings: React.FC = () => {
   const handleImageUpload = async (file: File) => {
     if (!user?.id) return;
     
-    try {
-      setIsUploadingAvatar(true);
+    setIsUploadingAvatar(true);
+    
+    // 파일 크기 체크 (5MB 제한)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('이미지 크기는 5MB 이하여야 합니다');
+      setIsUploadingAvatar(false);
+      return;
+    }
+    
+    // 파일 형식 체크
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드 가능합니다');
+      setIsUploadingAvatar(false);
+      return;
+    }
+    
+    // 임시로 Base64로 변환하여 저장 (Storage 설정 전까지)
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
       
-      // 파일 크기 체크 (5MB 제한)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('이미지 크기는 5MB 이하여야 합니다');
-        return;
-      }
-      
-      // 파일 형식 체크
-      if (!file.type.startsWith('image/')) {
-        toast.error('이미지 파일만 업로드 가능합니다');
-        return;
-      }
-      
-      // 임시로 Base64로 변환하여 저장 (Storage 설정 전까지)
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
+      try {
+        // AuthContext의 updateProfile 사용으로 즉시 반영
+        await updateProfile({ avatar_url: base64String });
         
-        // 사용자 프로필 업데이트 (Base64 데이터 URL로 저장)
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ avatar_url: base64String })
-          .eq('id', user.id);
-        
-        if (updateError) {
-          console.error('Profile update error:', updateError);
-          toast.error('프로필 업데이트 실패: ' + updateError.message);
-          return;
-        }
-        
-        // 로컬 상태 업데이트는 실시간 구독으로 자동 처리됨
         toast.success('프로필 사진이 변경되었습니다! 📸');
         setShowImageUpload(false);
+      } catch (error) {
+        console.error('Profile update error:', error);
+        toast.error('프로필 업데이트 실패');
+      } finally {
         setIsUploadingAvatar(false);
-      };
-      
-      reader.onerror = () => {
-        toast.error('이미지 읽기 실패');
-        setIsUploadingAvatar(false);
-      };
-      
-      reader.readAsDataURL(file);
-      
-    } catch (error) {
-      console.error('Image upload error:', error);
-      toast.error('이미지 업로드 중 오류가 발생했습니다');
+      }
+    };
+    
+    reader.onerror = () => {
+      toast.error('이미지 읽기 실패');
       setIsUploadingAvatar(false);
-    }
+    };
+    
+    reader.readAsDataURL(file);
   };
   
   // 파일 선택 처리

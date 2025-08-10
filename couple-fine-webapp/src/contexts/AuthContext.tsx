@@ -12,7 +12,7 @@ interface AuthContextType {
   verifyOtp: (email: string, token: string) => Promise<{ error?: string; success?: boolean }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  updateProfile: (updates: Partial<Pick<User, 'display_name'>>) => Promise<void>;
+  updateProfile: (updates: Partial<Pick<User, 'display_name' | 'avatar_url'>>) => Promise<void>;
   isDebugMode: boolean;
   debugLogin: (testAccountNumber: 1 | 2) => Promise<{ error?: string; success?: boolean }>;
 }
@@ -378,8 +378,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const updateProfile = async (updates: Partial<Pick<User, 'display_name'>>) => {
+  const updateProfile = async (updates: Partial<Pick<User, 'display_name' | 'avatar_url'>>) => {
     if (!user) throw new Error('No user found');
+
+    // Immediately update local state for instant UI feedback
+    setUser(prev => prev ? { ...prev, ...updates } : prev);
 
     const { error } = await supabase
       .from('profiles')
@@ -387,11 +390,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       .eq('id', user.id);
 
     if (error) {
+      // Revert on error
+      await refreshUser();
       throw new Error(error.message);
     }
 
-    // Refresh user data
-    await refreshUser();
+    // Note: Real-time subscription will handle syncing with DB
   };
 
   // 디버그 모드 전용 테스트 계정 자동 로그인 - 실제 Supabase 인증 사용

@@ -374,84 +374,7 @@ export const Dashboard: React.FC = () => {
         {/* 커플 정보 및 대결 위젯 */}
         {state.couple ? (
           <div>
-            {/* 커플 연결 상태 카드 */}
-            <div className="bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100 rounded-3xl p-6 mb-4 shadow-lg border-2 border-pink-200">
-              <div className="text-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
-                  <span className="text-2xl animate-bounce">💑</span>
-                  우리들의 연결 상태
-                  <span className="text-2xl animate-bounce" style={{animationDelay: '0.5s'}}>💑</span>
-                </h2>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                {/* 내 정보 */}
-                <div className="bg-white/80 rounded-2xl p-4 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <span className="text-white font-bold text-lg">
-                      {user?.display_name?.charAt(0) || '👩'}
-                    </span>
-                  </div>
-                  <p className="font-bold text-gray-900">{user?.display_name || '나'}</p>
-                  <p className="text-xs text-gray-500 mt-1">나</p>
-                </div>
-                
-                {/* 파트너 정보 */}
-                <div className="bg-white/80 rounded-2xl p-4 text-center">
-                  {(() => {
-                    const couple = state.couple as any;
-                    const isPartner1 = user?.id === couple?.partner_1_id;
-                    const partnerId = isPartner1 ? couple?.partner_2_id : couple?.partner_1_id;
-                    const partnerData = isPartner1 ? couple?.partner_2 : couple?.partner_1;
-                    
-                    // Determine partner name with fallbacks
-                    let partnerName = '파트너';
-                    let partnerStatus = '연결 대기 중';
-                    let partnerIcon = '👨';
-                    
-                    if (partnerData?.display_name) {
-                      partnerName = partnerData.display_name;
-                      partnerStatus = '연결됨';
-                      partnerIcon = partnerData.display_name.charAt(0);
-                    } else if (partnerData?.email) {
-                      partnerName = partnerData.email.split('@')[0];
-                      partnerStatus = '이름 설정 대기';
-                      partnerIcon = partnerData.email.charAt(0).toUpperCase();
-                    } else if (partnerId) {
-                      partnerName = '파트너';
-                      partnerStatus = '정보 로딩 중...';
-                      partnerIcon = '👨';
-                    }
-                    
-                    return (
-                      <>
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-400 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <span className="text-white font-bold text-lg">
-                            {partnerIcon}
-                          </span>
-                        </div>
-                        <p className="font-bold text-gray-900">
-                          {partnerName}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {partnerStatus}
-                        </p>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-              
-              <div className="text-center">
-                {state.couple.couple_code && (
-                  <p className="text-sm text-pink-600 font-medium">
-                    커플 코드: 💑 {state.couple.couple_code}
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            {/* 대결 위젯 */}
+            {/* 대결 위젯 - 연결 상태 카드 제거 */}
             {(() => {
               const couple = state.couple as any;
               const hasBothPartners = couple?.partner_1_id && couple?.partner_2_id;
@@ -544,7 +467,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="relative">
               {/* 스크롤 가능한 카드 컨테이너 - 전체 내용 표시 */}
-              <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide" 
+              <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide -mx-4 px-4" 
                    style={{WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
               {recentActivity.slice(0, 5).map((violation: any, index) => {
                 const rule = state.rules?.find(r => r.id === violation.rule_id);
@@ -583,7 +506,7 @@ export const Dashboard: React.FC = () => {
                 return (
                   <div
                     key={violation.id}
-                    className={`flex-shrink-0 w-80 bg-gradient-to-r ${cardBg} rounded-2xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-102 snap-start`}
+                    className={`flex-shrink-0 w-72 bg-gradient-to-r ${cardBg} rounded-2xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-102 snap-start`}
                   >
                     {editingViolation === violation.id ? (
                       <div className="space-y-3">
@@ -701,23 +624,16 @@ export const Dashboard: React.FC = () => {
               })}
               </div>
               
-              {/* 하단 스크롤 인디케이터 - 좌우 스크롤 가능함을 표시 */}
+              {/* 하단 스크롤 인디케이터 - 심플한 바 표시 */}
               {recentActivity.slice(0, 5).length > 1 && (
-                <div className="flex flex-col items-center mt-4 gap-2">
-                  {/* 스크롤 바 */}
-                  <div className="w-32 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full w-1/3 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full animate-pulse"
+                <div className="flex justify-center mt-3">
+                  <div className="w-16 h-0.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full w-1/3 bg-gradient-to-r from-pink-300 to-purple-300 rounded-full"
                          style={{
-                           animation: 'slideIndicator 3s ease-in-out infinite'
+                           animation: 'slideIndicator 2s ease-in-out infinite'
                          }}
                     />
                   </div>
-                  {/* 스크롤 힌트 텍스트 */}
-                  <p className="text-xs text-gray-400 flex items-center gap-1">
-                    <span className="animate-bounce" style={{animationDelay: '0s'}}>←</span>
-                    <span>좌우로 스크롤</span>
-                    <span className="animate-bounce" style={{animationDelay: '0.5s'}}>→</span>
-                  </p>
                 </div>
               )}
             </div>
