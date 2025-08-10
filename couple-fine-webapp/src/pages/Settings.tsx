@@ -361,29 +361,26 @@ export const Settings: React.FC = () => {
                     </div>
                   )}
                   
-                  {/* 이미지 업로드 옵션 */}
+                  {/* 이미지 업로드 옵션 - 모바일에서는 한 번에 선택 */}
                   {showImageUpload && (
                     <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-lg border-2 border-pink-200 p-3 z-10 min-w-48">
                       <p className="text-sm font-medium text-gray-700 mb-3 text-center">프로필 사진 변경</p>
                       <div className="space-y-2">
                         <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-pink-50 rounded-lg transition-colors"
+                          onClick={() => {
+                            fileInputRef.current?.click();
+                            setShowImageUpload(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 rounded-lg transition-colors"
                         >
-                          <Camera className="w-5 h-5 text-pink-500" />
-                          <div>
-                            <p className="font-medium text-gray-900">카메라</p>
-                            <p className="text-xs text-gray-500">사진 촬영하기</p>
+                          <div className="flex items-center gap-2">
+                            <Camera className="w-5 h-5 text-pink-500" />
+                            <span className="text-gray-400">/</span>
+                            <Upload className="w-5 h-5 text-purple-500" />
                           </div>
-                        </button>
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-purple-50 rounded-lg transition-colors"
-                        >
-                          <Upload className="w-5 h-5 text-purple-500" />
                           <div>
-                            <p className="font-medium text-gray-900">앨범</p>
-                            <p className="text-xs text-gray-500">갤러리에서 선택</p>
+                            <p className="font-medium text-gray-900">사진 선택</p>
+                            <p className="text-xs text-gray-500">카메라 또는 갤러리에서 선택</p>
                           </div>
                         </button>
                       </div>
@@ -399,12 +396,11 @@ export const Settings: React.FC = () => {
                 </div>
               </div>
               
-              {/* 숨겨진 파일 입력 */}
+              {/* 숨겨진 파일 입력 - capture 제거로 카메라/갤러리 선택 가능 */}
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={handleFileSelect}
                 className="hidden"
               />

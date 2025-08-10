@@ -542,10 +542,10 @@ export const Dashboard: React.FC = () => {
             </div>
 
 
-            <div className="relative overflow-hidden">
-              {/* 스크롤 가능한 카드 컨테이너 */}
-              <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide px-6 -mx-6" 
-                   style={{WebkitOverflowScrolling: 'touch'}}>
+            <div className="relative">
+              {/* 스크롤 가능한 카드 컨테이너 - 전체 내용 표시 */}
+              <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide" 
+                   style={{WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
               {recentActivity.slice(0, 5).map((violation: any, index) => {
                 const rule = state.rules?.find(r => r.id === violation.rule_id);
                 const isAdd = violation.amount > 0;
@@ -583,7 +583,7 @@ export const Dashboard: React.FC = () => {
                 return (
                   <div
                     key={violation.id}
-                    className={`flex-shrink-0 w-72 ${index === recentActivity.slice(0, 5).length - 1 ? 'mr-20' : ''} bg-gradient-to-r ${cardBg} rounded-2xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-102 snap-start`}
+                    className={`flex-shrink-0 w-80 bg-gradient-to-r ${cardBg} rounded-2xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-102 snap-start`}
                   >
                     {editingViolation === violation.id ? (
                       <div className="space-y-3">
@@ -701,9 +701,24 @@ export const Dashboard: React.FC = () => {
               })}
               </div>
               
-              {/* 오른쪽 페이딩 그라데이션 - 스크롤 가능함을 암시 */}
+              {/* 하단 스크롤 인디케이터 - 좌우 스크롤 가능함을 표시 */}
               {recentActivity.slice(0, 5).length > 1 && (
-                <div className="absolute right-0 top-0 bottom-2 w-16 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none"></div>
+                <div className="flex flex-col items-center mt-4 gap-2">
+                  {/* 스크롤 바 */}
+                  <div className="w-32 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full w-1/3 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full animate-pulse"
+                         style={{
+                           animation: 'slideIndicator 3s ease-in-out infinite'
+                         }}
+                    />
+                  </div>
+                  {/* 스크롤 힌트 텍스트 */}
+                  <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <span className="animate-bounce" style={{animationDelay: '0s'}}>←</span>
+                    <span>좌우로 스크롤</span>
+                    <span className="animate-bounce" style={{animationDelay: '0.5s'}}>→</span>
+                  </p>
+                </div>
               )}
             </div>
 
