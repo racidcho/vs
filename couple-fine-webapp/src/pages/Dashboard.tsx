@@ -542,10 +542,11 @@ export const Dashboard: React.FC = () => {
             </div>
 
 
-            <div className="relative">
-              <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide" 
+            <div className="relative overflow-hidden">
+              {/* 스크롤 가능한 카드 컨테이너 */}
+              <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide px-6 -mx-6" 
                    style={{WebkitOverflowScrolling: 'touch'}}>
-              {recentActivity.slice(0, 5).map((violation: any) => {
+              {recentActivity.slice(0, 5).map((violation: any, index) => {
                 const rule = state.rules?.find(r => r.id === violation.rule_id);
                 const isAdd = violation.amount > 0;
                 
@@ -582,7 +583,7 @@ export const Dashboard: React.FC = () => {
                 return (
                   <div
                     key={violation.id}
-                    className={`flex-shrink-0 w-64 bg-gradient-to-r ${cardBg} rounded-2xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-102 snap-start`}
+                    className={`flex-shrink-0 w-72 ${index === recentActivity.slice(0, 5).length - 1 ? 'mr-20' : ''} bg-gradient-to-r ${cardBg} rounded-2xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-102 snap-start`}
                   >
                     {editingViolation === violation.id ? (
                       <div className="space-y-3">
@@ -700,9 +701,9 @@ export const Dashboard: React.FC = () => {
               })}
               </div>
               
-              {/* 오른쪽 페이딩 그라데이션 (더 많은 카드가 있을 때) */}
-              {recentActivity.length > 1 && (
-                <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-white via-white/80 to-transparent pointer-events-none"></div>
+              {/* 오른쪽 페이딩 그라데이션 - 스크롤 가능함을 암시 */}
+              {recentActivity.slice(0, 5).length > 1 && (
+                <div className="absolute right-0 top-0 bottom-2 w-16 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none"></div>
               )}
             </div>
 
