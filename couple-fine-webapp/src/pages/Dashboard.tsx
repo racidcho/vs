@@ -516,16 +516,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="relative">
               <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide" 
-                   style={{
-                     scrollbarWidth: 'none', 
-                     msOverflowStyle: 'none',
-                     WebkitOverflowScrolling: 'touch'
-                   }}>
-                <style jsx>{`
-                  div::-webkit-scrollbar {
-                    display: none;
-                  }
-                `}</style>
+                   style={{WebkitOverflowScrolling: 'touch'}}>
               {recentActivity.slice(0, 5).map((violation: any) => {
                 const rule = state.rules?.find(r => r.id === violation.rule_id);
                 const isAdd = violation.amount > 0;
