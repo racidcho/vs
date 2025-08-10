@@ -501,7 +501,7 @@ export const Dashboard: React.FC = () => {
               </h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="flex gap-3 overflow-x-auto pb-2">
               {recentActivity.slice(0, 3).map((violation: any) => {
                 const rule = state.rules?.find(r => r.id === violation.rule_id);
                 const isAdd = violation.amount > 0;
@@ -539,7 +539,7 @@ export const Dashboard: React.FC = () => {
                 return (
                   <div
                     key={violation.id}
-                    className={`bg-gradient-to-r ${cardBg} rounded-2xl p-5 shadow-md hover:shadow-lg transition-all transform hover:scale-102`}
+                    className={`flex-shrink-0 w-72 bg-gradient-to-r ${cardBg} rounded-2xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-102`}
                   >
                     {editingViolation === violation.id ? (
                       <div className="space-y-3">
@@ -596,61 +596,59 @@ export const Dashboard: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="text-4xl">
-                            {isAdd ? '😅' : '😊'}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <p className="text-xl font-bold text-gray-900">
-                                {rule?.title || '알 수 없는 규칙'}
-                              </p>
-                              <span className="text-2xl">{isPartner1 ? '👩' : '👨'}</span>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="text-2xl">
+                              {isAdd ? '😅' : '😊'}
                             </div>
-                            <p className={`text-lg font-bold ${textColor} mb-1`}>
-                              {violatorName}님{isAdd ? '이 벌금을 받았어요! 💸' : '이 벌금을 차감했어요! 🎉'}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {new Date(violation.created_at).toLocaleDateString('ko-KR', {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                              {violation.memo && (
-                                <>
-                                  <span className="mx-2">•</span>
-                                  <span className="font-medium">{violation.memo}</span>
-                                </>
-                              )}
-                            </p>
+                            <span className="text-lg">{isPartner1 ? '👩' : '👨'}</span>
                           </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <span className={`text-2xl font-bold ${
+                          <span className={`text-xl font-bold ${
                             isAdd ? 'text-red-600' : 'text-green-600'
                           }`}>
                             {isAdd ? '+' : ''}{violation.amount}만원
                           </span>
+                        </div>
+                        
+                        <div>
+                          <p className="text-lg font-bold text-gray-900 mb-1">
+                            {rule?.title || '알 수 없는 규칙'}
+                          </p>
+                          <p className={`text-sm font-bold ${textColor} mb-2`}>
+                            {violatorName}님{isAdd ? '이 벌금 받음 💸' : '이 벌금 차감 🎉'}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {new Date(violation.created_at).toLocaleDateString('ko-KR', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                            {violation.memo && (
+                              <>
+                                <span className="mx-1">•</span>
+                                <span className="font-medium">{violation.memo}</span>
+                              </>
+                            )}
+                          </p>
+                        </div>
 
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleEdit(violation)}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white/50 rounded-xl transition-all"
-                              title="편집"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(violation.id, (rule?.title || 'Unknown') + ' (' + violation.amount + '만원)')}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-white/50 rounded-xl transition-all"
-                              title="삭제"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(violation)}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all"
+                            title="편집"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(violation.id, (rule?.title || 'Unknown') + ' (' + violation.amount + '만원)')}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-white/50 rounded-lg transition-all"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </div>
                       </div>
                     )}

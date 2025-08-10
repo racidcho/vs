@@ -4,101 +4,31 @@ import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import {
   User,
-  Palette,
-  Shield,
-  Smartphone,
   LogOut,
   Edit,
   Save,
   X,
-  Lock,
   Info,
   Heart,
   Settings as SettingsIcon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useAppLock } from '../hooks/useAppLock';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { user, signOut, updateProfile } = useAuth();
   const { state, updateCoupleName, getPartnerInfo, leaveCouple, validateData, refreshData } = useApp();
-  const { isLocked, lock, hasPin, setPin, removePin } = useAppLock();
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [displayName, setDisplayName] = useState(user?.display_name || '');
-  const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false); // 로그아웃 중 상태 추가
   const [partner, setPartner] = useState<any>(null);
   const [partnerLoading, setPartnerLoading] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [showPinChangeModal, setShowPinChangeModal] = useState(false);
   const [isEditingCoupleName, setIsEditingCoupleName] = useState(false);
   const [coupleName, setCoupleName] = useState('');
 
-  // PWA Install State
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [showIOSInstallModal, setShowIOSInstallModal] = useState(false);
-
-  // Check if app is already installed
-  useEffect(() => {
-    // Check if app is running in standalone mode (PWA installed)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                        (window.navigator as any).standalone ||
-                        document.referrer.includes('android-app://');
-
-    setIsInstalled(isStandalone);
-  }, []);
-
-  // PWA Install Prompt Handler
-  useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-
-      setInstallPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-    };
-  }, []);
-
-  // PWA Install Functions
-  const handleInstallPWA = async () => {
-
-    // Check if it's iOS Safari
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-
-    if (isIOS && isSafari) {
-
-      setShowIOSInstallModal(true);
-      return;
-    }
-
-    // Android/Chrome PWA install
-    if (installPrompt) {
-
-      const result = await (installPrompt as any).prompt();
-
-      if (result.outcome === 'accepted') {
-        toast.success('앱이 설치되었어요! 📱');
-        setIsInstalled(true);
-      } else {
-        toast.error('앱 설치가 취소되었어요');
-      }
-
-      setInstallPrompt(null);
-    } else {
-
-      toast.error('현재 브라우저에서는 앱 설치를 지원하지 않아요 😢');
-    }
-  };
 
   const handleUpdateProfile = async () => {
     if (!displayName.trim()) {
@@ -142,26 +72,6 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleSetupPin = async () => {
-    if (newPin.length !== 4) {
-      toast.error('PIN은 4자리여야 해요! 🔢');
-      return;
-    }
-
-    if (newPin !== confirmPin) {
-      toast.error('PIN이 일치하지 않아요! 🔄');
-      return;
-    }
-
-    const result = await setPin(newPin);
-    if (result.success) {
-      setNewPin('');
-      setConfirmPin('');
-      toast.success('PIN이 설정되었어요! 🔐');
-    } else {
-      toast.error(result.error || 'PIN 설정에 실패했어요 😢');
-    }
-  };
 
   // Load partner info and initialize couple name
   useEffect(() => {
@@ -257,42 +167,6 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleChangePinMode = () => {
-    setShowPinChangeModal(true);
-    setNewPin('');
-    setConfirmPin('');
-  };
-
-  const handleChangePIN = async () => {
-    if (newPin.length !== 4) {
-      toast.error('PIN은 4자리여야 해요! 🔢');
-      return;
-    }
-
-    if (newPin !== confirmPin) {
-      toast.error('PIN이 일치하지 않아요! 🔄');
-      return;
-    }
-
-    const result = await setPin(newPin);
-    if (result.success) {
-      setNewPin('');
-      setConfirmPin('');
-      setShowPinChangeModal(false);
-      toast.success('PIN이 변경되었어요! 🔐');
-    } else {
-      toast.error(result.error || 'PIN 변경에 실패했어요 😢');
-    }
-  };
-
-  const handleRemovePIN = async () => {
-    const result = await removePin();
-    if (result.success) {
-      toast.success('PIN이 제거되었어요! 🔓');
-    } else {
-      toast.error(result.error || 'PIN 제거에 실패했어요 😢');
-    }
-  };
 
   const handleSignOut = async () => {
     setIsSigningOut(true); // 로그아웃 시작
@@ -729,14 +603,6 @@ export const Settings: React.FC = () => {
               </span>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
-              <span className="text-gray-700 font-medium flex items-center gap-2">
-                <span>💰</span> 현재 벌금
-              </span>
-              <span className="text-gray-900 font-medium">
-                {(state.couple as any)?.total_balance?.toLocaleString() || '0'}원
-              </span>
-            </div>
 
             {/* Leave Couple Button */}
             <div className="pt-2">
@@ -752,122 +618,6 @@ export const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* 앱 설정 */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
-        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-purple-400 rounded-lg flex items-center justify-center">
-            <Palette className="w-4 h-4 text-white" />
-          </div>
-          앱 설정
-        </h2>
-
-        <div className="space-y-4">
-          {/* PWA Install */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-gray-900">앱 설치 📱</h3>
-              <p className="text-sm text-gray-600">
-                {isInstalled
-                  ? '앱이 이미 설치되어 있어요'
-                  : '홈 화면에 추가해서 빠르게 접근하세요'
-                }
-              </p>
-            </div>
-            {!isInstalled && (
-              <button
-                onClick={handleInstallPWA}
-                className="px-4 py-2 bg-gradient-to-r from-indigo-400 to-purple-400 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1"
-              >
-                <Smartphone className="w-3 h-3" />
-                설치
-              </button>
-            )}
-            {isInstalled && (
-              <div className="flex items-center gap-2 text-green-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-medium">설치됨</span>
-              </div>
-            )}
-          </div>
-
-          {/* App Lock */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="font-bold text-gray-900">앱 잠금 🔐</h3>
-                <p className="text-sm text-gray-600">4자리 PIN으로 앱을 보호하세요</p>
-              </div>
-              {hasPin && (
-                <button
-                  onClick={lock}
-                  className="p-2 rounded-lg text-red-600 hover:bg-red-50"
-                  disabled={isLocked}
-                >
-                  <Lock className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-
-            {!hasPin ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
-                    placeholder="4자리 PIN"
-                    className="input-field text-center bg-gradient-to-r from-green-50 to-teal-50 border-green-200 focus:border-green-400"
-                  />
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    value={confirmPin}
-                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
-                    placeholder="PIN 확인"
-                    className="input-field text-center"
-                  />
-                </div>
-                <button
-                  onClick={handleSetupPin}
-                  disabled={newPin.length !== 4 || confirmPin.length !== 4}
-                  className="btn-primary text-sm w-full"
-                >
-                  PIN 설정
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="p-3 bg-green-50 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-green-600" />
-                    <span className="text-sm text-green-800">
-                      PIN 보호가 {isLocked ? '활성화' : '설정'}되었어요
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleChangePinMode}
-                      className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                    >
-                      변경
-                    </button>
-                    <button
-                      onClick={handleRemovePIN}
-                      className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                    >
-                      제거
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-        </div>
-      </div>
 
       {/* Support */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
@@ -974,92 +724,6 @@ export const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* PIN Change Modal */}
-      {showPinChangeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold text-gray-900 mb-2 text-center">
-              PIN 변경
-            </h3>
-            <p className="text-gray-600 text-sm mb-4 text-center">
-              새로운 4자리 PIN을 설정해주세요
-            </p>
-            <div className="space-y-3 mb-6">
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
-                placeholder="새 PIN (4자리)"
-                className="input-field text-center bg-gradient-to-r from-green-50 to-teal-50 border-green-200 focus:border-green-400"
-              />
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
-                placeholder="PIN 확인"
-                className="input-field text-center"
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowPinChangeModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleChangePIN}
-                disabled={newPin.length !== 4 || confirmPin.length !== 4}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                변경
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* iOS Install Instructions Modal */}
-      {showIOSInstallModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">
-              앱 설치 안내 (iOS)
-            </h3>
-            <div className="space-y-4 text-sm text-gray-700 mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">1️⃣</span>
-                <span>Safari 하단의 <strong>공유 버튼</strong>을 눌러주세요</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">2️⃣</span>
-                <span><strong>"홈 화면에 추가"</strong> 옵션을 찾아주세요</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">3️⃣</span>
-                <span><strong>"추가"</strong> 버튼을 눌러서 설치하세요</span>
-              </div>
-            </div>
-            <div className="bg-blue-50 rounded-xl p-3 mb-4">
-              <p className="text-xs text-blue-700 text-center">
-                💡 설치 후 홈 화면에서 앱을 바로 실행할 수 있어요!
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowIOSInstallModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
