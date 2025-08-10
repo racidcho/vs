@@ -71,7 +71,7 @@ export const MobileNav: React.FC = () => {
           const current = isCurrentPath(item.href);
 
           if (item.isCenter) {
-            // 중앙 버튼 (기록 추가) - 더 작게
+            // 중앙 버튼 (기록 추가) - 적절한 크기로 조정
             return (
               <Link
                 key={item.name}
@@ -80,21 +80,21 @@ export const MobileNav: React.FC = () => {
               >
                 <div className={`
                   relative flex flex-col items-center justify-center
-                  w-8 h-8 rounded-xl
+                  w-10 h-10 rounded-xl
                   bg-gradient-to-br ${item.gradient}
                   shadow-md shadow-pink-200/40
                   transform transition-all duration-300
                   ${current ? 'scale-105 rotate-2' : 'hover:scale-105 active:scale-95'}
                 `}>
-                  <Icon className="w-3 h-3 text-white" />
+                  <Icon className="w-4 h-4 text-white" />
                   {current && (
                     <div className="absolute -top-0.5 -right-0.5">
-                      <Sparkles className="w-3 h-3 text-yellow-300 animate-pulse" />
+                      <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
                     </div>
                   )}
                 </div>
                 <span className={`
-                  text-[7px] mt-0.5 block text-center font-medium
+                  text-[9px] mt-0.5 block text-center font-medium
                   ${current ? 'text-pink-600' : 'text-gray-500'}
                 `}>
                   {item.name}
@@ -111,7 +111,7 @@ export const MobileNav: React.FC = () => {
             >
               <div className={`
                 relative flex items-center justify-center
-                w-6 h-6 rounded-lg
+                w-8 h-8 rounded-lg
                 transition-all duration-300
                 ${current
                   ? `bg-gradient-to-br ${item.gradient} shadow-sm scale-105`
@@ -120,17 +120,17 @@ export const MobileNav: React.FC = () => {
               `}>
                 {current ? (
                   <>
-                    <Icon className="w-3 h-3 text-white" />
+                    <Icon className="w-4 h-4 text-white" />
                     <div className="absolute -top-0.5 -right-0.5">
-                      <span className="text-[10px] animate-bounce">{item.emoji}</span>
+                      <span className="text-xs animate-bounce">{item.emoji}</span>
                     </div>
                   </>
                 ) : (
-                  <Icon className={`w-3 h-3 text-gray-500`} />
+                  <Icon className={`w-4 h-4 text-gray-500`} />
                 )}
               </div>
               <span className={`
-                text-[7px] mt-0.5 font-medium
+                text-[9px] mt-0.5 font-medium
                 ${current ? 'text-pink-600' : 'text-gray-500'}
               `}>
                 {item.name}

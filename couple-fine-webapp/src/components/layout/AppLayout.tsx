@@ -167,7 +167,7 @@ export const AppLayout: React.FC = () => {
 
         {/* Main content */}
         <div className="flex flex-1 flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto pb-8 lg:pb-0">
+          <main className="flex-1 overflow-y-auto pb-10 lg:pb-0">
             <div className="p-4 lg:p-8 max-w-7xl mx-auto">
               <Outlet />
             </div>
