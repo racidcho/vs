@@ -3,8 +3,8 @@ import type { AppState, Couple, Rule, Violation, Reward } from '../types';
 import { supabase } from '../lib/supabase';
 import { updateViolation as updateViolationApi, deleteViolation as deleteViolationApi } from '../lib/supabaseApi';
 import { useAuth } from './AuthContext';
-// Debug utilities removed for production
-const debugLog = (...args: any[]) => {} // No-op function for production
+// Debug logging disabled in production
+const debugLog = (...args: any[]) => {}
 
 // Action Types
 type AppAction =
@@ -477,6 +477,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         debugLog('LOAD_DATA', '벌금 데이터 로드 실패', violationsError, 'error');
       } else {
         debugLog('LOAD_DATA', '벌금 데이터 로드 성공', { count: violationsData?.length || 0 }, 'success');
+        // 디버그: violations 데이터 확인
+        if (violationsData && violationsData.length > 0) {
+          console.log('📊 VIOLATIONS DATA:', violationsData.map(v => ({
+            id: v.id,
+            amount: v.amount,
+            violator_user_id: v.violator_user_id,
+            violator: v.violator
+          })));
+        }
         dispatch({ type: 'SET_VIOLATIONS', payload: violationsData as any || [] });
       }
 
@@ -992,6 +1001,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadViolations = async () => {
     if (!user?.couple_id) return;
     
+    console.log('🔄 LOADING VIOLATIONS for couple_id:', user.couple_id);
+    
     try {
       const { data: violationsData, error } = await supabase
         .from('violations')
@@ -1007,11 +1018,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .eq('couple_id', user.couple_id)
         .order('created_at', { ascending: false });
       
-      if (!error && violationsData) {
+      if (error) {
+        console.error('❌ Failed to load violations:', error);
+      } else if (violationsData) {
+        console.log('✅ Loaded violations:', violationsData.length, 'items');
+        console.log('📊 Violations details:', violationsData.map(v => ({
+          id: v.id,
+          amount: v.amount,
+          violator_user_id: v.violator_user_id,
+          violator: v.violator
+        })));
         dispatch({ type: 'SET_VIOLATIONS', payload: violationsData as Violation[] });
       }
     } catch (error) {
-      console.error('Failed to load violations:', error);
+      console.error('❌ Failed to load violations (exception):', error);
     }
   };
 

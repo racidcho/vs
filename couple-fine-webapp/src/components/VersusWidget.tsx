@@ -32,8 +32,12 @@ export const VersusWidget: React.FC = () => {
 
     // Calculate stats for each partner
     const calculateStats = (partnerId: string): PartnerStats => {
-      const violations = (state.violations || []).filter(v => v.violator_user_id === partnerId);
+      const allViolations = state.violations || [];
+      console.log('🔍 VERSUS: Calculating for partner', partnerId, 'from', allViolations.length, 'violations');
+      const violations = allViolations.filter(v => v.violator_user_id === partnerId);
+      console.log('📊 VERSUS: Found', violations.length, 'violations for', partnerId);
       const totalFines = violations.reduce((sum, v) => sum + Math.abs(v.amount), 0);
+      console.log('💰 VERSUS: Total fines for', partnerId, ':', totalFines);
       
       // Get partner name
       let partnerName = '';
@@ -61,20 +65,13 @@ export const VersusWidget: React.FC = () => {
 
     if (partner1Id) {
       const stats1 = calculateStats(partner1Id);
-      console.log('👥 VersusWidget Partner1 Stats:', stats1);
       setPartner1Stats(stats1);
     }
     
     if (partner2Id) {
       const stats2 = calculateStats(partner2Id);
-      console.log('👥 VersusWidget Partner2 Stats:', stats2);
       setPartner2Stats(stats2);
     }
-    
-    console.log('📊 VersusWidget Violations:', {
-      total: state.violations?.length || 0,
-      violations: state.violations
-    });
   }, [state.couple, state.violations, user]);
 
   // Don't render if we don't have both partners

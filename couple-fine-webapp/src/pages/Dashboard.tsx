@@ -49,37 +49,20 @@ export const Dashboard: React.FC = () => {
         // 단순하게 커플이 완성되었는지만 체크 (두 파트너 모두 존재)
         const coupleIsComplete = couple?.partner_1_id && couple?.partner_2_id;
         
-        console.log('🎉 DASHBOARD: 축하 페이지 체크:', {
-          celebrationKey,
-          hasCelebrated: !!hasCelebrated,
-          coupleIsComplete,
-          partner1Id: couple?.partner_1_id,
-          partner2Id: couple?.partner_2_id,
-          currentUserId: user.id,
-          coupleId: state.couple.id
-        });
+        // 축하 페이지 체크 로직
         
         // 이미 축하 페이지를 본 경우에는 리다이렉트하지 않음
         if (hasCelebrated) {
-          console.log('🏠 DASHBOARD: 이미 축하 페이지를 봤음 (키: ' + celebrationKey + ')');
+          // 이미 축하 페이지를 본 경우
           return;
         }
         
         // 커플이 완성되었고 축하 페이지를 본 적이 없으면 리다이렉트
         if (coupleIsComplete && !hasCelebrated) {
-          console.log('🎉 DASHBOARD: 축하 페이지로 리다이렉트', {
-            coupleId: state.couple.id,
-            userId: user.id,
-            celebrationKey
-          });
+          // 축하 페이지로 리다이렉트
           // localStorage에 미리 저장하여 중복 리다이렉트 방지
           localStorage.setItem(celebrationKey, 'pending');
           navigate('/couple-complete');
-        } else {
-          console.log('🏠 DASHBOARD: 축하 체크 완료 - 리다이렉트 필요 없음', {
-            coupleIsComplete,
-            hasCelebrated: !!hasCelebrated
-          });
         }
       }
     };
@@ -129,7 +112,7 @@ export const Dashboard: React.FC = () => {
 
           return;
         }
-        console.error('💥 DASHBOARD: 데이터 로딩 실패:', error);
+        // Error occurred while loading dashboard data
         // Keep default values on error
         if (isMounted) {
           setLoadError(true);
@@ -162,16 +145,10 @@ export const Dashboard: React.FC = () => {
     const loadUpdatedStats = async () => {
       try {
         const stats = await getDashboardStats(user.couple_id);
-        console.log('📊 DASHBOARD: 통계 데이터 로드됨:', {
-          totalBalance: stats.totalBalance,
-          activeRules: stats.activeRules,
-          thisMonthViolations: stats.thisMonthViolations,
-          availableRewards: stats.availableRewards,
-          violationsCount: state.violations?.length || 0
-        });
+        // Dashboard stats loaded successfully
         setDashboardData(stats);
       } catch (error) {
-        console.error('💥 DASHBOARD: 통계 업데이트 실패:', error);
+        // Error occurred while updating stats
       }
     };
     
@@ -204,7 +181,7 @@ export const Dashboard: React.FC = () => {
       });
 
       if (error) {
-        console.error('Edit violation error:', error);
+        // Error editing violation
         toast.error(`수정 실패: ${error}`);
       } else {
         toast.success('위반 기록이 수정되었어요! 💝');
@@ -213,7 +190,7 @@ export const Dashboard: React.FC = () => {
         setEditMemo('');
       }
     } catch (error) {
-      console.error('Edit violation exception:', error);
+      // Exception editing violation
       toast.error('수정 중 오류가 발생했어요');
     }
   };
@@ -234,13 +211,13 @@ export const Dashboard: React.FC = () => {
     try {
       const { error } = await deleteViolation(violationId);
       if (error) {
-        console.error('Delete violation error:', error);
+        // Error deleting violation
         toast.error(`삭제 실패: ${error}`);
       } else {
         toast.success('위반 기록이 삭제되었어요');
       }
     } catch (error) {
-      console.error('Delete violation exception:', error);
+      // Exception deleting violation
       toast.error('삭제 중 오류가 발생했어요');
     }
   };

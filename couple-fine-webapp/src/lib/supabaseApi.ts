@@ -77,7 +77,7 @@ const createApiError = (error: any, context: string): ApiError => {
 };
 
 const handleSupabaseError = (error: any, context: string = 'Database'): never => {
-  console.error(`Supabase API Error (${context}):`, error);
+  // Supabase API error occurred
   const apiError = createApiError(error, context);
 
   // 사용자 친화적 메시지 매핑
@@ -782,16 +782,8 @@ export const getDashboardStats = async (coupleId: string): Promise<{
         .eq(SCHEMA_MAP.columns.couple_id, coupleId)
         .gte(SCHEMA_MAP.columns.created_at, startOfMonth.toISOString());
 
-      // amount 값에 따라 위반 수 계산: 양수는 증가, 음수는 감소 (최소값 0 보장)
-      thisMonthCount = (thisMonthViolationsData || []).reduce((count, violation) => {
-        const amount = violation[SCHEMA_MAP.columns.amount] || 0;
-        if (amount > 0) {
-          return count + 1; // 위반 추가
-        } else if (amount < 0) {
-          return Math.max(0, count - 1); // 위반 감소 (0 미만 방지)
-        }
-        return count; // amount가 0인 경우 변화 없음
-      }, 0);
+      // 이번 달 위반 수 계산 (모든 violations 카운트)
+      thisMonthCount = (thisMonthViolationsData || []).length;
 
       // 총 잔고 계산 (벌금의 경우 amount가 양수이면 추가, 음수이면 차감)
       const { data: allViolationsData } = await supabase
@@ -800,8 +792,9 @@ export const getDashboardStats = async (coupleId: string): Promise<{
         .eq(SCHEMA_MAP.columns.couple_id, coupleId);
 
       totalBalance = (allViolationsData || []).reduce((sum, violation) => {
-        const amount = violation[SCHEMA_MAP.columns.amount] || 0;
-        return sum + amount; // amount 값에 따라 자동으로 추가/차감
+        // 'amount' 키로 직접 접근
+        const amount = violation.amount || 0;
+        return sum + Math.abs(amount); // 절대값으로 총 벌금 계산
       }, 0);
     } catch (error: any) {
 
