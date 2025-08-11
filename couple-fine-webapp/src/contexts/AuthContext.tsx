@@ -205,7 +205,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (data.session) {
         console.log('✅ 회원가입 및 자동 로그인 성공!');
-        // setSession과 refreshUser는 onAuthStateChange에서 자동 처리됨
+        // 자동 로그인 시 사용자 정보가 로드되기 전에
+        // ProtectedRoute에서 로그인 페이지로 리다이렉트되는 문제를 방지하기 위해
+        // 세션을 즉시 설정하고 사용자 정보를 미리 불러온다
+        setSession(data.session);
+        await refreshUser(data.session);
         return { success: true, message: '회원가입 성공!' };
       } else if (data.user) {
         console.log('📧 이메일 확인 필요');
