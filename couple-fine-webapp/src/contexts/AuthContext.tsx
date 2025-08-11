@@ -414,9 +414,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // 인증 상태 변경 리스너 설정
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted || !initialized) return;
+        if (!mounted) return;
         
-        console.log('🔔 Auth Event:', event, 'Session:', !!session);
+        console.log('🔔 Auth Event:', event, 'Session:', !!session, 'Initialized:', initialized);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session) {
