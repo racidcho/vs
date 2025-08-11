@@ -102,6 +102,9 @@ export const NameSetup: React.FC = () => {
       
       toast.success('이름이 저장되었어요! 💕');
       
+      // 세션 안정성을 위해 약간의 딜레이 추가
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Check if the couple is complete (both partners connected)
       // The second user who joins should see the celebration screen
       try {
@@ -111,24 +114,19 @@ export const NameSetup: React.FC = () => {
         const coupleIsComplete = updatedPartnerInfo?.partner !== null && updatedPartnerInfo?.partner !== undefined;
         
         if (coupleIsComplete) {
-          // Couple is complete - second user should see celebration
+          // Couple is complete - both users should see celebration
           console.log('🎉 NAMESETUP: Couple is complete, navigating to celebration');
-          setTimeout(() => {
-            navigate('/couple-complete');
-          }, 1500);
+          // 세션 유지를 위해 replace: false 사용
+          navigate('/couple-complete', { replace: false });
         } else {
           // First user who created couple - go to dashboard to wait
           console.log('⏳ NAMESETUP: First user, navigating to dashboard');
-          setTimeout(() => {
-            navigate('/dashboard');
-          }, 1500);
+          navigate('/', { replace: false });
         }
       } catch (error) {
         console.error('Failed to check partner info:', error);
         // Fallback to dashboard if partner info fails
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1500);
+        navigate('/', { replace: false });
       }
       
     } catch (error) {

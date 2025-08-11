@@ -335,6 +335,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw new Error(error.message);
     }
 
+    // 세션 토큰 재저장하여 세션 유지
+    if (session) {
+      localStorage.setItem('sb-auth-token', JSON.stringify({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      }));
+    }
+
     // Note: Real-time subscription will handle syncing with DB
   };
 
@@ -663,28 +671,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.log('⏳ 토큰 갱신 중 - USER_UPDATED 이벤트 스킵');
             return; // 갱신 중이면 스킵하여 충돌 방지
           }
-          if (!session) {
+          
+          // 세션이 있으면 유지하고 사용자 정보만 갱신
+          if (session && mounted) {
+            console.log('✅ USER_UPDATED: 세션 유지, 사용자 정보만 갱신');
+            setSession(session);
+            // 사용자 정보만 갱신 (세션 무효화 방지)
+            try {
+              await refreshUser();
+            } catch (error) {
+              console.log('⚠️ USER_UPDATED: 사용자 정보 갱신 실패, 세션은 유지');
+            }
+          } else if (!session) {
             // 세션이 없을 때만 재확인
             const { data: { session: currentSession } } = await supabase.auth.getSession();
             if (currentSession && mounted) {
               console.log('✅ USER_UPDATED: 세션 복구됨');
               setSession(currentSession);
               await refreshUser();
-            } else if (!currentSession && mounted) {
-              console.log('⚠️ USER_UPDATED: 세션 없음 확인');
-              // 정말로 세션이 없을 때만 로그아웃
-              setSession(null);
-              setUser(null);
-            }
-          } else if (mounted) {
-            // 세션이 있으면 조건부 갱신 - 토큰 갱신 중이 아닐 때만
-            console.log('✅ USER_UPDATED: 세션 유지하며 조건부 갱신');
-            setSession(session);
-            if (!isRefreshingSession) {
-              console.log('🔄 USER_UPDATED: 사용자 정보 갱신 (토큰 갱신 중 아님)');
-              await refreshUser();
-            } else {
-              console.log('⏳ USER_UPDATED: 토큰 갱신 중이므로 사용자 갱신 스킵');
             }
           }
           return;

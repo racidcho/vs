@@ -7,10 +7,11 @@ import confetti from 'canvas-confetti';
 
 export const CoupleComplete: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { state, getPartnerInfo } = useApp();
   const [partner, setPartner] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(user);
 
   // 축하 페이지 본 기록 저장
   useEffect(() => {
@@ -98,6 +99,13 @@ export const CoupleComplete: React.FC = () => {
 
   useEffect(() => {
     const loadPartnerInfo = async () => {
+      // 먼저 최신 사용자 정보를 가져옴
+      try {
+        await refreshUser();
+      } catch (error) {
+        console.log('Failed to refresh user:', error);
+      }
+      
       if (state.couple) {
         try {
           const result = await getPartnerInfo();
@@ -112,7 +120,12 @@ export const CoupleComplete: React.FC = () => {
     };
 
     loadPartnerInfo();
-  }, [state.couple, getPartnerInfo]);
+  }, [state.couple, getPartnerInfo, refreshUser]);
+
+  // user가 업데이트되면 currentUser도 업데이트
+  useEffect(() => {
+    setCurrentUser(user);
+  }, [user]);
 
   const handleContinue = () => {
     navigate('/');
@@ -233,7 +246,7 @@ export const CoupleComplete: React.FC = () => {
                 <div className="mb-3">
                   <p className="text-xs text-pink-600 font-semibold mb-1 uppercase tracking-wider">My Name</p>
                   <p className="text-2xl font-bold text-gray-800 mb-2">
-                    {user?.display_name || '사용자'}
+                    {currentUser?.display_name || currentUser?.email?.split('@')[0] || '사용자'}
                   </p>
                 </div>
                 
@@ -279,7 +292,7 @@ export const CoupleComplete: React.FC = () => {
                 <div className="mb-3">
                   <p className="text-xs text-purple-600 font-semibold mb-1 uppercase tracking-wider">Partner Name</p>
                   <p className="text-2xl font-bold text-gray-800 mb-2">
-                    {partner?.display_name || '파트너'}
+                    {partner?.display_name || partner?.email?.split('@')[0] || '파트너'}
                   </p>
                 </div>
                 
