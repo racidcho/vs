@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { AppProvider } from './contexts/AppContext';
+import { AppProvider, useApp } from './contexts/AppContext';
 import { isTestMode } from './utils/testHelper';
 
 // Components
@@ -32,13 +32,31 @@ import { ResetPassword } from './pages/ResetPassword';
 // Router content component that can use hooks
 const RouterContent: React.FC = () => {
   const { user } = useAuth();
+  const { state } = useApp();
   const { isLocked, hasPin, unlock } = useAppLock();
+  const navigate = useNavigate();
 
   // Ensure light theme is always applied
   useEffect(() => {
     document.body.classList.add('light');
     document.body.classList.remove('dark');
   }, []);
+
+  // Show celebration screen when couple connection completes
+  useEffect(() => {
+    if (!user || !state.couple) return;
+
+    const celebrationKey = `couple_celebrated_${user.id}_${state.couple.id}`;
+    const hasCelebrated = localStorage.getItem(celebrationKey);
+
+    const coupleIsComplete =
+      Boolean(state.couple.partner_1_id && state.couple.partner_2_id);
+
+    if (coupleIsComplete && !hasCelebrated) {
+      localStorage.setItem(celebrationKey, 'pending');
+      navigate('/couple-complete');
+    }
+  }, [user, state.couple, navigate]);
 
   // Show PIN lock screen if user is logged in, has PIN set, and app is locked
   if (user && hasPin && isLocked) {
