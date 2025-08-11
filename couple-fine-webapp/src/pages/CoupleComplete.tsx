@@ -128,18 +128,21 @@ export const CoupleComplete: React.FC = () => {
     setCurrentUser(user);
   }, [user]);
 
-  const handleContinue = () => {
-    // 커플 완료 후 선택 화면으로 돌아가기
-    navigate('/couple-setup');
+  const handleContinue = async () => {
+    console.log('🏠 CoupleComplete: 홈으로 이동 시도');
+    console.log('현재 user.couple_id:', user?.couple_id);
+    console.log('현재 state.couple:', state.couple);
+    
+    // couple_id가 없으면 refreshUser 한 번 더 시도
+    if (!user?.couple_id) {
+      console.log('⚠️ couple_id가 없음, refreshUser 시도');
+      await refreshUser();
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    // 홈으로 이동
+    navigate('/');
   };
-
-  // 일정 시간 후 자동으로 선택 화면으로 돌아가기
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate('/couple-setup');
-    }, 5000); // 5초 후 자동 이동
-    return () => clearTimeout(timer);
-  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 via-purple-50 to-indigo-50 relative overflow-hidden">
