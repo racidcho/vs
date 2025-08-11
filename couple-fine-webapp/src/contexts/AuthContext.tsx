@@ -59,13 +59,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // 사용자 정보 새로고침 함수
   const refreshUser = async () => {
+    console.log('🔄 refreshUser 시작 - session 체크:', !!session, session?.user?.id);
+    
     if (!session?.user) {
+      console.log('❌ refreshUser: 세션 또는 사용자 없음');
       setUser(null);
       return;
     }
 
     try {
-      console.log('🔄 사용자 정보 새로고침 시작...');
+      console.log('🔄 사용자 정보 새로고침 시작... 사용자 ID:', session.user.id);
       
       const { data: userData, error } = await supabase
         .from('profiles')
@@ -73,10 +76,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .eq('id', session.user.id)
         .single();
 
+      console.log('📊 Supabase 조회 결과:', { userData, error });
+
       if (userData && !error) {
+        console.log('✅ 사용자 정보 로드 성공, setUser 호출:', userData.email);
         setUser(userData);
-        console.log('✅ 사용자 정보 로드 성공:', userData.email);
+        console.log('✅ setUser 완료');
       } else if (error?.code === 'PGRST116') {
+        console.log('⚠️ 사용자 프로필 없음, 새로 생성 시도...');
         // 사용자가 profiles 테이블에 없음 - 새로 생성
         const newUser: Omit<User, 'id'> = {
           email: session.user.email || '',
@@ -91,10 +98,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .select()
           .single();
 
+        console.log('📊 사용자 생성 결과:', { createdUser, createError });
+
         if (createdUser && !createError) {
+          console.log('✅ 새 사용자 생성 완료, setUser 호출:', createdUser.email);
           setUser(createdUser);
-          console.log('✅ 새 사용자 생성 완료:', createdUser.email);
+          console.log('✅ 새 사용자 setUser 완료');
         } else {
+          console.log('⚠️ DB 생성 실패, fallback 사용자 생성:', createError);
           // DB 생성 실패 시 fallback 사용자 설정
           const fallbackUser: User = {
             id: session.user.id,
@@ -102,10 +113,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             display_name: session.user.email?.split('@')[0] || '사용자',
             created_at: new Date().toISOString()
           };
+          console.log('🔧 fallback 사용자 setUser 호출:', fallbackUser.email);
           setUser(fallbackUser);
-          console.log('⚠️ DB 생성 실패, fallback 사용자 설정');
+          console.log('✅ fallback setUser 완료');
         }
       } else {
+        console.log('⚠️ 사용자 조회 실패, 다른 에러:', error);
         // 기타 에러 - fallback 사용자 설정
         const fallbackUser: User = {
           id: session.user.id,
@@ -113,24 +126,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           display_name: session.user.email?.split('@')[0] || '사용자',
           created_at: new Date().toISOString()
         };
+        console.log('🔧 기타 에러 fallback 사용자 setUser 호출:', fallbackUser.email);
         setUser(fallbackUser);
-        console.log('⚠️ 사용자 조회 실패, fallback 사용자 설정');
+        console.log('✅ 기타 에러 fallback setUser 완료');
       }
     } catch (error) {
       console.error('❌ 사용자 정보 새로고침 실패:', error);
       
       // 에러 발생 시에도 세션이 있으면 기본 사용자 설정
       if (session?.user) {
+        console.log('🔧 에러 발생 시 fallback 사용자 생성 시도...');
         const fallbackUser: User = {
           id: session.user.id,
           email: session.user.email || '',
           display_name: session.user.email?.split('@')[0] || '사용자',
           created_at: new Date().toISOString()
         };
+        console.log('🔧 에러 발생 시 fallback setUser 호출:', fallbackUser.email);
         setUser(fallbackUser);
-        console.log('🔧 에러 발생 시 fallback 사용자 설정');
+        console.log('✅ 에러 발생 시 fallback setUser 완료');
+      } else {
+        console.log('❌ 에러 발생 시 세션도 없음');
       }
     }
+    console.log('🏁 refreshUser 완료');
   };
 
   const signIn = async (email: string, password: string) => {
@@ -360,15 +379,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         // 현재 세션 확인 - Supabase가 자동으로 localStorage에서 복구함
+        console.log('📡 Supabase getSession 호출...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('❌ 초기 세션 확인 실패:', error);
         } else {
           console.log('🔍 초기 세션 상태:', session ? '세션 있음' : '세션 없음');
+          console.log('📊 세션 상세:', session ? {
+            user_id: session.user?.id,
+            email: session.user?.email,
+            expires_at: session.expires_at
+          } : 'null');
           
           if (session && mounted) {
+            console.log('🔄 setSession 호출...');
             setSession(session);
+            console.log('🔄 refreshUser 호출 시작...');
             await refreshUser();
             console.log('✅ 초기 세션 복구 완료');
           }
