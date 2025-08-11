@@ -4,6 +4,11 @@ import { supabase } from '../lib/supabase';
 import type { AuthSession } from '@supabase/supabase-js';
 import { isTestMode, getTestUser } from '../utils/testHelper';
 
+// 세션 관리 상수
+const TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000; // 10분 (더 안전한 갱신 주기)
+const SESSION_CHECK_INTERVAL = 60 * 1000; // 1분마다 세션 상태 체크
+const TOKEN_REFRESH_THRESHOLD = 600; // 토큰 만료 10분 전에 갱신 (기존 5분에서 변경)
+
 interface AuthContextType {
   user: User | null;
   session: AuthSession | null;
@@ -280,10 +285,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ 세션 데이터 받음:', data.session.user.email);
         setSession(data.session);
         
-        // 세션 토큰을 localStorage에 저장
-        localStorage.setItem('sb-auth-token', JSON.stringify({
+        // 세션 토큰을 localStorage에 저장 (여러 백업)
+        const tokenData = {
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
+        };
+        
+        // 메인 저장소
+        localStorage.setItem('sb-auth-token', JSON.stringify(tokenData));
+        
+        // 백업 저장소 (모바일 브라우저 대응)
+        localStorage.setItem('auth_backup_1', JSON.stringify(tokenData));
+        localStorage.setItem('auth_backup_2', JSON.stringify({
+          ...tokenData,
+          timestamp: Date.now()
         }));
 
         // **사용자 데이터 새로고침에도 타임아웃 적용**
@@ -351,8 +366,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     setSession(null);
     
-    // localStorage 즉시 정리
+    // localStorage 즉시 정리 (모든 백업 포함)
     localStorage.removeItem('sb-auth-token');
+    localStorage.removeItem('auth_backup_1');
+    localStorage.removeItem('auth_backup_2');
     localStorage.removeItem('lastValidSession');
     
     // 로딩 상태 설정
@@ -522,7 +539,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // localStorage에서 세션 복구 시도 - Progressive Authentication 지원
     const restoreSession = async () => {
       try {
-        const storedSession = localStorage.getItem('sb-auth-token');
+        // 메인 저장소 시도
+        let storedSession = localStorage.getItem('sb-auth-token');
+        
+        // 메인이 없으면 백업 저장소 확인
+        if (!storedSession) {
+          console.log('⚠️ 메인 세션 없음, 백업 확인 중...');
+          storedSession = localStorage.getItem('auth_backup_1') || 
+                         localStorage.getItem('auth_backup_2');
+        }
+        
         if (storedSession) {
           const { access_token, refresh_token } = JSON.parse(storedSession);
           console.log('🔄 Progressive Authentication: 세션 복구 시작...');
@@ -858,9 +884,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           console.log(`⏰ 토큰 만료까지 ${Math.floor(timeUntilExpiry / 60)}분 남음`);
           
-          // 토큰이 5분 이내에 만료되면 즉시 갱신
-          if (timeUntilExpiry < 300) { // 5분 = 300초
-            console.log('🔄 토큰 만료 임박 - 즉시 갱신 시작!');
+          // 토큰이 10분 이내에 만료되면 즉시 갱신 (더 안전한 마진)
+          if (timeUntilExpiry < TOKEN_REFRESH_THRESHOLD) { 
+            console.log('🔄 토큰 만료 임박 - 즉시 갱신 시작! (10분 전 갱신)');
             isRefreshingSession = true; // 갱신 시작 플래그 설정
             const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
             
@@ -885,13 +911,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setSession(refreshData.session);
               isRefreshingSession = false; // 갱신 성공 시 플래그 해제
               
-              // 갱신된 토큰을 localStorage에 저장
-              localStorage.setItem('sb-auth-token', JSON.stringify({
+              // 갱신된 토큰을 localStorage에 저장 (여러 백업)
+              const tokenData = {
                 access_token: refreshData.session.access_token,
                 refresh_token: refreshData.session.refresh_token
+              };
+              
+              // 메인 저장소
+              localStorage.setItem('sb-auth-token', JSON.stringify(tokenData));
+              
+              // 백업 저장소 (모바일 브라우저 대응)
+              localStorage.setItem('auth_backup_1', JSON.stringify(tokenData));
+              localStorage.setItem('auth_backup_2', JSON.stringify({
+                ...tokenData,
+                timestamp: Date.now()
               }));
               
-              // localStorage 백업
+              // 세션 메타데이터 백업
               localStorage.setItem('lastValidSession', JSON.stringify({
                 userId: refreshData.session.user.id,
                 email: refreshData.session.user.email,
@@ -923,8 +959,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // 초기 토큰 체크
     setTimeout(checkAndRefreshToken, 5000);
     
-    // 3분마다 토큰 상태 체크 (JWT 만료 전에 미리 갱신)
-    const sessionRefreshInterval = setInterval(checkAndRefreshToken, 3 * 60 * 1000);
+    // 정기적으로 토큰 상태 체크 (JWT 만료 전에 미리 갱신)
+    const sessionRefreshInterval = setInterval(checkAndRefreshToken, SESSION_CHECK_INTERVAL);
 
     // 브라우저 탭이 포커스를 받을 때마다 토큰 상태 즉시 체크
     const handleFocus = async () => {
@@ -1058,6 +1094,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
     
     window.addEventListener('pageshow', handlePageShow);
+    
+    // 네트워크 재연결 감지 (모바일에서 중요)
+    const handleOnline = async () => {
+      if (!mounted || !session) return;
+      console.log('🌐 네트워크 재연결 감지 - 세션 확인');
+      
+      // 네트워크 재연결 시 토큰 상태 확인
+      await checkAndRefreshToken();
+      
+      // localStorage에서 백업된 세션 복구 시도
+      const storedSession = localStorage.getItem('sb-auth-token');
+      if (storedSession && !session) {
+        try {
+          const { access_token, refresh_token } = JSON.parse(storedSession);
+          const { data } = await supabase.auth.setSession({
+            access_token,
+            refresh_token
+          });
+          if (data?.session) {
+            console.log('✅ 네트워크 재연결 시 세션 복구 성공');
+            setSession(data.session);
+            await refreshUser();
+          }
+        } catch (error) {
+          console.error('네트워크 재연결 시 세션 복구 실패:', error);
+        }
+      }
+    };
+    
+    window.addEventListener('online', handleOnline);
 
     return () => {
       mounted = false; // StrictMode 대응 - 언마운트 플래그
@@ -1068,6 +1134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 
