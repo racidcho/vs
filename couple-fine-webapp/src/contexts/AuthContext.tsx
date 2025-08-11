@@ -8,9 +8,10 @@ interface AuthContextType {
   user: User | null;
   session: AuthSession | null;
   isLoading: boolean;
-  signIn: (email: string) => Promise<{ error?: string; success?: boolean; message?: string }>;
-  verifyOtp: (email: string, token: string) => Promise<{ error?: string; success?: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error?: string; success?: boolean; message?: string }>;
+  signUp: (email: string, password: string) => Promise<{ error?: string; success?: boolean; message?: string }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error?: string; success?: boolean; message?: string }>;
   refreshUser: () => Promise<void>;
   updateProfile: (updates: Partial<Pick<User, 'display_name' | 'avatar_url'>>) => Promise<void>;
   isDebugMode: boolean;
@@ -162,122 +163,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signIn = async (email: string) => {
+  const signIn = async (email: string, password: string) => {
     setIsLoading(true);
 
     try {
-      // 테스트 모드에서는 OTP 전송 우회
-      if (isTestMode()) {
-        console.log('🧪 TEST MODE: OTP 전송 우회');
-        return { success: true, message: 'TEST MODE: OTP 우회됨. 임의 코드로 진행하세요.' };
-      }
+      console.log('🔐 로그인 시도:', email);
 
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
-        options: {
-          shouldCreateUser: true
-        }
+        password: password
       });
 
       if (error) {
+        console.error('❌ 로그인 실패:', error.message);
         return { error: error.message };
       }
 
-      return { success: true, message: 'OTP sent! Check your email.' };
-    } catch (error) {
-      return { error: 'An unexpected error occurred' };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const verifyOtp = async (email: string, token: string) => {
-    console.log('🔍 verifyOtp 시작:', { email, token, length: token.length });
-    setIsLoading(true);
-    setIsAuthenticating(true); // 로그인 프로세스 시작
-
-    // **타임아웃 설정**: 전체 인증 프로세스를 15초로 제한
-    const overallTimeoutId = setTimeout(() => {
-      console.error('⏰ verifyOtp 전체 타임아웃 (15초) - 강제 종료');
-      setIsLoading(false);
-      setIsAuthenticating(false);
-    }, 15000);
-
-    try {
-      // 테스트 모드에서 OTP 우회하고 바로 로그인
-      if (isTestMode()) {
-        console.log('🧪 TEST MODE: OTP 검증 우회, 자동 로그인');
-        clearTimeout(overallTimeoutId);
-        
-        const testUser = getTestUser();
-        if (testUser) {
-          // 테스트 사용자 정보로 바로 로그인
-          const mockUser: User = {
-            id: testUser.id,
-            email: testUser.email,
-            display_name: testUser.display_name,
-            created_at: new Date().toISOString(),
-            couple_id: '96e3ffc4-fc47-418c-81c5-2a020701a95b' // 실제 생성된 커플 ID
-          };
-
-          setUser(mockUser);
-          setSession({
-            access_token: 'test-token',
-            refresh_token: 'test-refresh-token',
-            expires_in: 3600,
-            expires_at: Math.floor(Date.now() / 1000) + 3600,
-            token_type: 'bearer',
-            user: {
-              id: testUser.id,
-              email: testUser.email,
-              aud: 'authenticated',
-              role: 'authenticated',
-              app_metadata: {},
-              user_metadata: { display_name: testUser.display_name },
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
-          });
-          
-          console.log('✅ 테스트 모드 로그인 성공');
-          return { success: true };
-        }
-        
-        return { error: 'Test user not found' };
-      }
-
-      console.log('🔍 Supabase OTP 검증 시작...');
-      
-      // **OTP 검증에 10초 타임아웃 추가**
-      const otpVerificationPromise = supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: token.trim(),
-        type: 'email'
-      });
-
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('OTP 검증 타임아웃 (20초)'));
-        }, 20000);
-      });
-
-      console.log('⏰ OTP 검증 타임아웃 설정: 20초');
-      const { data, error } = await Promise.race([
-        otpVerificationPromise,
-        timeoutPromise
-      ]);
-
-      console.log('🔍 Supabase OTP 검증 결과:', { data, error });
-
-      if (error) {
-        console.error('❌ Supabase OTP 에러:', error);
-        return { 
-          error: error.message || 'OTP 검증에 실패했습니다.' 
-        };
-      }
-
       if (data.session) {
-        console.log('✅ 세션 데이터 받음:', data.session.user.email);
+        console.log('✅ 로그인 성공:', data.session.user.email);
         setSession(data.session);
         
         // 세션 토큰을 localStorage에 저장
@@ -286,65 +189,102 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           refresh_token: data.session.refresh_token
         }));
 
-        // **사용자 데이터 새로고침에도 타임아웃 적용**
-        console.log('🔄 사용자 데이터 새로고침 중...');
+        // 사용자 데이터 새로고침
         try {
-          const refreshUserPromise = refreshUser();
-          const refreshTimeoutPromise = new Promise<void>((_, reject) => {
-            setTimeout(() => {
-              reject(new Error('사용자 데이터 새로고침 타임아웃 (5초)'));
-            }, 5000);
-          });
-
-          await Promise.race([
-            refreshUserPromise,
-            refreshTimeoutPromise
-          ]);
-
-          console.log('✅ 사용자 데이터 새로고침 완료');
+          await refreshUser();
         } catch (refreshError) {
-          console.warn('⚠️ 사용자 데이터 새로고침 실패 또는 타임아웃:', refreshError);
-          // 새로고침 실패해도 로그인은 성공으로 처리 (세션이 있으므로)
+          console.warn('⚠️ 사용자 데이터 새로고침 실패:', refreshError);
         }
 
-        clearTimeout(overallTimeoutId); // 성공 시 전체 타임아웃 해제
-        console.log('✅ OTP 인증 성공, 세션 저장 완료');
-        return { success: true };
+        return { success: true, message: '로그인 성공!' };
       }
 
-      console.warn('⚠️ 세션이 없음 - OTP 검증 실패');
-      return { error: '인증 코드를 다시 확인해주세요.' };
-    } catch (error: any) {
-      console.error('💥 verifyOtp 예상치 못한 에러:', error);
-      
-      // **타임아웃 에러인지 확인**
-      if (error.message && error.message.includes('타임아웃')) {
-        console.error('⏰ 타임아웃 에러 감지:', error.message);
-        return { 
-          error: `인증 시간이 초과되었습니다. 네트워크를 확인하고 다시 시도해주세요.` 
-        };
-      }
-      
-      setIsAuthenticating(false); // 로그인 프로세스 종료
-      return { 
-        error: `인증 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}` 
-      };
+      return { error: '로그인에 실패했습니다.' };
+    } catch (error) {
+      console.error('💥 로그인 오류:', error);
+      return { error: '예상치 못한 오류가 발생했습니다.' };
     } finally {
-      console.log('🔍 verifyOtp finally 블록 실행');
-      
-      // **모든 타임아웃 정리**
-      clearTimeout(overallTimeoutId);
-      
-      console.log('🔍 verifyOtp 완료 - 로딩 상태 해제');
       setIsLoading(false);
-      
-      // 로그인 완료 후 약간의 지연을 두고 플래그 해제
-      setTimeout(() => {
-        setIsAuthenticating(false);
-        console.log('🔍 인증 플래그 해제 완료');
-      }, 1000);
     }
   };
+
+  const signUp = async (email: string, password: string) => {
+    setIsLoading(true);
+
+    try {
+      console.log('🎉 회원가입 시도:', email);
+
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        console.error('❌ 회원가입 실패:', error.message);
+        return { error: error.message };
+      }
+
+      if (data.session) {
+        console.log('✅ 회원가입 및 자동 로그인 성공!');
+        setSession(data.session);
+        
+        // 세션 토큰을 localStorage에 저장
+        localStorage.setItem('sb-auth-token', JSON.stringify({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        }));
+
+        // 사용자 데이터 새로고침
+        try {
+          await refreshUser();
+        } catch (refreshError) {
+          console.warn('⚠️ 사용자 데이터 새로고침 실패:', refreshError);
+        }
+
+        return { success: true, message: '회원가입 성공!' };
+      } else if (data.user) {
+        // 이메일 확인이 필요한 경우 (Supabase 설정에 따라)
+        console.log('📧 이메일 확인 필요');
+        return { success: true, message: '회원가입 성공! 이메일을 확인해주세요.' };
+      }
+
+      return { error: '회원가입에 실패했습니다.' };
+    } catch (error) {
+      console.error('💥 회원가입 오류:', error);
+      return { error: '예상치 못한 오류가 발생했습니다.' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    setIsLoading(true);
+
+    try {
+      console.log('🔑 비밀번호 재설정 요청:', email);
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) {
+        console.error('❌ 비밀번호 재설정 실패:', error.message);
+        return { error: error.message };
+      }
+
+      console.log('✅ 비밀번호 재설정 이메일 발송 성공');
+      return { success: true, message: '비밀번호 재설정 이메일을 발송했습니다. 이메일을 확인해주세요.' };
+    } catch (error) {
+      console.error('💥 비밀번호 재설정 오류:', error);
+      return { error: '예상치 못한 오류가 발생했습니다.' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   const signOut = async () => {
     // 즉시 UI 상태 업데이트 (사용자 경험 개선)
@@ -1076,8 +1016,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session,
     isLoading,
     signIn,
-    verifyOtp,
+    signUp,
     signOut,
+    resetPassword,
     refreshUser,
     updateProfile,
     isDebugMode,

@@ -27,6 +27,7 @@ import { NewViolation } from './pages/NewViolation';
 import { Rewards } from './pages/Rewards';
 import { Calendar } from './pages/Calendar';
 import { Settings } from './pages/Settings';
+import { ResetPassword } from './pages/ResetPassword';
 
 // Router content component that can use hooks
 const RouterContent: React.FC = () => {
@@ -146,6 +147,7 @@ const RouterContent: React.FC = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
         {/* Protected routes that don't require couple setup */}
         <Route path="/couple-setup" element={<ProtectedRoute><CoupleSetupPage /></ProtectedRoute>} />
@@ -226,6 +228,11 @@ const NameSetupPage: React.FC = () => {
 // Couple complete page wrapper
 const CoupleCompletePage: React.FC = () => {
   return <CoupleComplete />;
+};
+
+// Reset password page wrapper
+const ResetPasswordPage: React.FC = () => {
+  return <ResetPassword />;
 };
 
 export default App;// Force rebuild at 2025년 08월 10일 일 오후 12:42:17
