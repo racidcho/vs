@@ -407,13 +407,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Refresh all data with abort signal support
   const refreshData = async (abortSignal?: AbortSignal) => {
-
+    console.log('🔄 APPCONTEXT: refreshData 호출');
     try {
       await loadCoupleData(abortSignal);
-
+      console.log('✅ APPCONTEXT: refreshData 완료');
     } catch (error) {
       if (abortSignal?.aborted) {
-
+        console.log('🚫 APPCONTEXT: refreshData 취소됨');
       } else {
         console.error('💥 APPCONTEXT: refreshData 오류:', error);
       }
@@ -531,9 +531,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.log('🔄 APPCONTEXT: joinCouple 성공 - 사용자 정보 새로고침');
       await refreshUser();
       
+      // 잠시 대기하여 AuthContext가 업데이트되도록 함
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // 그 다음 커플 데이터를 다시 로드하여 화면에 반영
       console.log('🔄 APPCONTEXT: 커플 데이터 새로고침');
       await refreshData();
+      
+      console.log('✅ APPCONTEXT: joinCouple 완료 - couple_id:', coupleData.id);
 
       return { success: true };
     } catch (error) {
@@ -1195,7 +1200,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           table: 'couples',
           filter: `id=eq.${user.couple_id}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('🔄 APPCONTEXT REALTIME [COUPLES]:', payload.eventType, payload);
 
           if (payload.eventType === 'UPDATE' && payload.new) {
@@ -1205,14 +1210,52 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             const oldCouple = payload.old as any;
             const newCouple = payload.new as any;
             
+            // 파트너가 새로 연결된 경우 (첫 번째 사용자를 위한 감지)
             if (!oldCouple?.partner_2_id && newCouple?.partner_2_id) {
               console.log('🎉 파트너가 연결되었습니다! 전체 데이터 새로고침');
+              
+              // 파트너 정보를 포함한 커플 데이터 즉시 업데이트
+              const { data: partnerData } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', newCouple.partner_2_id)
+                .single();
+              
+              if (partnerData) {
+                // 즉시 커플 상태 업데이트 (파트너 정보 포함)
+                const updatedCouple: Couple = {
+                  ...newCouple,
+                  partner_2: partnerData
+                };
+                dispatch({ type: 'SET_COUPLE', payload: updatedCouple });
+                console.log('✅ APPCONTEXT REALTIME: 파트너 정보 포함하여 커플 상태 즉시 업데이트');
+              }
+              
+              // 전체 데이터도 새로고침
+              setTimeout(() => {
+                refreshData();
+              }, 500);
+              
+              // 파트너 연결 알림
+              const partnerName = partnerData?.display_name || partnerData?.email?.split('@')[0] || '파트너';
+              console.log(`🎊 ${partnerName}님이 연결되었습니다!`);
+              
+              // Toast 알림 (react-hot-toast가 없으면 console로 대체)
+              try {
+                const toast = await import('react-hot-toast');
+                toast.default.success(`🎉 ${partnerName}님이 연결되었습니다! 축하해요!`, {
+                  duration: 5000,
+                  position: 'top-center'
+                });
+              } catch {
+                console.log('Toast 알림을 표시할 수 없습니다');
+              }
+            } else {
+              // 일반적인 커플 업데이트 (이름 변경 등)
+              setTimeout(() => {
+                refreshData();
+              }, 500);
             }
-            
-            // 커플 정보가 업데이트되면 전체 데이터를 다시 로드하여 파트너 정보까지 가져옴
-            setTimeout(() => {
-              refreshData();
-            }, 500);
           }
         }
       )

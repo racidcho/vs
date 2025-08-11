@@ -116,11 +116,14 @@ export const NameSetup: React.FC = () => {
         if (coupleIsComplete) {
           // Couple is complete - both users should see celebration
           console.log('🎉 NAMESETUP: Couple is complete, navigating to celebration');
+          console.log('user.couple_id:', user.couple_id);
+          console.log('partner info:', updatedPartnerInfo);
           // 세션 유지를 위해 replace: false 사용
           navigate('/couple-complete', { replace: false });
         } else {
           // First user who created couple - go to dashboard to wait
           console.log('⏳ NAMESETUP: First user, navigating to dashboard');
+          console.log('user.couple_id:', user.couple_id);
           navigate('/', { replace: false });
         }
       } catch (error) {

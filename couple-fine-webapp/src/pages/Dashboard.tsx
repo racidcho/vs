@@ -89,16 +89,23 @@ export const Dashboard: React.FC = () => {
         // 단순하게 커플이 완성되었는지만 체크 (두 파트너 모두 존재)
         const coupleIsComplete = couple?.partner_1_id && couple?.partner_2_id;
         
-        // 축하 페이지 체크 로직
+        console.log('🎊 Dashboard: 커플 상태 체크', {
+          coupleId: couple?.id,
+          partner1: couple?.partner_1_id,
+          partner2: couple?.partner_2_id,
+          isComplete: coupleIsComplete,
+          hasCelebrated
+        });
         
         // 이미 축하 페이지를 본 경우에는 리다이렉트하지 않음
-        if (hasCelebrated) {
+        if (hasCelebrated === 'true') {
           // 이미 축하 페이지를 본 경우
           return;
         }
         
         // 커플이 완성되었고 축하 페이지를 본 적이 없으면 리다이렉트
         if (coupleIsComplete && !hasCelebrated) {
+          console.log('🎉 Dashboard: 커플 완성! 축하 페이지로 이동');
           // 축하 페이지로 리다이렉트
           // localStorage에 미리 저장하여 중복 리다이렉트 방지
           localStorage.setItem(celebrationKey, 'pending');

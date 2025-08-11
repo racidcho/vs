@@ -18,6 +18,7 @@ export const CoupleComplete: React.FC = () => {
     if (user && state.couple) {
       const celebrationKey = `couple_celebrated_${user.id}_${state.couple.id}`;
       localStorage.setItem(celebrationKey, 'true');
+      console.log('✅ CoupleComplete: 축하 페이지 방문 기록 저장됨');
     }
   }, [user, state.couple]);
 
@@ -127,7 +128,19 @@ export const CoupleComplete: React.FC = () => {
     setCurrentUser(user);
   }, [user]);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    console.log('🏠 CoupleComplete: 홈으로 이동 시도');
+    console.log('현재 user.couple_id:', user?.couple_id);
+    console.log('현재 state.couple:', state.couple);
+    
+    // couple_id가 없으면 refreshUser 한 번 더 시도
+    if (!user?.couple_id) {
+      console.log('⚠️ couple_id가 없음, refreshUser 시도');
+      await refreshUser();
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    // 홈으로 이동
     navigate('/');
   };
 
