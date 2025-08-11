@@ -58,22 +58,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
 
   // 사용자 정보 새로고침 함수
-  const refreshUser = async () => {
-    console.log('🔄 refreshUser 시작 - session 체크:', !!session, session?.user?.id);
+  const refreshUser = async (currentSession?: AuthSession | null) => {
+    const sessionToUse = currentSession || session;
+    console.log('🔄 refreshUser 시작 - session 체크:', !!sessionToUse, sessionToUse?.user?.id);
     
-    if (!session?.user) {
+    if (!sessionToUse?.user) {
       console.log('❌ refreshUser: 세션 또는 사용자 없음');
       setUser(null);
       return;
     }
 
     try {
-      console.log('🔄 사용자 정보 새로고침 시작... 사용자 ID:', session.user.id);
+      console.log('🔄 사용자 정보 새로고침 시작... 사용자 ID:', sessionToUse.user.id);
       
       const { data: userData, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('id', sessionToUse.user.id)
         .single();
 
       console.log('📊 Supabase 조회 결과:', { userData, error });
@@ -86,15 +87,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('⚠️ 사용자 프로필 없음, 새로 생성 시도...');
         // 사용자가 profiles 테이블에 없음 - 새로 생성
         const newUser: Omit<User, 'id'> = {
-          email: session.user.email || '',
-          display_name: session.user.user_metadata?.display_name ||
-                       session.user.email?.split('@')[0] || '사용자',
+          email: sessionToUse.user.email || '',
+          display_name: sessionToUse.user.user_metadata?.display_name ||
+                       sessionToUse.user.email?.split('@')[0] || '사용자',
           created_at: new Date().toISOString()
         };
 
         const { data: createdUser, error: createError } = await supabase
           .from('profiles')
-          .insert({ ...newUser, id: session.user.id })
+          .insert({ ...newUser, id: sessionToUse.user.id })
           .select()
           .single();
 
@@ -108,9 +109,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('⚠️ DB 생성 실패, fallback 사용자 생성:', createError);
           // DB 생성 실패 시 fallback 사용자 설정
           const fallbackUser: User = {
-            id: session.user.id,
-            email: session.user.email || '',
-            display_name: session.user.email?.split('@')[0] || '사용자',
+            id: sessionToUse.user.id,
+            email: sessionToUse.user.email || '',
+            display_name: sessionToUse.user.email?.split('@')[0] || '사용자',
             created_at: new Date().toISOString()
           };
           console.log('🔧 fallback 사용자 setUser 호출:', fallbackUser.email);
@@ -121,9 +122,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('⚠️ 사용자 조회 실패, 다른 에러:', error);
         // 기타 에러 - fallback 사용자 설정
         const fallbackUser: User = {
-          id: session.user.id,
-          email: session.user.email || '',
-          display_name: session.user.email?.split('@')[0] || '사용자',
+          id: sessionToUse.user.id,
+          email: sessionToUse.user.email || '',
+          display_name: sessionToUse.user.email?.split('@')[0] || '사용자',
           created_at: new Date().toISOString()
         };
         console.log('🔧 기타 에러 fallback 사용자 setUser 호출:', fallbackUser.email);
@@ -134,12 +135,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('❌ 사용자 정보 새로고침 실패:', error);
       
       // 에러 발생 시에도 세션이 있으면 기본 사용자 설정
-      if (session?.user) {
+      if (sessionToUse?.user) {
         console.log('🔧 에러 발생 시 fallback 사용자 생성 시도...');
         const fallbackUser: User = {
-          id: session.user.id,
-          email: session.user.email || '',
-          display_name: session.user.email?.split('@')[0] || '사용자',
+          id: sessionToUse.user.id,
+          email: sessionToUse.user.email || '',
+          display_name: sessionToUse.user.email?.split('@')[0] || '사용자',
           created_at: new Date().toISOString()
         };
         console.log('🔧 에러 발생 시 fallback setUser 호출:', fallbackUser.email);
@@ -395,8 +396,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (session && mounted) {
             console.log('🔄 setSession 호출...');
             setSession(session);
-            console.log('🔄 refreshUser 호출 시작...');
-            await refreshUser();
+            console.log('🔄 refreshUser 호출 시작 (세션 직접 전달)...');
+            await refreshUser(session);
             console.log('✅ 초기 세션 복구 완료');
           }
         }
@@ -420,7 +421,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session) {
             setSession(session);
-            await refreshUser();
+            await refreshUser(session);
             console.log('✅ 로그인/토큰 갱신 처리 완료');
           }
         } else if (event === 'SIGNED_OUT') {
