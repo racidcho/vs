@@ -1191,7 +1191,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     // Subscribe to couples changes
     const coupleChannel = supabase
-      .channel(`couple-${user.couple_id}`)
+      .channel(`couple-${user.couple_id}-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -1270,7 +1270,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     // Subscribe to rules changes
     const rulesChannel = supabase
-      .channel(`rules-${user.couple_id}`)
+      .channel(`rules-${user.couple_id}-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -1311,7 +1311,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     // Subscribe to violations changes
     const violationsChannel = supabase
-      .channel(`violations-${user.couple_id}`)
+      .channel(`violations-${user.couple_id}-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -1346,7 +1346,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     // Subscribe to rewards changes
     const rewardsChannel = supabase
-      .channel(`rewards-${user.couple_id}`)
+      .channel(`rewards-${user.couple_id}-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -1381,7 +1381,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     // Subscribe to profiles changes (for partner name updates)
     const profilesChannel = supabase
-      .channel(`profiles-${user.couple_id}`)
+      .channel(`profiles-${user.couple_id}-${user.id}`)
       .on(
         'postgres_changes',
         {

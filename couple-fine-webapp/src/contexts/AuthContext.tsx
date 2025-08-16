@@ -184,8 +184,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ 로그인 성공:', data.session.user.email);
         setSession(data.session);
         
-        // 세션 토큰을 localStorage에 저장
-        localStorage.setItem('sb-auth-token', JSON.stringify({
+        // 현재 사용자 이메일 저장 (키 분리용)
+        localStorage.setItem('current-user-email', email.trim());
+        
+        // 세션 토큰을 사용자별 localStorage에 저장
+        const tokenKey = `sb-auth-token-${email.trim()}`;
+        localStorage.setItem(tokenKey, JSON.stringify({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
         }));
@@ -232,8 +236,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ 회원가입 및 자동 로그인 성공!');
         setSession(data.session);
         
-        // 세션 토큰을 localStorage에 저장
-        localStorage.setItem('sb-auth-token', JSON.stringify({
+        // 현재 사용자 이메일 저장 (키 분리용)
+        localStorage.setItem('current-user-email', email.trim());
+        
+        // 세션 토큰을 사용자별 localStorage에 저장
+        const tokenKey = `sb-auth-token-${email.trim()}`;
+        localStorage.setItem(tokenKey, JSON.stringify({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
         }));
@@ -292,7 +300,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     setSession(null);
     
-    // localStorage 즉시 정리
+    // 현재 사용자의 localStorage 즉시 정리
+    const currentUserEmail = localStorage.getItem('current-user-email');
+    if (currentUserEmail) {
+      const tokenKey = `sb-auth-token-${currentUserEmail}`;
+      localStorage.removeItem(tokenKey);
+      localStorage.removeItem(`lastValidSession-${currentUserEmail}`);
+    }
+    // 레거시 키들도 정리 (하위 호환성)
     localStorage.removeItem('sb-auth-token');
     localStorage.removeItem('lastValidSession');
     
@@ -336,9 +351,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw new Error(error.message);
     }
 
-    // 세션 토큰 재저장하여 세션 유지
-    if (session) {
-      localStorage.setItem('sb-auth-token', JSON.stringify({
+    // 세션 토큰 재저장하여 세션 유지 (사용자별)
+    if (session && user?.email) {
+      const tokenKey = `sb-auth-token-${user.email}`;
+      localStorage.setItem(tokenKey, JSON.stringify({
         access_token: session.access_token,
         refresh_token: session.refresh_token
       }));
@@ -427,11 +443,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Initialize auth state
     setIsLoading(true);
 
-    // 🚀 PROGRESSIVE AUTHENTICATION - 즉시 토큰 체크
-    const storedTokens = localStorage.getItem('sb-auth-token');
+    // 🚀 PROGRESSIVE AUTHENTICATION - 즉시 토큰 체크 (사용자별)
+    const currentUserEmail = localStorage.getItem('current-user-email');
+    const tokenKey = currentUserEmail ? `sb-auth-token-${currentUserEmail}` : 'sb-auth-token';
+    const storedTokens = localStorage.getItem(tokenKey);
     const hasValidTokens = !!storedTokens;
     
-    console.log(`🔍 Progressive Authentication: ${hasValidTokens ? '토큰 발견 ✅' : '토큰 없음 ❌'}`);
+    console.log(`🔍 Progressive Authentication: ${hasValidTokens ? '토큰 발견 ✅' : '토큰 없음 ❌'} (user: ${currentUserEmail || 'unknown'})`);
     
     // 토큰이 있으면 즉시 임시 사용자 상태 설정 (login redirect 방지)
     if (hasValidTokens && mounted) {
@@ -471,7 +489,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // localStorage에서 세션 복구 시도 - Progressive Authentication 지원
     const restoreSession = async () => {
       try {
-        const storedSession = localStorage.getItem('sb-auth-token');
+        const storedSession = localStorage.getItem(tokenKey);
         if (storedSession) {
           const { access_token, refresh_token } = JSON.parse(storedSession);
           console.log('🔄 Progressive Authentication: 세션 복구 시작...');
@@ -713,11 +731,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (session) {
               // SIGNED_IN 이벤트에서 사용자 정보 새로고침 추가
               await refreshUser();
-              // 세션 토큰을 localStorage에 저장 (페이지 이동 시 복구용)
-              localStorage.setItem('sb-auth-token', JSON.stringify({
-                access_token: session.access_token,
-                refresh_token: session.refresh_token
-              }));
+              // 세션 토큰을 사용자별 localStorage에 저장 (페이지 이동 시 복구용)
+              const userEmail = session.user?.email;
+              if (userEmail) {
+                localStorage.setItem('current-user-email', userEmail);
+                const tokenKey = `sb-auth-token-${userEmail}`;
+                localStorage.setItem(tokenKey, JSON.stringify({
+                  access_token: session.access_token,
+                  refresh_token: session.refresh_token
+                }));
+              }
               
               // 세션 정보를 localStorage에 백업 (복구용)
               localStorage.setItem('lastValidSession', JSON.stringify({
@@ -836,19 +859,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setSession(refreshData.session);
               setIsRefreshingSession(false);
               
-              // 갱신된 토큰을 localStorage에 저장
-              localStorage.setItem('sb-auth-token', JSON.stringify({
-                access_token: refreshData.session.access_token,
-                refresh_token: refreshData.session.refresh_token
-              }));
-              
-              // localStorage 백업
-              localStorage.setItem('lastValidSession', JSON.stringify({
-                userId: refreshData.session.user.id,
-                email: refreshData.session.user.email,
-                expiresAt: refreshData.session.expires_at,
-                timestamp: Date.now()
-              }));
+              // 갱신된 토큰을 사용자별 localStorage에 저장
+              const userEmail = refreshData.session.user?.email;
+              if (userEmail) {
+                localStorage.setItem('current-user-email', userEmail);
+                const tokenKey = `sb-auth-token-${userEmail}`;
+                localStorage.setItem(tokenKey, JSON.stringify({
+                  access_token: refreshData.session.access_token,
+                  refresh_token: refreshData.session.refresh_token
+                }));
+                
+                // 사용자별 localStorage 백업
+                const sessionKey = `lastValidSession-${userEmail}`;
+                localStorage.setItem(sessionKey, JSON.stringify({
+                  userId: refreshData.session.user.id,
+                  email: refreshData.session.user.email,
+                  expiresAt: refreshData.session.expires_at,
+                  timestamp: Date.now()
+                }));
+              }
             }
           } else if (timeUntilExpiry < 1200) { // 20분 이내면 경고
             console.log('⚠️ 토큰 만료 20분 전 - 곧 갱신 예정');
@@ -893,9 +922,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       console.log('👀 탭 포커스 - 토큰 상태 즉시 확인');
       
-      // 먼저 localStorage에서 세션 복구 시도
+      // 먼저 localStorage에서 세션 복구 시도 (사용자별)
       try {
-        const storedSession = localStorage.getItem('sb-auth-token');
+        const currentUserEmail = localStorage.getItem('current-user-email');
+        const tokenKey = currentUserEmail ? `sb-auth-token-${currentUserEmail}` : 'sb-auth-token';
+        const storedSession = localStorage.getItem(tokenKey);
         if (storedSession) {
           const { access_token, refresh_token } = JSON.parse(storedSession);
           console.log('🔄 포커스 시 localStorage 세션 복구 시도...');
@@ -910,11 +941,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setSession(data.session);
             await refreshUser();
             
-            // 복구된 세션 다시 저장
-            localStorage.setItem('sb-auth-token', JSON.stringify({
-              access_token: data.session.access_token,
-              refresh_token: data.session.refresh_token
-            }));
+            // 복구된 세션 다시 저장 (사용자별)
+            const userEmail = data.session.user?.email;
+            if (userEmail) {
+              const tokenKey = `sb-auth-token-${userEmail}`;
+              localStorage.setItem(tokenKey, JSON.stringify({
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token
+              }));
+            }
             return;
           } else if (error) {
             console.log('⚠️ localStorage 세션 만료, 새로 갱신 시도...');
@@ -949,8 +984,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Pull-to-refresh 감지 (새로고침이지만 persisted가 아닌 경우)
         console.log('📱 Pull-to-refresh 감지 - Progressive Authentication 시작');
         
-        // Pull-to-refresh에서 Progressive Authentication 적용
-        const storedSession = localStorage.getItem('sb-auth-token');
+        // Pull-to-refresh에서 Progressive Authentication 적용 (사용자별)
+        const currentUserEmail = localStorage.getItem('current-user-email');
+        const tokenKey = currentUserEmail ? `sb-auth-token-${currentUserEmail}` : 'sb-auth-token';
+        const storedSession = localStorage.getItem(tokenKey);
         if (storedSession) {
           try {
             const { access_token, refresh_token } = JSON.parse(storedSession);
