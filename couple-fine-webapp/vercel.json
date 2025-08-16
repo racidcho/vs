@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "buildCommand": "cd couple-fine-webapp && npm run build",
+  "outputDirectory": "couple-fine-webapp/dist",
   "framework": "vite",
   "rewrites": [
     {

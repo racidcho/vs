@@ -1,0 +1,11 @@
+{
+  "name": "couple-fine-webapp-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install": "cd couple-fine-webapp && npm install",
+    "build": "cd couple-fine-webapp && npm run build",
+    "dev": "cd couple-fine-webapp && npm run dev",
+    "preview": "cd couple-fine-webapp && npm run preview"
+  }
+}
