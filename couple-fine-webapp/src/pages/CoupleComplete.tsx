@@ -13,12 +13,22 @@ export const CoupleComplete: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(user);
 
-  // 축하 페이지 본 기록 저장
+  // 축하 페이지 본 기록 저장 (Dashboard와 동일한 키 사용)
   useEffect(() => {
-    if (user && state.couple) {
-      const celebrationKey = `couple_celebrated_${user.id}_${state.couple.id}`;
+    if (user && user.id !== 'session-recovering' && state.couple) {
+      const couple = state.couple as any;
+      
+      // Dashboard와 동일한 localStorage 키 생성 방식
+      const celebrationKey = couple?.couple_code 
+        ? `couple_celebrated_${couple.couple_code}_${user.id}`
+        : `couple_celebrated_${user.id}_${couple.id}`;
+        
       localStorage.setItem(celebrationKey, 'true');
-      console.log('✅ CoupleComplete: 축하 페이지 방문 기록 저장됨');
+      console.log('✅ CoupleComplete: 축하 페이지 방문 기록 저장됨', {
+        celebrationKey,
+        userId: user.id,
+        coupleCode: couple?.couple_code
+      });
     }
   }, [user, state.couple]);
 
@@ -133,11 +143,53 @@ export const CoupleComplete: React.FC = () => {
     console.log('현재 user.couple_id:', user?.couple_id);
     console.log('현재 state.couple:', state.couple);
     
-    // couple_id가 없으면 refreshUser 한 번 더 시도
-    if (!user?.couple_id) {
-      console.log('⚠️ couple_id가 없음, refreshUser 시도');
-      await refreshUser();
-      await new Promise(resolve => setTimeout(resolve, 500));
+    // 세션 안정성 체크 및 안전한 홈 이동
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      // 임시 사용자 상태 체크 (Progressive Authentication)
+      if (user?.id === 'session-recovering') {
+        console.log('⏳ 세션 복구 중... 잠시 대기');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        retryCount++;
+        continue;
+      }
+      
+      // couple_id가 없으면 refreshUser 시도
+      if (!user?.couple_id && user?.id !== 'session-recovering') {
+        console.log(`⚠️ couple_id가 없음, refreshUser 시도 (${retryCount + 1}/${maxRetries})`);
+        try {
+          await refreshUser();
+          // refreshUser 후 실제 데이터 로드까지 충분히 대기
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // 사용자 상태 다시 확인
+          if (user?.couple_id || retryCount === maxRetries - 1) {
+            break; // 성공하거나 마지막 시도면 루프 종료
+          }
+        } catch (error) {
+          console.error('❌ refreshUser 실패:', error);
+        }
+      } else {
+        // couple_id가 있으면 바로 진행
+        break;
+      }
+      
+      retryCount++;
+    }
+    
+    // 최종 상태 로그
+    console.log('🎯 최종 상태:', {
+      userId: user?.id,
+      coupleId: user?.couple_id,
+      retryCount,
+      isRecovering: user?.id === 'session-recovering'
+    });
+    
+    // 세션이 여전히 불안정하면 경고 후 이동
+    if (user?.id === 'session-recovering' || !user?.couple_id) {
+      console.log('⚠️ 세션이 불안정하지만 홈으로 이동 - Dashboard에서 재시도');
     }
     
     // 홈으로 이동

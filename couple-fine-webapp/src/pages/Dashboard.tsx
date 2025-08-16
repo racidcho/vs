@@ -77,44 +77,68 @@ export const Dashboard: React.FC = () => {
   const [editAmount, setEditAmount] = useState<number>(0);
   const [editMemo, setEditMemo] = useState<string>('');
 
-  // 축하 페이지 본 적 있는지 체크 및 리다이렉트
+  // 축하 페이지 본 적 있는지 체크 및 리다이렉트 (안정성 강화)
   useEffect(() => {
     const checkCelebration = () => {
-      if (user && state.couple) {
-        const celebrationKey = `couple_celebrated_${user.id}_${state.couple.id}`;
-        const hasCelebrated = localStorage.getItem(celebrationKey);
+      // 임시 세션 상태이면 체크 건너뛰기 (Progressive Authentication)
+      if (!user || user.id === 'session-recovering' || !state.couple) {
+        console.log('⏳ Dashboard: 세션 복구 중이거나 데이터 없음 - 축하 페이지 체크 건너뛰기');
+        return;
+      }
+      
+      // 사용자 데이터가 완전히 로드되지 않았으면 체크 건너뛰기
+      if (!user.id || user.id.length < 10) {
+        console.log('⚠️ Dashboard: 사용자 ID가 불완전 - 축하 페이지 체크 건너뛰기');
+        return;
+      }
+      
+      const couple = state.couple as any;
+      
+      // 더 안정적인 localStorage 키 생성 (커플 코드 기반)
+      const celebrationKey = couple?.couple_code 
+        ? `couple_celebrated_${couple.couple_code}_${user.id}`
+        : `couple_celebrated_${user.id}_${couple?.id}`;
         
-        // 커플이 존재하고 두 파트너 모두 이름이 설정되어 있는지 확인
-        const couple = state.couple as any;
-        // 단순하게 커플이 완성되었는지만 체크 (두 파트너 모두 존재)
-        const coupleIsComplete = couple?.partner_1_id && couple?.partner_2_id;
+      const hasCelebrated = localStorage.getItem(celebrationKey);
+      
+      // 커플이 완성되었는지 체크 (두 파트너 모두 존재)
+      const coupleIsComplete = couple?.partner_1_id && couple?.partner_2_id;
+      
+      console.log('🎊 Dashboard: 커플 상태 체크', {
+        userId: user.id,
+        coupleId: couple?.id,
+        coupleCode: couple?.couple_code,
+        partner1: couple?.partner_1_id,
+        partner2: couple?.partner_2_id,
+        isComplete: coupleIsComplete,
+        hasCelebrated,
+        celebrationKey
+      });
+      
+      // 이미 축하 페이지를 본 경우에는 리다이렉트하지 않음
+      if (hasCelebrated === 'true') {
+        console.log('✅ Dashboard: 이미 축하 페이지를 봤음 - 리다이렉트 없음');
+        return;
+      }
+      
+      // 커플이 완성되었고 축하 페이지를 본 적이 없으면 리다이렉트
+      if (coupleIsComplete && !hasCelebrated) {
+        console.log('🎉 Dashboard: 커플 완성! 축하 페이지로 이동');
         
-        console.log('🎊 Dashboard: 커플 상태 체크', {
-          coupleId: couple?.id,
-          partner1: couple?.partner_1_id,
-          partner2: couple?.partner_2_id,
-          isComplete: coupleIsComplete,
-          hasCelebrated
-        });
+        // localStorage에 미리 저장하여 중복 리다이렉트 방지
+        localStorage.setItem(celebrationKey, 'pending');
         
-        // 이미 축하 페이지를 본 경우에는 리다이렉트하지 않음
-        if (hasCelebrated === 'true') {
-          // 이미 축하 페이지를 본 경우
-          return;
-        }
-        
-        // 커플이 완성되었고 축하 페이지를 본 적이 없으면 리다이렉트
-        if (coupleIsComplete && !hasCelebrated) {
-          console.log('🎉 Dashboard: 커플 완성! 축하 페이지로 이동');
-          // 축하 페이지로 리다이렉트
-          // localStorage에 미리 저장하여 중복 리다이렉트 방지
-          localStorage.setItem(celebrationKey, 'pending');
+        // 안전한 리다이렉트를 위해 약간의 지연
+        setTimeout(() => {
           navigate('/couple-complete');
-        }
+        }, 100);
       }
     };
 
-    checkCelebration();
+    // 컴포넌트 마운트 후 약간의 지연을 두고 실행 (세션 안정화 대기)
+    const checkTimer = setTimeout(checkCelebration, 500);
+    
+    return () => clearTimeout(checkTimer);
   }, [user, state.couple, navigate]);
 
   // Load real dashboard data with cleanup and abort controller

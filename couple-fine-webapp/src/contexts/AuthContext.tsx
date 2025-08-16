@@ -59,6 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDebugMode] = useState(() => isTestMode());
   const [isAuthenticating, setIsAuthenticating] = useState(false); // 로그인 중 플래그
+  const [isRefreshingSession, setIsRefreshingSession] = useState(false); // 토큰 갱신 중 플래그 (전역 관리)
 
   const refreshUser = async () => {
 
@@ -782,8 +783,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     );
 
-    // JWT 토큰 만료 시간 추적 및 자동 갱신
-    const checkAndRefreshToken = async () => {
+    // JWT 토큰 만료 시간 추적 및 자동 갱신 (강화된 버전)
+    const checkAndRefreshToken = async (retryCount = 0) => {
       if (!mounted || isRefreshingSession) return; // 갱신 중이면 스킵
       
       try {
@@ -802,32 +803,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           console.log(`⏰ 토큰 만료까지 ${Math.floor(timeUntilExpiry / 60)}분 남음`);
           
-          // 토큰이 5분 이내에 만료되면 즉시 갱신
-          if (timeUntilExpiry < 300) { // 5분 = 300초
+          // 토큰이 15분 이내에 만료되면 즉시 갱신 (더 여유있게)
+          if (timeUntilExpiry < 900) { // 15분 = 900초
             console.log('🔄 토큰 만료 임박 - 즉시 갱신 시작!');
-            isRefreshingSession = true; // 갱신 시작 플래그 설정
+            setIsRefreshingSession(true); // 전역 state로 갱신 시작
+            
             const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
             
             if (refreshError) {
               console.error('❌ 토큰 갱신 실패:', refreshError.message);
-              isRefreshingSession = false; // 갱신 실패 시 플래그 해제
-              // 갱신 실패 시 재시도
-              setTimeout(async () => {
-                if (!mounted) return;
-                console.log('🔁 토큰 갱신 재시도...');
-                isRefreshingSession = true; // 재시도 시 플래그 다시 설정
-                const { data: retryData } = await supabase.auth.refreshSession();
-                if (retryData?.session && mounted) {
-                  console.log('✅ 재시도 성공!');
-                  setSession(retryData.session);
-                  await refreshUser();
-                }
-                isRefreshingSession = false; // 재시도 완료 후 플래그 해제
-              }, 2000);
+              
+              // 최대 3회까지 재시도 (지수적 백오프)
+              if (retryCount < 3 && mounted) {
+                const delay = Math.min(2000 * Math.pow(2, retryCount), 10000); // 2초, 4초, 8초 최대 10초
+                console.log(`🔁 토큰 갱신 재시도 ${retryCount + 1}/3 (${delay}ms 후)...`);
+                
+                setTimeout(async () => {
+                  if (mounted) {
+                    setIsRefreshingSession(false); // 재시도 전 플래그 해제
+                    await checkAndRefreshToken(retryCount + 1);
+                  }
+                }, delay);
+                return; // 재시도 스케줄링 후 리턴
+              } else {
+                console.error('💥 토큰 갱신 최대 재시도 횟수 초과 - 세션 유지');
+                // 재시도 실패해도 즉시 로그아웃하지 않고 세션 유지
+              }
+              
+              setIsRefreshingSession(false);
             } else if (refreshData?.session) {
               console.log('✅ 토큰 갱신 성공! 새 만료 시간:', new Date(refreshData.session.expires_at! * 1000).toLocaleTimeString());
               setSession(refreshData.session);
-              isRefreshingSession = false; // 갱신 성공 시 플래그 해제
+              setIsRefreshingSession(false);
               
               // 갱신된 토큰을 localStorage에 저장
               localStorage.setItem('sb-auth-token', JSON.stringify({
@@ -843,32 +850,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 timestamp: Date.now()
               }));
             }
-          } else if (timeUntilExpiry < 600) { // 10분 이내면 경고
-            console.log('⚠️ 토큰 만료 10분 전 - 곧 갱신 예정');
+          } else if (timeUntilExpiry < 1200) { // 20분 이내면 경고
+            console.log('⚠️ 토큰 만료 20분 전 - 곧 갱신 예정');
           }
         } else {
-          // 세션이 없으면 복구 시도
+          // 세션이 없으면 복구 시도 (관대하게)
           console.log('🔍 세션 없음 - 복구 시도...');
-          isRefreshingSession = true; // 복구 시도 시 플래그 설정
-          const { data: refreshData } = await supabase.auth.refreshSession();
+          setIsRefreshingSession(true);
+          
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
           if (refreshData?.session && mounted) {
             console.log('✅ 세션 복구 성공!');
             setSession(refreshData.session);
             await refreshUser();
+          } else if (refreshError) {
+            console.log('⚠️ 세션 복구 실패, 세션 상태 유지:', refreshError.message);
+            // 복구 실패해도 즉시 로그아웃하지 않음
           }
-          isRefreshingSession = false; // 복구 완료 후 플래그 해제
+          setIsRefreshingSession(false);
         }
       } catch (err) {
         console.error('💥 토큰 관리 오류:', err);
-        isRefreshingSession = false; // 오류 발생 시에도 플래그 해제
+        setIsRefreshingSession(false);
       }
     };
     
     // 초기 토큰 체크
     setTimeout(checkAndRefreshToken, 5000);
     
-    // 3분마다 토큰 상태 체크 (JWT 만료 전에 미리 갱신)
-    const sessionRefreshInterval = setInterval(checkAndRefreshToken, 3 * 60 * 1000);
+    // 2분마다 토큰 상태 체크 (JWT 만료 전에 미리 갱신)
+    const sessionRefreshInterval = setInterval(checkAndRefreshToken, 2 * 60 * 1000);
 
     // 브라우저 탭이 포커스를 받을 때마다 토큰 상태 즉시 체크
     const handleFocus = async () => {
