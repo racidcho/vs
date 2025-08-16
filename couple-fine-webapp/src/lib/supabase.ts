@@ -3,11 +3,11 @@ import type { Database } from '../types/database';
 import { isTestMode } from '../utils/testHelper';
 
 const getSupabaseConfig = () => {
-  const envUrl = import.meta.env.VITE_SUPABASE_URL;
-  const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 
-                        import.meta.env.SUPABASE_SERVICE_ROLE_KEY ||
-                        import.meta.env.VITE_SUPABASE_SERVICE_KEY;
+  const envUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+  const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY?.trim() || 
+                        import.meta.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+                        import.meta.env.VITE_SUPABASE_SERVICE_KEY?.trim();
 
   const fallbackUrl = 'https://ywocrwjzjheupewfxssu.supabase.co';
   const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b2Nyd2p6amhldXBld2Z4c3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NDkyNzIsImV4cCI6MjA3MDEyNTI3Mn0.zLalJ0ECNVKmXRtSe8gmbwOWDrqAxvOP0oIn9jOhT9U';
@@ -54,20 +54,53 @@ const config = getSupabaseConfig();
 const finalUrl = config.url;
 const finalKey = config.key;
 
+// 사용자별 localStorage 래퍼 생성
+const createUserSpecificStorage = () => {
+  if (typeof window === 'undefined') return undefined;
+  
+  return {
+    getItem: (key: string) => {
+      const currentUserEmail = localStorage.getItem('current-user-email');
+      const userKey = currentUserEmail ? `${key}-${currentUserEmail}` : key;
+      return localStorage.getItem(userKey);
+    },
+    setItem: (key: string, value: string) => {
+      const currentUserEmail = localStorage.getItem('current-user-email');
+      const userKey = currentUserEmail ? `${key}-${currentUserEmail}` : key;
+      localStorage.setItem(userKey, value);
+    },
+    removeItem: (key: string) => {
+      const currentUserEmail = localStorage.getItem('current-user-email');
+      const userKey = currentUserEmail ? `${key}-${currentUserEmail}` : key;
+      localStorage.removeItem(userKey);
+    }
+  };
+};
+
 export const supabase = createClient<Database>(finalUrl, finalKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined
+    storage: createUserSpecificStorage()
   },
   realtime: {
     params: {
-      eventsPerSecond: 2
+      eventsPerSecond: 2,
+      log_level: 'info',
+      vsn: '1.0.0'
     },
     heartbeatIntervalMs: 30000,
     reconnectAfterMs: (tries: number) => Math.min(tries * 1000, 30000),
-    timeout: 20000
+    timeout: 20000,
+    transport: 'websocket',
+    logger: (kind: string, msg: string, data?: any) => {
+      if (kind === 'error') {
+        console.error('🔴 Realtime Error:', msg, data);
+      } else if (kind === 'warn') {
+        console.warn('🟡 Realtime Warning:', msg, data);
+      }
+    }
   },
   db: {
     schema: 'public'
