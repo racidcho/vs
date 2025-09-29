@@ -170,8 +170,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log('🔐 로그인 시도:', email);
 
+      // 스토리지 키가 올바르게 생성되도록 먼저 현재 사용자 이메일 저장
+      const trimmedEmail = email.trim();
+      localStorage.setItem('current-user-email', trimmedEmail);
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: trimmedEmail,
         password: password
       });
 
@@ -184,15 +188,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ 로그인 성공:', data.session.user.email);
         setSession(data.session);
         
-        // 현재 사용자 이메일 저장 (키 분리용)
-        localStorage.setItem('current-user-email', email.trim());
-        
         // 세션 토큰을 사용자별 localStorage에 저장
-        const tokenKey = `sb-auth-token-${email.trim()}`;
-        localStorage.setItem(tokenKey, JSON.stringify({
+        const tokenKey = `sb-auth-token-${trimmedEmail}`;
+        const tokenPayload = JSON.stringify({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
-        }));
+        });
+        localStorage.setItem(tokenKey, tokenPayload);
+        // 공유 키도 최신 상태로 유지하여 세션 복구가 끊기지 않도록 함
+        localStorage.setItem('sb-auth-token', tokenPayload);
 
         // 사용자 데이터 새로고침
         try {
@@ -218,9 +222,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       console.log('🎉 회원가입 시도:', email);
+      const trimmedEmail = email.trim();
+      localStorage.setItem('current-user-email', trimmedEmail);
 
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: trimmedEmail,
         password: password,
         options: {
           emailRedirectTo: `${window.location.origin}/`
@@ -236,15 +242,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ 회원가입 및 자동 로그인 성공!');
         setSession(data.session);
         
-        // 현재 사용자 이메일 저장 (키 분리용)
-        localStorage.setItem('current-user-email', email.trim());
-        
         // 세션 토큰을 사용자별 localStorage에 저장
-        const tokenKey = `sb-auth-token-${email.trim()}`;
-        localStorage.setItem(tokenKey, JSON.stringify({
+        const tokenKey = `sb-auth-token-${trimmedEmail}`;
+        const tokenPayload = JSON.stringify({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
-        }));
+        });
+        localStorage.setItem(tokenKey, tokenPayload);
+        localStorage.setItem('sb-auth-token', tokenPayload);
 
         // 사용자 데이터 새로고침
         try {
@@ -310,6 +315,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // 레거시 키들도 정리 (하위 호환성)
     localStorage.removeItem('sb-auth-token');
     localStorage.removeItem('lastValidSession');
+    localStorage.removeItem('current-user-email');
     
     // 로딩 상태 설정
     setIsLoading(true);

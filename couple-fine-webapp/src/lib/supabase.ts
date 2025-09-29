@@ -60,18 +60,32 @@ const createUserSpecificStorage = () => {
   return {
     getItem: (key: string) => {
       const currentUserEmail = localStorage.getItem('current-user-email');
-      const userKey = currentUserEmail ? `${key}-${currentUserEmail}` : key;
-      return localStorage.getItem(userKey);
+      if (currentUserEmail) {
+        const userKey = `${key}-${currentUserEmail}`;
+        const userValue = localStorage.getItem(userKey);
+        if (userValue !== null) {
+          return userValue;
+        }
+      }
+      // fallback to shared key for backward compatibility or first-time storage
+      return localStorage.getItem(key);
     },
     setItem: (key: string, value: string) => {
       const currentUserEmail = localStorage.getItem('current-user-email');
-      const userKey = currentUserEmail ? `${key}-${currentUserEmail}` : key;
-      localStorage.setItem(userKey, value);
+      if (currentUserEmail) {
+        const userKey = `${key}-${currentUserEmail}`;
+        localStorage.setItem(userKey, value);
+      }
+      // always write to base key to ensure Supabase can recover even before email is registered
+      localStorage.setItem(key, value);
     },
     removeItem: (key: string) => {
       const currentUserEmail = localStorage.getItem('current-user-email');
-      const userKey = currentUserEmail ? `${key}-${currentUserEmail}` : key;
-      localStorage.removeItem(userKey);
+      if (currentUserEmail) {
+        const userKey = `${key}-${currentUserEmail}`;
+        localStorage.removeItem(userKey);
+      }
+      localStorage.removeItem(key);
     }
   };
 };

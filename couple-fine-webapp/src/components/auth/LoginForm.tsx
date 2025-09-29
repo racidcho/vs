@@ -49,15 +49,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
       if (isSignUpMode) {
         // Sign up
         result = await signUp(email, password);
-        if (result.success) {
-          toast.success('🎉 회원가입 성공! 로그인되었어요');
-        }
       } else {
         // Sign in
         result = await signIn(email, password);
-        if (result.success) {
-          toast.success('🎉 로그인 성공!');
-        }
       }
 
       if (result.error) {
@@ -68,10 +62,21 @@ export const LoginForm: React.FC<LoginFormProps> = ({ className = '' }) => {
           toast.error('이미 가입된 이메일이에요');
         } else if (result.error.includes('Invalid login credentials')) {
           toast.error('이메일 또는 비밀번호가 올바르지 않아요');
+        } else if (result.error.includes('Email not confirmed')) {
+          toast.error('이메일 인증이 필요해요. 받은 편지를 확인해주세요.');
         } else {
           toast.error(result.error);
         }
       } else if (result.success) {
+        const defaultMessage = isSignUpMode ? '회원가입 성공! 로그인되었어요 🎉' : '로그인 성공! 🎉';
+        const successMessage = result.message || defaultMessage;
+        toast.success(successMessage);
+
+        // 이메일 인증이 필요한 경우에는 이동하지 않고 폼에 남겨둡니다.
+        if (isSignUpMode && successMessage.includes('이메일을 확인')) {
+          return;
+        }
+
         // Navigate to home
         const searchParams = location.search;
         navigate('/' + searchParams);
