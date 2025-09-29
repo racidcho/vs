@@ -1,5 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../types/database';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { isTestMode } from '../utils/testHelper';
 
 const getSupabaseConfig = () => {
@@ -77,7 +76,7 @@ const createUserSpecificStorage = () => {
   };
 };
 
-export const supabase = createClient<Database>(finalUrl, finalKey, {
+export const supabase: SupabaseClient = createClient(finalUrl, finalKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -93,7 +92,6 @@ export const supabase = createClient<Database>(finalUrl, finalKey, {
     heartbeatIntervalMs: 30000,
     reconnectAfterMs: (tries: number) => Math.min(tries * 1000, 30000),
     timeout: 20000,
-    transport: 'websocket',
     logger: (kind: string, msg: string, data?: any) => {
       if (kind === 'error') {
         console.error('🔴 Realtime Error:', msg, data);
