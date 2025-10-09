@@ -2,11 +2,17 @@
 // This allows testing without OTP authentication in development mode
 
 export const isTestMode = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get('test') === 'true';
 };
 
 export const getTestUser = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
   const urlParams = new URLSearchParams(window.location.search);
   const userId = urlParams.get('user');
   
@@ -32,7 +38,7 @@ export const getTestUser = () => {
 };
 
 export const showTestModeIndicator = () => {
-  if (!isTestMode()) return;
+  if (!isTestMode() || typeof document === 'undefined') return;
   
   // Create test mode indicator
   const indicator = document.createElement('div');
@@ -62,6 +68,11 @@ export const showTestModeIndicator = () => {
 export const quickTestLogin = async (supabase: any, userId: string) => {
   if (!isTestMode()) {
     console.error('Quick login only available in test mode');
+    return null;
+  }
+
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    console.error('Quick login requires a browser environment');
     return null;
   }
   

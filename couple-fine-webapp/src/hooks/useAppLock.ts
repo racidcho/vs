@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ensureSubtleCrypto } from '../utils/cryptoHelpers';
 
 interface AppLockState {
   isLocked: boolean;
@@ -15,14 +16,11 @@ const BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // SHA-256 hash function
 async function hashPin(pin: string): Promise<string> {
-  // Check if crypto.subtle is available (HTTPS or localhost)
-  if (!crypto?.subtle) {
-    throw new Error('Crypto API not available. Please use HTTPS.');
-  }
+  const subtle = ensureSubtleCrypto();
 
   const encoder = new TextEncoder();
   const data = encoder.encode(pin + 'couple-fine-salt'); // Add salt
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashBuffer = await subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }

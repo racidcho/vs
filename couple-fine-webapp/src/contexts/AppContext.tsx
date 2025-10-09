@@ -3,6 +3,7 @@ import type { AppState, Couple, Rule, Violation, Reward } from '../types';
 import { supabase } from '../lib/supabase';
 import { updateViolation as updateViolationApi, deleteViolation as deleteViolationApi } from '../lib/supabaseApi';
 import { useAuth } from './AuthContext';
+import { safeRandomUUID } from '../utils/cryptoHelpers';
 // Debug logging disabled in production
 const debugLog = (...args: any[]) => {}
 
@@ -1514,7 +1515,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         // 3. 기본 규칙들 생성
         const testRules = [
           {
-            id: crypto.randomUUID(),
+            id: safeRandomUUID(),
             title: '욕설 금지',
             category: 'word' as const,
             fine_amount: 10000,  // 10000원 (원 단위로 저장)
@@ -1525,7 +1526,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             updated_at: new Date().toISOString()
           },
           {
-            id: crypto.randomUUID(),
+            id: safeRandomUUID(),
             title: '데이트 약속 늦기',
             category: 'behavior' as const,
             fine_amount: 20000,  // 20000원 (원 단위로 저장)
@@ -1547,7 +1548,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         // 4. 샘플 벌금 기록들 생성
         const testViolations = [
           {
-            id: crypto.randomUUID(),
+            id: safeRandomUUID(),
             violator_user_id: realUserIds[0], // 실제 존재하는 사용자 ID
             rule_id: testRules[0].id,
             amount: 10000,  // 10000원 (원 단위로 저장)
@@ -1557,7 +1558,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             recorded_by_user_id: realUserIds[1] // 실제 존재하는 사용자 ID
           },
           {
-            id: crypto.randomUUID(),
+            id: safeRandomUUID(),
             violator_user_id: realUserIds[1], // 실제 존재하는 사용자 ID
             rule_id: testRules[1].id,
             amount: 20000,  // 20000원 (원 단위로 저장)
@@ -1578,7 +1579,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         // 5. 샘플 보상들 생성
         const testRewards = [
           {
-            id: crypto.randomUUID(),
+            id: safeRandomUUID(),
             title: '맛있는 저녁식사',
             target_amount: 50000,
             description: '좋은 레스토랑에서 저녁식사',
@@ -1588,7 +1589,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             created_at: new Date().toISOString()
           },
           {
-            id: crypto.randomUUID(),
+            id: safeRandomUUID(),
             title: '영화 데이트',
             target_amount: 30000,
             description: '함께 보고 싶던 영화 보기',
