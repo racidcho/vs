@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +22,12 @@ export const CoupleSetup: React.FC<CoupleSetupProps> = ({ previewMode = false })
   const [coupleCode, setCoupleCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const isPreview = previewMode || new URLSearchParams(location.search).get('preview') === 'true';
+
+  useEffect(() => {
+    if (!isPreview && user?.couple_id) {
+      navigate('/', { replace: true });
+    }
+  }, [isPreview, user?.couple_id, navigate]);
 
   const handleCreateCouple = async () => {
     if (isPreview) {
