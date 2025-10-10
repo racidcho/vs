@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Heart, Users, ArrowRight, Loader2, ArrowLeft, Mail } from 'lucide-react';
@@ -7,16 +7,28 @@ import toast from 'react-hot-toast';
 
 type Step = 'choose' | 'create' | 'join';
 
-export const CoupleSetup: React.FC = () => {
+type CoupleSetupProps = {
+  previewMode?: boolean;
+};
+
+
+export const CoupleSetup: React.FC<CoupleSetupProps> = ({ previewMode = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { createCouple, joinCouple } = useApp();
   const { user, refreshUser, signOut } = useAuth();
 
   const [step, setStep] = useState<Step>('choose');
   const [coupleCode, setCoupleCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const isPreview = previewMode || new URLSearchParams(location.search).get('preview') === 'true';
 
   const handleCreateCouple = async () => {
+    if (isPreview) {
+      toast('미리보기에서는 새로운 커플을 생성할 수 없어요. 🥰');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -45,6 +57,11 @@ export const CoupleSetup: React.FC = () => {
 
   const handleJoinCouple = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isPreview) {
+      toast('미리보기에서는 커플 참여를 체험만 할 수 있어요. 💖');
+      return;
+    }
 
     if (!coupleCode.trim()) {
       toast.error('커플 코드를 입력해주세요! 📝');
@@ -81,6 +98,11 @@ export const CoupleSetup: React.FC = () => {
     return (
       <div className="max-w-md mx-auto">
         <div className="card">
+          {isPreview && (
+            <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 border border-pink-100 text-center text-sm text-purple-600 font-medium">
+              미리보기 모드에서는 버튼이 비활성화돼요. ✨
+            </div>
+          )}
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-gradient-to-br from-primary-400 to-coral-400 rounded-full flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8 text-white" />
@@ -110,8 +132,8 @@ export const CoupleSetup: React.FC = () => {
 
               <button
                 onClick={handleCreateCouple}
-                disabled={isLoading}
-                className="btn-primary flex-1 flex items-center justify-center gap-2"
+                disabled={isLoading || isPreview}
+                className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -131,6 +153,11 @@ export const CoupleSetup: React.FC = () => {
     return (
       <div className="max-w-md mx-auto">
         <div className="card">
+          {isPreview && (
+            <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 border border-pink-100 text-center text-sm text-purple-600 font-medium">
+              미리보기 모드에서는 입력과 버튼이 비활성화돼요. ✨
+            </div>
+          )}
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-gradient-to-br from-primary-400 to-coral-400 rounded-full flex items-center justify-center mx-auto mb-4">
               <ArrowRight className="w-8 h-8 text-white" />
@@ -153,6 +180,7 @@ export const CoupleSetup: React.FC = () => {
                 className="input-field text-center text-lg font-mono tracking-wider"
                 maxLength={8}
                 autoComplete="off"
+                disabled={isPreview}
                 required
               />
             </div>
@@ -168,8 +196,8 @@ export const CoupleSetup: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={isLoading || !coupleCode.trim()}
-                className="btn-primary flex-1 flex items-center justify-center gap-2"
+                disabled={isLoading || !coupleCode.trim() || isPreview}
+                className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -188,6 +216,11 @@ export const CoupleSetup: React.FC = () => {
   return (
     <div className="max-w-md mx-auto">
       <div className="card">
+        {isPreview && (
+          <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 border border-pink-100 text-center text-sm text-purple-600 font-medium">
+            미리보기 모드예요. 실제 계정에는 변화가 없어요. 🌸
+          </div>
+        )}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-gradient-to-br from-pink-400 via-purple-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse shadow-lg">
             <Heart className="w-10 h-10 text-white" />
@@ -218,6 +251,9 @@ export const CoupleSetup: React.FC = () => {
                 <p className="text-sm text-gray-600">새로 시작하고 파트너를 초대하세요</p>
               </div>
               <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-pink-500 transition-colors" />
+              {isPreview && (
+                <span className="text-xs text-pink-500 font-medium">미리보기</span>
+              )}
             </div>
           </button>
 
@@ -234,6 +270,9 @@ export const CoupleSetup: React.FC = () => {
                 <p className="text-sm text-gray-600">파트너의 커플 코드를 입력하세요</p>
               </div>
               <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
+              {isPreview && (
+                <span className="text-xs text-purple-500 font-medium">미리보기</span>
+              )}
             </div>
           </button>
 

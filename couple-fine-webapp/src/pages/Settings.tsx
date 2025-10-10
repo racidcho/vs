@@ -13,6 +13,7 @@ import {
   Info,
   Heart,
   Settings as SettingsIcon,
+  Sparkles,
   Camera,
   Upload,
   Loader2
@@ -720,6 +721,21 @@ export const Settings: React.FC = () => {
               </span>
             </div>
 
+            <button
+              onClick={() => navigate('/couple-setup?preview=true')}
+              className="w-full p-3 bg-gradient-to-r from-pink-50 via-purple-50 to-indigo-50 text-gray-700 hover:from-pink-100 hover:via-purple-100 hover:to-indigo-100 rounded-xl transition-all flex items-center gap-3 justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-pink-500" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-gray-900">환영 페이지 다시 보기</p>
+                  <p className="text-xs text-gray-500">처음 연결 환영 화면을 미리보기로 감상해요</p>
+                </div>
+              </div>
+              <span className="text-sm font-medium text-purple-500">미리보기</span>
+            </button>
 
             {/* Leave Couple Button */}
             <div className="pt-2">

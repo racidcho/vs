@@ -49,6 +49,38 @@ const TEST_ACCOUNTS = {
 // 디버그 모드에서 사용할 실제 커플 ID
 const DEBUG_COUPLE_ID = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
+const getProfileCacheKey = (email: string) => `cached-profile-${email}`;
+
+const cacheUserProfile = (user: User | null) => {
+  if (typeof window === 'undefined' || !user?.email) return;
+  try {
+    localStorage.setItem(getProfileCacheKey(user.email), JSON.stringify(user));
+  } catch (error) {
+    console.warn('⚠️ 사용자 프로필 캐시 실패:', error);
+  }
+};
+
+const loadCachedUserProfile = (email?: string | null): User | null => {
+  if (typeof window === 'undefined' || !email) return null;
+  try {
+    const cached = localStorage.getItem(getProfileCacheKey(email));
+    if (!cached) return null;
+    return JSON.parse(cached) as User;
+  } catch (error) {
+    console.warn('⚠️ 사용자 프로필 캐시 로드 실패:', error);
+    return null;
+  }
+};
+
+const clearCachedUserProfile = (email?: string | null) => {
+  if (typeof window === 'undefined' || !email) return;
+  try {
+    localStorage.removeItem(getProfileCacheKey(email));
+  } catch (error) {
+    console.warn('⚠️ 사용자 프로필 캐시 정리 실패:', error);
+  }
+};
+
 interface AuthProviderProps {
   children: React.ReactNode;
 }
@@ -80,6 +112,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (!currentSession?.user) {
 
+      if (typeof window !== 'undefined') {
+        const lastEmail = localStorage.getItem('current-user-email');
+        clearCachedUserProfile(lastEmail);
+      }
       setUser(null);
       return;
     }
@@ -104,6 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (userData && !error) {
 
         setUser(userData);
+        cacheUserProfile(userData);
       } else if (error?.code === 'PGRST116') {
 
         // User doesn't exist in our profiles table, create them
@@ -124,6 +161,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (createdUser && !createError) {
 
           setUser(createdUser);
+          cacheUserProfile(createdUser);
         } else {
           // Even if database creation fails, set a minimal user object
           // This prevents the login loop
@@ -135,6 +173,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           };
 
           setUser(fallbackUser);
+          cacheUserProfile(fallbackUser);
         }
       } else {
         // Set fallback user to prevent login loop
@@ -146,6 +185,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
 
         setUser(fallbackUser);
+        cacheUserProfile(fallbackUser);
       }
     } catch (error) {
       // Even on error, if we have a session, set a minimal user
@@ -158,6 +198,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
 
         setUser(fallbackUser);
+        cacheUserProfile(fallbackUser);
       } else {
         setUser(null);
       }
@@ -311,6 +352,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const tokenKey = `sb-auth-token-${currentUserEmail}`;
       localStorage.removeItem(tokenKey);
       localStorage.removeItem(`lastValidSession-${currentUserEmail}`);
+      clearCachedUserProfile(currentUserEmail);
     }
     // 레거시 키들도 정리 (하위 호환성)
     localStorage.removeItem('sb-auth-token');
@@ -344,7 +386,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) throw new Error('No user found');
 
     // Immediately update local state for instant UI feedback
-    setUser(prev => prev ? { ...prev, ...updates } : prev);
+    setUser(prev => {
+      if (!prev) return prev;
+      const updatedUser = { ...prev, ...updates };
+      cacheUserProfile(updatedUser as User);
+      return updatedUser;
+    });
 
     const { error } = await supabase
       .from('profiles')
@@ -426,6 +473,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
 
       setUser(testUser);
+      cacheUserProfile(testUser);
       
       // 로컬스토리지에 디버그 플래그 설정
       localStorage.setItem('debugMode', 'true');
@@ -454,11 +502,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const tokenKey = currentUserEmail ? `sb-auth-token-${currentUserEmail}` : 'sb-auth-token';
     const storedTokens = localStorage.getItem(tokenKey);
     const hasValidTokens = !!storedTokens;
+    let restoredFromCache = false;
+
+    if (hasValidTokens && mounted && currentUserEmail) {
+      const cachedUser = loadCachedUserProfile(currentUserEmail);
+      if (cachedUser) {
+        console.log('✅ Progressive Authentication: 캐시된 사용자 즉시 로드');
+        setUser(cachedUser);
+        setIsLoading(false);
+        restoredFromCache = true;
+      }
+    }
     
     console.log(`🔍 Progressive Authentication: ${hasValidTokens ? '토큰 발견 ✅' : '토큰 없음 ❌'} (user: ${currentUserEmail || 'unknown'})`);
     
     // 토큰이 있으면 즉시 임시 사용자 상태 설정 (login redirect 방지)
-    if (hasValidTokens && mounted) {
+    if (hasValidTokens && mounted && !restoredFromCache) {
       try {
         const { access_token, refresh_token } = JSON.parse(storedTokens);
         if (access_token && refresh_token) {
@@ -532,9 +591,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             return true;
           } else if (error) {
             console.error('❌ Progressive Authentication: 세션 복구 실패 -', error.message);
-            // 토큰이 만료되었거나 invalid하면 임시 사용자 제거
-            if (mounted && user?.id === 'session-recovering') {
-              console.log('🧹 Progressive Authentication: 만료된 임시 사용자 정리');
+            if (mounted) {
+              console.log('🧹 Progressive Authentication: 세션 복구 실패로 캐시 정리');
+              clearCachedUserProfile(currentUserEmail);
               setUser(null);
               setSession(null);
             }
@@ -542,9 +601,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (error) {
         console.error('Progressive Authentication 세션 복구 실패:', error);
-        // 복구 실패 시 임시 사용자 정리
-        if (mounted && user?.id === 'session-recovering') {
-          console.log('🧹 Progressive Authentication: 복구 실패한 임시 사용자 정리');
+        // 복구 실패 시 캐시 및 임시 사용자 정리
+        if (mounted) {
+          console.log('🧹 Progressive Authentication: 복구 실패한 사용자 캐시 정리');
+          clearCachedUserProfile(currentUserEmail);
           setUser(null);
           setSession(null);
         }
@@ -585,6 +645,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           };
 
           setUser(mockUser);
+          cacheUserProfile(mockUser);
           setSession({
             access_token: 'test-token',
             refresh_token: 'test-refresh-token',
